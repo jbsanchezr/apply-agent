@@ -13,9 +13,9 @@ from email.utils import getaddresses, parsedate_to_datetime
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from apply_agent.domain import MessageCategory
+from apply_agent.evaluation.dataset import FixtureLabel, load_labels
 from tests.conftest import FIXTURES_DIR
 
 EMAILS_DIR = FIXTURES_DIR / "emails"
@@ -28,20 +28,8 @@ URL_HOST = re.compile(r"https?://([^/\s\"'<>:?]+)")
 MIN_PER_CATEGORY = 3
 
 
-class FixtureLabel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    file: str
-    category: MessageCategory
-    company: str | None
-    role: str | None
-    is_job_application: bool
-    notes: str
-
-
 def _labels() -> list[FixtureLabel]:
-    raw = (FIXTURES_DIR / "labels.json").read_bytes()
-    return TypeAdapter(list[FixtureLabel]).validate_json(raw)
+    return load_labels(FIXTURES_DIR)
 
 
 def _parse(path: Path) -> EmailMessage:

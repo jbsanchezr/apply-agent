@@ -203,3 +203,33 @@ the M3 notes.
 One JSON object per line, with `thread_id` and `message_id` as correlation
 ids on every per-message record. Logs never contain email bodies or subjects.
 No `structlog`: the stdlib covers it in about fifty lines.
+
+## D30 - Evaluate the agent, not a prompt (M4)
+`scripts/evaluate.py` runs the production graph (same tools, prompts,
+validation and step budget) over the fixtures, against a throwaway SQLite
+database. A bare "classify this text" prompt would score something the
+product never does. Get-thread calls, validation retries and failures are all
+part of what gets measured.
+
+## D31 - Metrics and how much to trust them (M4)
+Per class: precision, recall, F1 and support. Overall: accuracy with a 95%
+Wilson interval, and macro-F1. Extraction is scored separately: the
+job-application flag, and company and role matched after the same
+normalisation the database uses. A message the agent failed on is scored as
+its own `(failed)` label rather than dropped. With 26 examples the interval
+spans about 30 points, so a gap of a few points between two models means
+nothing. The corpus is meant to catch regressions and show failure modes, not
+to rank models finely.
+
+## D32 - Record once, replay for free (M4)
+`--record` stores every real model response in a JSON file, keyed by a hash of
+the full prompt and the model configuration. `--replay` serves only from that
+file and never calls the API. CI can therefore run the LLM eval on every push
+at no cost and with deterministic results. Any change to the prompt, the tools
+or the model misses the recording, and the script exits with code 2 ("stale
+recording, re-record") instead of silently calling a paid API.
+
+## D33 - The baseline's scores are pinned in a test (M4)
+The keyword baseline is deterministic, so its accuracy (19/26) is asserted
+exactly. An unintended change anywhere in the pipeline (parsing, rendering,
+the graph, the metrics) shows up as a failing test.

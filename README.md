@@ -22,6 +22,16 @@ uv run python -m apply_agent sync
 To classify with Claude, set `ANTHROPIC_API_KEY` and `APPLY_AGENT_LLM=anthropic`.
 All settings are listed in [.env.example](.env.example).
 
+## Evaluation
+
+```bash
+uv run python scripts/evaluate.py            # keyword baseline, no API key
+```
+
+This runs the full agent over the 26 labelled fixtures and prints per-class
+precision/recall, accuracy with a 95% confidence interval, a confusion matrix
+and the misclassified cases. Results so far are in [eval_results/](eval_results/).
+
 ## Development
 
 Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).

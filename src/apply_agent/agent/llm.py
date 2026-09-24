@@ -2,6 +2,7 @@
 
 from typing import Final, assert_never
 
+from langchain_core.caches import BaseCache
 from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables import Runnable
@@ -18,7 +19,10 @@ REQUEST_TIMEOUT_SECONDS: Final = 120.0
 REFUSAL_FALLBACK_BETA: Final = "server-side-fallback-2026-07-01"
 
 
-def make_chat_model(settings: Settings) -> Runnable[LanguageModelInput, BaseMessage]:
+def make_chat_model(
+    settings: Settings, *, cache: BaseCache | None = None
+) -> Runnable[LanguageModelInput, BaseMessage]:
+    """``cache`` lets the evaluation record and replay responses (see evaluation.replay)."""
     match settings.llm:
         case LlmKind.BASELINE:
             return KeywordBaselineModel().bind_tools(tool_definitions())
@@ -35,6 +39,7 @@ def make_chat_model(settings: Settings) -> Runnable[LanguageModelInput, BaseMess
                 max_retries=3,
                 betas=[REFUSAL_FALLBACK_BETA] if fallback else None,
                 model_kwargs={"fallbacks": "default"} if fallback else {},
+                cache=cache,
             )
             # One tool call per turn keeps the loop simple: think, act, observe.
             return model.bind_tools(tool_definitions(), parallel_tool_calls=False)
