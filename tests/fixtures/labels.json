@@ -1,0 +1,163 @@
+[
+  {
+    "file": "01-brightloom.eml",
+    "category": "other",
+    "company": "Brightloom",
+    "role": "Machine Learning Engineer",
+    "notes": "Automated acknowledgement. Job-related but changes nothing."
+  },
+  {
+    "file": "02-brightloom.eml",
+    "category": "interview_invitation",
+    "company": "Brightloom",
+    "role": "Machine Learning Engineer",
+    "notes": "Same thread as 01; recruiter proposes a first call."
+  },
+  {
+    "file": "03-brightloom.eml",
+    "category": "rejection",
+    "company": "Brightloom",
+    "role": "Machine Learning Engineer",
+    "notes": "Tricky: warm, complimentary tone; the rejection is one clause in the middle."
+  },
+  {
+    "file": "04-kestrel.eml",
+    "category": "information_request",
+    "company": "Kestrel Robotics",
+    "role": "Backend Engineer, Platform",
+    "notes": "Asks for salary, notice period and sponsorship before proceeding."
+  },
+  {
+    "file": "05-kestrel.eml",
+    "category": "interview_invitation",
+    "company": "Kestrel Robotics",
+    "role": "Backend Engineer, Platform",
+    "notes": "Follow-up in the same thread as 04."
+  },
+  {
+    "file": "06-halcyon.eml",
+    "category": "rejection",
+    "company": "Halcyon Health",
+    "role": "MLOps Engineer",
+    "notes": "Plain, unambiguous ATS rejection."
+  },
+  {
+    "file": "07-quillon.eml",
+    "category": "rejection",
+    "company": "Quillon Data",
+    "role": "AI Engineer",
+    "notes": "Tricky: Spanish-language rejection, quoted-printable body."
+  },
+  {
+    "file": "08-parallax.eml",
+    "category": "rejection",
+    "company": "Parallax Payments",
+    "role": "Senior Software Engineer (Java)",
+    "notes": "Tricky: no 'not selected' wording - the requisition was closed. Still a rejection."
+  },
+  {
+    "file": "09-tidewater.eml",
+    "category": "rejection",
+    "company": "Tidewater Logistics",
+    "role": "Data Engineer",
+    "notes": "Tricky: HTML-only body, no text/plain part."
+  },
+  {
+    "file": "10-mirabel.eml",
+    "category": "rejection",
+    "company": "Mirabel Labs",
+    "role": "AI Engineer",
+    "notes": "Tricky: rejection bundled with an encouraging pointer to other roles."
+  },
+  {
+    "file": "11-orbitra.eml",
+    "category": "interview_invitation",
+    "company": "Orbitra",
+    "role": "Applied Scientist, LLMs",
+    "notes": "Tricky: sent by a third-party assessment platform; a take-home counts as a stage."
+  },
+  {
+    "file": "12-harbor.eml",
+    "category": "interview_invitation",
+    "company": "Lumen & Vale",
+    "role": "ML Platform Engineer",
+    "notes": "Tricky: agency recruiter; the company is the client (Lumen & Vale), not the agency."
+  },
+  {
+    "file": "13-cinderpeak.eml",
+    "category": "interview_invitation",
+    "company": "Cinderpeak Games",
+    "role": "Backend Engineer",
+    "notes": "Tricky: automated confirmation of an interview the candidate booked themselves."
+  },
+  {
+    "file": "14-glasswing.eml",
+    "category": "interview_invitation",
+    "company": "Glasswing Security",
+    "role": "Software Engineer, Detection Platform",
+    "notes": "Tricky: phrased as a request for information (availability), but the intent is scheduling the next interview stage."
+  },
+  {
+    "file": "15-veridian.eml",
+    "category": "information_request",
+    "company": "Veridian Bank",
+    "role": "ML Engineer, Fraud",
+    "notes": "Asks for documents via a portal with a deadline."
+  },
+  {
+    "file": "16-northbeam.eml",
+    "category": "information_request",
+    "company": "Northbeam Energy",
+    "role": "Python Developer",
+    "notes": "Tricky: automated ATS message that looks like boilerplate but asks for answers."
+  },
+  {
+    "file": "17-cobalt.eml",
+    "category": "information_request",
+    "company": "Cobalt Mobility",
+    "role": "Senior Backend Engineer",
+    "notes": "Recruiter asks for references and portfolio before deciding."
+  },
+  {
+    "file": "18-solstice.eml",
+    "category": "other",
+    "company": "Solstice Bio",
+    "role": "Data Scientist",
+    "notes": "Tricky: status update that says nothing has changed."
+  },
+  {
+    "file": "19-jobpulse-viewed.eml",
+    "category": "other",
+    "company": "Halcyon Health",
+    "role": "MLOps Engineer",
+    "notes": "Tricky: job-board notification about a real application; no status change."
+  },
+  {
+    "file": "20-jobpulse-alert.eml",
+    "category": "other",
+    "company": null,
+    "role": null,
+    "notes": "Tricky noise: job alert full of trigger words ('interview', 'offer')."
+  },
+  {
+    "file": "21-cold-outreach.eml",
+    "category": "other",
+    "company": null,
+    "role": null,
+    "notes": "Tricky noise: recruiter outreach proposing a chat; not a reply to an application."
+  },
+  {
+    "file": "22-cloudnest-newsletter.eml",
+    "category": "other",
+    "company": null,
+    "role": null,
+    "notes": "Tricky noise: rejection-like wording ('we regret to inform you') from a SaaS vendor."
+  },
+  {
+    "file": "23-friend-mock-interview.eml",
+    "category": "other",
+    "company": null,
+    "role": null,
+    "notes": "Tricky noise: personal email proposing a mock interview."
+  }
+]
