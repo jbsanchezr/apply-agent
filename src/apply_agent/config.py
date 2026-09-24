@@ -26,6 +26,7 @@ class ProviderKind(StrEnum):
 
 class LlmKind(StrEnum):
     BASELINE = "baseline"
+    OLLAMA = "ollama"
     ANTHROPIC = "anthropic"
 
 
@@ -46,8 +47,14 @@ class Settings(BaseModel):
     gmail_token_path: UserPath = _CONFIG_HOME / "gmail_token.json"
     gmail_client_secrets_path: UserPath = _CONFIG_HOME / "client_secret.json"
 
-    # The keyword baseline needs no credentials; "anthropic" reads ANTHROPIC_API_KEY.
+    # "baseline" needs nothing; "ollama" needs a local Ollama server; "anthropic"
+    # reads ANTHROPIC_API_KEY.
     llm: LlmKind = LlmKind.BASELINE
+    ollama_model: str = "qwen3:8b"
+    ollama_base_url: str = "http://localhost:11434"
+    # Ollama's default context window is too small for the system prompt plus
+    # an email plus its thread; a truncated prompt fails silently.
+    ollama_num_ctx: int = Field(default=8_192, ge=2_048)
     anthropic_model: str = "claude-opus-5"
     anthropic_effort: Effort = Effort.LOW
     anthropic_refusal_fallback: bool = True

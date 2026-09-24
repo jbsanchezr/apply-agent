@@ -233,3 +233,14 @@ recording, re-record") instead of silently calling a paid API.
 The keyword baseline is deterministic, so its accuracy (19/26) is asserted
 exactly. An unintended change anywhere in the pipeline (parsing, rendering,
 the graph, the metrics) shows up as a failing test.
+
+## D34 - A local model through Ollama is the free LLM option (M4)
+The project must be runnable and evaluable without paying for an API.
+`APPLY_AGENT_LLM=ollama` runs an open-weight model locally (default
+`qwen3:8b`, which fits a 6 GB laptop GPU at 4-bit and supports tool calling).
+It also has a privacy property the hosted options lack: a real inbox's content
+never leaves the machine. Decoding is deterministic (temperature 0, fixed
+seed), so evaluations and recordings are reproducible. The context window is
+set explicitly to 8k tokens, because Ollama's default silently truncates the
+system prompt, email and thread. Anthropic stays available as a configuration
+switch, with no code change needed to compare the two.

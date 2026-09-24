@@ -3,6 +3,7 @@
 Examples::
 
     uv run python scripts/evaluate.py                         # keyword baseline, free
+    uv run python scripts/evaluate.py --llm ollama            # local model, free
     uv run python scripts/evaluate.py --llm anthropic \\
         --record eval_results/recordings/claude-opus-5.json   # live, records responses
     uv run python scripts/evaluate.py --llm anthropic \\
@@ -24,12 +25,13 @@ from apply_agent.evaluation.run import evaluate
 
 EXIT_BELOW_THRESHOLD = 1
 EXIT_STALE_RECORDING = 2
+EXIT_MODEL_UNAVAILABLE = 3
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Evaluate the agent on the labelled fixtures.")
     parser.add_argument("--llm", type=LlmKind, choices=list(LlmKind))
-    parser.add_argument("--model", help="Anthropic model id (default from settings).")
+    parser.add_argument("--model", help="Model id for the chosen --llm (default from settings).")
     parser.add_argument("--effort", type=Effort, choices=list(Effort))
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--record", type=Path, help="Call the model and store its responses here.")
@@ -42,22 +44,20 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    overrides = {
-        key: value
-        for key, value in {
-            "llm": args.llm,
-            "anthropic_model": args.model,
-            "anthropic_effort": args.effort,
-        }.items()
-        if value is not None
-    }
-    settings = Settings.from_env().model_copy(update=overrides)
+    settings = Settings.from_env()
+    if args.llm is not None:
+        settings = settings.model_copy(update={"llm": args.llm})
+    model_field = "ollama_model" if settings.llm is LlmKind.OLLAMA else "anthropic_model"
+    overrides = {model_field: args.model, "anthropic_effort": args.effort}
+    settings = settings.model_copy(update={k: v for k, v in overrides.items() if v is not None})
     recording = args.record or args.replay
     cache = RecordingCache(recording, replay_only=args.replay is not None) if recording else None
 
-    name = "keyword baseline"
-    if settings.llm is LlmKind.ANTHROPIC:
-        name = f"{settings.anthropic_model} (effort {settings.anthropic_effort.value})"
+    name = {
+        LlmKind.BASELINE: "keyword baseline",
+        LlmKind.OLLAMA: f"{settings.ollama_model} (Ollama, local)",
+        LlmKind.ANTHROPIC: f"{settings.anthropic_model} (effort {settings.anthropic_effort.value})",
+    }[settings.llm]
     result = evaluate(
         make_chat_model(settings, cache=cache),
         model_name=name,
@@ -71,6 +71,14 @@ def main(argv: list[str] | None = None) -> int:
             "Re-record it with --record and a live API key.\n"
         )
         return EXIT_STALE_RECORDING
+
+    if result.failures and len(result.failures) == len(result.messages):
+        sys.stderr.write(
+            f"Every message failed ({result.failures[0].get('reason')}). Is the model "
+            f"reachable? For Ollama: is the server running and '{settings.ollama_model}' "
+            "pulled?\n"
+        )
+        return EXIT_MODEL_UNAVAILABLE
 
     sys.stdout.write(format_report(result) + "\n")
     if args.output:

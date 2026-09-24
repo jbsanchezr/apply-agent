@@ -4,7 +4,12 @@ from pathlib import Path
 import pytest
 
 from apply_agent.agent.baseline import KeywordBaselineModel
-from apply_agent.evaluation.cli import EXIT_BELOW_THRESHOLD, EXIT_STALE_RECORDING, main
+from apply_agent.evaluation.cli import (
+    EXIT_BELOW_THRESHOLD,
+    EXIT_MODEL_UNAVAILABLE,
+    EXIT_STALE_RECORDING,
+    main,
+)
 from apply_agent.evaluation.dataset import load_dataset
 from apply_agent.evaluation.metrics import FAILED
 from apply_agent.evaluation.report import format_report
@@ -51,3 +56,14 @@ def test_cli_reports_a_stale_recording(
 
     assert main(["--llm", "anthropic", "--replay", str(empty)]) == EXIT_STALE_RECORDING
     assert "stale" in capsys.readouterr().err
+
+
+def test_cli_explains_an_unreachable_model(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # A model whose server is down: every call raises, without touching the network.
+    down = ScriptedChatModel(script=[ConnectionError("refused")] * 30)
+    monkeypatch.setattr("apply_agent.evaluation.cli.make_chat_model", lambda *a, **k: down)
+
+    assert main(["--llm", "ollama"]) == EXIT_MODEL_UNAVAILABLE
+    assert "Is the model reachable?" in capsys.readouterr().err

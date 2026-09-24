@@ -93,3 +93,12 @@ def test_cli_sync_runs_on_fixtures_and_is_idempotent(
 
     assert first["processed"] == len(FIXTURES) == first["recorded"]
     assert second["processed"] == 0
+
+
+def test_ollama_model_is_local_deterministic_and_has_room_for_the_prompt() -> None:
+    model = make_chat_model(Settings.from_env({"APPLY_AGENT_LLM": "ollama"}))
+    bound, kwargs = model.bound, model.kwargs  # type: ignore[attr-defined]
+    assert bound.model == "qwen3:8b"
+    assert bound.base_url == "http://localhost:11434"
+    assert (bound.temperature, bound.seed, bound.num_ctx) == (0, 0, 8_192)
+    assert [t["function"]["name"] for t in kwargs["tools"]] == ["get_thread", "upsert_application"]

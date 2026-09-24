@@ -26,6 +26,20 @@ def make_chat_model(
     match settings.llm:
         case LlmKind.BASELINE:
             return KeywordBaselineModel().bind_tools(tool_definitions())
+        case LlmKind.OLLAMA:
+            from langchain_ollama import ChatOllama
+
+            local = ChatOllama(
+                model=settings.ollama_model,
+                base_url=settings.ollama_base_url,
+                num_ctx=settings.ollama_num_ctx,
+                # Deterministic decoding: the same email gets the same answer, which
+                # keeps evaluations and recordings reproducible.
+                temperature=0,
+                seed=0,
+                cache=cache,
+            )
+            return local.bind_tools(tool_definitions())
         case LlmKind.ANTHROPIC:
             # Imported lazily so the default path never needs the Anthropic SDK configured.
             from langchain_anthropic import ChatAnthropic

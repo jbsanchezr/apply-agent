@@ -19,13 +19,17 @@ uv sync
 uv run python -m apply_agent sync
 ```
 
-To classify with Claude, set `ANTHROPIC_API_KEY` and `APPLY_AGENT_LLM=anthropic`.
+To classify with a free local LLM, install [Ollama](https://ollama.com), run
+`ollama pull qwen3:8b`, and set `APPLY_AGENT_LLM=ollama`. Email content never
+leaves your machine. To use Claude instead, set `ANTHROPIC_API_KEY` and
+`APPLY_AGENT_LLM=anthropic`.
 All settings are listed in [.env.example](.env.example).
 
 ## Evaluation
 
 ```bash
-uv run python scripts/evaluate.py            # keyword baseline, no API key
+uv run python scripts/evaluate.py              # keyword baseline, no API key
+uv run python scripts/evaluate.py --llm ollama # local model, free
 ```
 
 This runs the full agent over the 26 labelled fixtures and prints per-class
