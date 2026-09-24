@@ -75,7 +75,8 @@ def main(argv: list[str] | None = None) -> int:
     sys.stdout.write(format_report(result) + "\n")
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(asdict(result), indent=2) + "\n", encoding="utf-8")
+        text = json.dumps(asdict(result), indent=2) + "\n"
+        args.output.write_text(text, encoding="utf-8", newline="\n")
     if args.min_accuracy is not None and result.category.accuracy < args.min_accuracy:
         return EXIT_BELOW_THRESHOLD
     return 0
