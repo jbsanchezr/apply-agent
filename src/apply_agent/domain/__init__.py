@@ -1,5 +1,6 @@
 """Pure domain layer: no I/O, no framework imports beyond Pydantic."""
 
+from apply_agent.domain.assessment import MessageAssessment
 from apply_agent.domain.enums import ApplicationStatus, MessageCategory
 from apply_agent.domain.keys import company_key, role_key
 from apply_agent.domain.models import Application, Event, Message
@@ -10,6 +11,7 @@ __all__ = [
     "ApplicationStatus",
     "Event",
     "Message",
+    "MessageAssessment",
     "MessageCategory",
     "company_key",
     "derive_status",

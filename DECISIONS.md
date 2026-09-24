@@ -146,3 +146,60 @@ never blocks waiting for a login.
 `pydantic-settings` would be one more dependency for about fifteen lines of
 code. Settings come from `APPLY_AGENT_*` variables, and an unknown
 `APPLY_AGENT_*` variable is an error, so typos fail at startup.
+
+## D22 - One graph, one short conversation per message (M3)
+`fetch -> next_message -> call_model <-> run_tools`, looping until the queue is
+empty. Each message gets a fresh conversation (system prompt plus that one
+email) and a step budget (`max_agent_steps`, default 4). A shared, growing
+conversation over a whole inbox would cost more per message as the sync went
+on, and one confusing email could derail the rest.
+
+## D23 - The graph calls `list_new_messages`; the model gets two tools (M3)
+All three tools live in `Toolbox`. Choosing what to read needs no judgement,
+so the graph calls `list_new_messages` itself, which keeps a sync's cost
+predictable. The model is offered `get_thread` and `upsert_application`, and
+both act on the message being processed, which the graph supplies. The model
+cannot name another thread or message, so a prompt-injected email can at worst
+get itself misclassified.
+
+## D24 - Structured output is the `upsert_application` tool call (M3)
+The model's only way to produce a result is a tool call whose arguments must
+validate as `MessageAssessment` (extra fields forbidden, and the same
+consistency rules the fixture labels follow). A validation error goes back as
+a tool error naming the fields, so the model can correct itself within its
+step budget. Anthropic's strict tool mode is not enabled yet: it could not be
+verified without an API key, and the schema's length limits may not be
+supported by it. Revisit with M4 data on how often validation fails.
+
+## D25 - Failure semantics: skip, don't record, retry next sync (M3)
+A model error, a refusal, or no valid result within the step budget fails
+that message only. It is logged and reported, but not written to `events`, so
+the next sync picks it up again. A refusal is not retried within the run.
+Known gap: a message that always fails is retried, and paid for, on every
+sync. A dead-letter table after N attempts is the next step.
+
+## D26 - Default model: `claude-opus-5`, low effort, refusal fallback on (M3)
+The model is configurable (`APPLY_AGENT_ANTHROPIC_MODEL`). The default is the
+most capable general model. Effort is `low`, because classifying one short
+email doesn't benefit from long reasoning. Thinking stays adaptive. Parallel
+tool calls are off, so the loop is strictly think, act, observe. The
+server-side refusal fallback is on by default, and can be switched off with
+`APPLY_AGENT_ANTHROPIC_REFUSAL_FALLBACK=false`, for example for a model that
+does not support it. Cheaper models (`claude-sonnet-5`, `claude-haiku-4-5`)
+are one environment variable away. M4 will measure whether they hold accuracy.
+
+## D27 - A keyword baseline is the default "model" (M3)
+`KeywordBaselineModel` speaks the same tool-calling protocol as the real LLM,
+so the whole pipeline runs with zero credentials. It is also the baseline the
+LLM is compared against in the evaluation. It is deliberately naive.
+
+## D28 - The event date is the email's date, not an LLM extraction (M3)
+The spec asks to extract a "date". The Date header is authoritative and
+free, so `occurred_at` comes from it. Dates *mentioned* in an email
+(interview time, deadline) are not extracted yet; see the open question in
+the M3 notes.
+
+## D29 - Structured logs: stdlib JSON, ids only (M3)
+One JSON object per line, with `thread_id` and `message_id` as correlation
+ids on every per-message record. Logs never contain email bodies or subjects.
+No `structlog`: the stdlib covers it in about fifty lines.

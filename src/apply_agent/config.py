@@ -10,7 +10,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final, Self
 
-from pydantic import AfterValidator, BaseModel, ConfigDict
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 ENV_PREFIX: Final = "APPLY_AGENT_"
 # Credentials live outside the repository by default, so they cannot be committed.
@@ -24,14 +24,36 @@ class ProviderKind(StrEnum):
     GMAIL = "gmail"
 
 
+class LlmKind(StrEnum):
+    BASELINE = "baseline"
+    ANTHROPIC = "anthropic"
+
+
+class Effort(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 class Settings(BaseModel):
     # validate_default so "~" in the default paths is expanded too.
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
+
+    database_url: str = "sqlite:///apply_agent.db"
 
     email_provider: ProviderKind = ProviderKind.FAKE
     fixtures_dir: UserPath = Path("tests/fixtures/emails")
     gmail_token_path: UserPath = _CONFIG_HOME / "gmail_token.json"
     gmail_client_secrets_path: UserPath = _CONFIG_HOME / "client_secret.json"
+
+    # The keyword baseline needs no credentials; "anthropic" reads ANTHROPIC_API_KEY.
+    llm: LlmKind = LlmKind.BASELINE
+    anthropic_model: str = "claude-opus-5"
+    anthropic_effort: Effort = Effort.LOW
+    anthropic_refusal_fallback: bool = True
+
+    max_agent_steps: int = Field(default=4, ge=1, le=10)
+    initial_lookback_days: int = Field(default=90, ge=1)
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Self:

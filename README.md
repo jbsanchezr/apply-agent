@@ -9,6 +9,19 @@ table of applications and their current status.
 > decisions, limitations) arrives with milestone M7. Non-obvious choices are
 > recorded in [DECISIONS.md](DECISIONS.md) as they are made.
 
+## Run it
+
+With no configuration, the agent reads the bundled fixture emails and uses a
+keyword baseline instead of an LLM, so no credentials are needed:
+
+```bash
+uv sync
+uv run python -m apply_agent sync
+```
+
+To classify with Claude, set `ANTHROPIC_API_KEY` and `APPLY_AGENT_LLM=anthropic`.
+All settings are listed in [.env.example](.env.example).
+
 ## Development
 
 Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
