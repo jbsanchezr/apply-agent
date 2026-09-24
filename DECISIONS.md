@@ -69,3 +69,26 @@ It is the right tool once a schema change has to preserve existing data.
   `interview_invitation`.
 * Recruiter cold outreach counts as `other`: it is not a reply to an
   application.
+* "We'd love to have you, let's set up a call to walk through the offer" counts
+  as `offer`, even though it proposes a call.
+* A conditional offer that also asks for references counts as `offer`: the
+  offer outranks the request for information.
+
+## D12 - Deterministic fake LLM by default, real provider behind an env var (M1, applies from M3)
+Tests and CI use a scripted fake chat model, so the project runs and the test
+suite passes with zero credentials and zero cost. A real provider is selected
+by environment variable. Which provider, and its dependency, is decided at M3.
+
+## D13 - "Is this about a job application?" is a separate flag, not a category (M1)
+`other` covers both a status-neutral message about an application (e.g. an
+acknowledgement, which should *create* the application row) and unrelated
+noise (which should create nothing). Instead of splitting the category, the
+extraction output carries `is_job_application: bool`. The fixture labels carry
+the same flag so M4 can score it. Rules checked by a test: every non-`other`
+label is a job application, and every job application names a company.
+
+## D14 - `offer` is a fifth category (M1)
+An offer is the most important message in the domain, and labelling it `other`
+would leave the status unchanged. `offer` maps to the `offer_received` status.
+Status still follows the latest status-bearing event (D3), so a later
+`other` (e.g. a reference check) does not demote an offer.

@@ -2,7 +2,7 @@
 
 An LLM agent that keeps track of job applications by reading an email inbox,
 **read-only**. It classifies replies (rejection, interview invitation, request
-for information, other), extracts company / role / date / summary, and keeps a
+for information, offer, other), extracts company / role / date / summary, and keeps a
 table of applications and their current status.
 
 > Work in progress. The full README (architecture, eval results, design

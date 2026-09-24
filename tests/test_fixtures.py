@@ -35,6 +35,7 @@ class FixtureLabel(BaseModel):
     category: MessageCategory
     company: str | None
     role: str | None
+    is_job_application: bool
     notes: str
 
 
@@ -72,10 +73,20 @@ def test_every_category_is_well_represented() -> None:
     assert all(counts[c] >= MIN_PER_CATEGORY for c in MessageCategory), counts
 
 
-def test_job_related_labels_name_a_company() -> None:
+def test_labels_are_internally_consistent() -> None:
     for label in _labels():
         if label.category is not MessageCategory.OTHER:
-            assert label.company, f"{label.file}: status-bearing message without company"
+            assert label.is_job_application, f"{label.file}: status change on non-job mail"
+        if label.is_job_application:
+            assert label.company, f"{label.file}: job application without company"
+        else:
+            assert label.company is None, f"{label.file}: noise with a company"
+
+
+def test_both_sides_of_the_job_application_flag_are_represented() -> None:
+    flags = Counter(label.is_job_application for label in _labels())
+    assert flags[True] >= MIN_PER_CATEGORY
+    assert flags[False] >= MIN_PER_CATEGORY
 
 
 @pytest.mark.parametrize("path", EML_FILES, ids=lambda p: p.name)

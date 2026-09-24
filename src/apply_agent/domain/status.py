@@ -15,6 +15,7 @@ _STATUS_BY_CATEGORY: Final[Mapping[MessageCategory, ApplicationStatus]] = {
     MessageCategory.REJECTION: ApplicationStatus.REJECTED,
     MessageCategory.INTERVIEW_INVITATION: ApplicationStatus.INTERVIEWING,
     MessageCategory.INFORMATION_REQUEST: ApplicationStatus.INFORMATION_REQUESTED,
+    MessageCategory.OFFER: ApplicationStatus.OFFER_RECEIVED,
 }
 
 

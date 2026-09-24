@@ -32,6 +32,9 @@ def _events(*categories: MessageCategory) -> list[Event]:
         ((C.OTHER, C.INFORMATION_REQUEST), S.INFORMATION_REQUESTED),
         ((C.INFORMATION_REQUEST, C.INTERVIEW_INVITATION), S.INTERVIEWING),
         ((C.OTHER, C.INTERVIEW_INVITATION, C.REJECTION), S.REJECTED),
+        ((C.INTERVIEW_INVITATION, C.OFFER), S.OFFER_RECEIVED),
+        # Reference checks after an offer must not demote it.
+        ((C.OFFER, C.OTHER), S.OFFER_RECEIVED),
         # "Still under review" after an interview must not reset progress.
         ((C.INTERVIEW_INVITATION, C.OTHER), S.INTERVIEWING),
         # A later invitation (e.g. the role reopened) supersedes a rejection.
@@ -45,9 +48,9 @@ def test_status_follows_latest_status_bearing_event(
 
 
 def test_status_is_independent_of_processing_order() -> None:
-    events = _events(C.OTHER, C.INFORMATION_REQUEST, C.INTERVIEW_INVITATION, C.REJECTION)
+    events = _events(C.OTHER, C.INFORMATION_REQUEST, C.INTERVIEW_INVITATION, C.OFFER)
     results = {derive_status(perm) for perm in itertools.permutations(events)}
-    assert results == {S.REJECTED}
+    assert results == {S.OFFER_RECEIVED}
 
 
 def test_simultaneous_events_resolve_deterministically() -> None:

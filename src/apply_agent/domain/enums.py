@@ -8,12 +8,14 @@ class MessageCategory(StrEnum):
 
     These are the only labels the classifier may emit. ``OTHER`` covers both
     job-related messages that do not change anything (e.g. "we received your
-    application") and unrelated noise.
+    application") and unrelated noise; whether a message belongs to an
+    application at all is a separate yes/no decision, not a category.
     """
 
     REJECTION = "rejection"
     INTERVIEW_INVITATION = "interview_invitation"
     INFORMATION_REQUEST = "information_request"
+    OFFER = "offer"
     OTHER = "other"
 
 
@@ -23,4 +25,5 @@ class ApplicationStatus(StrEnum):
     APPLIED = "applied"
     INFORMATION_REQUESTED = "information_requested"
     INTERVIEWING = "interviewing"
+    OFFER_RECEIVED = "offer_received"
     REJECTED = "rejected"

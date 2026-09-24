@@ -4,6 +4,7 @@
     "category": "other",
     "company": "Brightloom",
     "role": "Machine Learning Engineer",
+    "is_job_application": true,
     "notes": "Automated acknowledgement. Job-related but changes nothing."
   },
   {
@@ -11,6 +12,7 @@
     "category": "interview_invitation",
     "company": "Brightloom",
     "role": "Machine Learning Engineer",
+    "is_job_application": true,
     "notes": "Same thread as 01; recruiter proposes a first call."
   },
   {
@@ -18,6 +20,7 @@
     "category": "rejection",
     "company": "Brightloom",
     "role": "Machine Learning Engineer",
+    "is_job_application": true,
     "notes": "Tricky: warm, complimentary tone; the rejection is one clause in the middle."
   },
   {
@@ -25,6 +28,7 @@
     "category": "information_request",
     "company": "Kestrel Robotics",
     "role": "Backend Engineer, Platform",
+    "is_job_application": true,
     "notes": "Asks for salary, notice period and sponsorship before proceeding."
   },
   {
@@ -32,6 +36,7 @@
     "category": "interview_invitation",
     "company": "Kestrel Robotics",
     "role": "Backend Engineer, Platform",
+    "is_job_application": true,
     "notes": "Follow-up in the same thread as 04."
   },
   {
@@ -39,6 +44,7 @@
     "category": "rejection",
     "company": "Halcyon Health",
     "role": "MLOps Engineer",
+    "is_job_application": true,
     "notes": "Plain, unambiguous ATS rejection."
   },
   {
@@ -46,6 +52,7 @@
     "category": "rejection",
     "company": "Quillon Data",
     "role": "AI Engineer",
+    "is_job_application": true,
     "notes": "Tricky: Spanish-language rejection, quoted-printable body."
   },
   {
@@ -53,6 +60,7 @@
     "category": "rejection",
     "company": "Parallax Payments",
     "role": "Senior Software Engineer (Java)",
+    "is_job_application": true,
     "notes": "Tricky: no 'not selected' wording - the requisition was closed. Still a rejection."
   },
   {
@@ -60,6 +68,7 @@
     "category": "rejection",
     "company": "Tidewater Logistics",
     "role": "Data Engineer",
+    "is_job_application": true,
     "notes": "Tricky: HTML-only body, no text/plain part."
   },
   {
@@ -67,6 +76,7 @@
     "category": "rejection",
     "company": "Mirabel Labs",
     "role": "AI Engineer",
+    "is_job_application": true,
     "notes": "Tricky: rejection bundled with an encouraging pointer to other roles."
   },
   {
@@ -74,6 +84,7 @@
     "category": "interview_invitation",
     "company": "Orbitra",
     "role": "Applied Scientist, LLMs",
+    "is_job_application": true,
     "notes": "Tricky: sent by a third-party assessment platform; a take-home counts as a stage."
   },
   {
@@ -81,6 +92,7 @@
     "category": "interview_invitation",
     "company": "Lumen & Vale",
     "role": "ML Platform Engineer",
+    "is_job_application": true,
     "notes": "Tricky: agency recruiter; the company is the client (Lumen & Vale), not the agency."
   },
   {
@@ -88,6 +100,7 @@
     "category": "interview_invitation",
     "company": "Cinderpeak Games",
     "role": "Backend Engineer",
+    "is_job_application": true,
     "notes": "Tricky: automated confirmation of an interview the candidate booked themselves."
   },
   {
@@ -95,6 +108,7 @@
     "category": "interview_invitation",
     "company": "Glasswing Security",
     "role": "Software Engineer, Detection Platform",
+    "is_job_application": true,
     "notes": "Tricky: phrased as a request for information (availability), but the intent is scheduling the next interview stage."
   },
   {
@@ -102,6 +116,7 @@
     "category": "information_request",
     "company": "Veridian Bank",
     "role": "ML Engineer, Fraud",
+    "is_job_application": true,
     "notes": "Asks for documents via a portal with a deadline."
   },
   {
@@ -109,6 +124,7 @@
     "category": "information_request",
     "company": "Northbeam Energy",
     "role": "Python Developer",
+    "is_job_application": true,
     "notes": "Tricky: automated ATS message that looks like boilerplate but asks for answers."
   },
   {
@@ -116,6 +132,7 @@
     "category": "information_request",
     "company": "Cobalt Mobility",
     "role": "Senior Backend Engineer",
+    "is_job_application": true,
     "notes": "Recruiter asks for references and portfolio before deciding."
   },
   {
@@ -123,6 +140,7 @@
     "category": "other",
     "company": "Solstice Bio",
     "role": "Data Scientist",
+    "is_job_application": true,
     "notes": "Tricky: status update that says nothing has changed."
   },
   {
@@ -130,6 +148,7 @@
     "category": "other",
     "company": "Halcyon Health",
     "role": "MLOps Engineer",
+    "is_job_application": true,
     "notes": "Tricky: job-board notification about a real application; no status change."
   },
   {
@@ -137,6 +156,7 @@
     "category": "other",
     "company": null,
     "role": null,
+    "is_job_application": false,
     "notes": "Tricky noise: job alert full of trigger words ('interview', 'offer')."
   },
   {
@@ -144,6 +164,7 @@
     "category": "other",
     "company": null,
     "role": null,
+    "is_job_application": false,
     "notes": "Tricky noise: recruiter outreach proposing a chat; not a reply to an application."
   },
   {
@@ -151,6 +172,7 @@
     "category": "other",
     "company": null,
     "role": null,
+    "is_job_application": false,
     "notes": "Tricky noise: rejection-like wording ('we regret to inform you') from a SaaS vendor."
   },
   {
@@ -158,6 +180,31 @@
     "category": "other",
     "company": null,
     "role": null,
+    "is_job_application": false,
     "notes": "Tricky noise: personal email proposing a mock interview."
+  },
+  {
+    "file": "24-kestrel.eml",
+    "category": "offer",
+    "company": "Kestrel Robotics",
+    "role": "Backend Engineer, Platform",
+    "is_job_application": true,
+    "notes": "Formal written offer in the same thread as 04 and 05; e-signature link."
+  },
+  {
+    "file": "25-cinderpeak.eml",
+    "category": "offer",
+    "company": "Cinderpeak Games",
+    "role": "Backend Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: verbal offer that proposes a call, which looks like an interview invitation."
+  },
+  {
+    "file": "26-glasswing.eml",
+    "category": "offer",
+    "company": "Glasswing Security",
+    "role": "Software Engineer, Detection Platform",
+    "is_job_application": true,
+    "notes": "Tricky: conditional offer that also asks for references; offer outranks information_request."
   }
 ]

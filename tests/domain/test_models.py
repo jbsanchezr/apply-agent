@@ -60,9 +60,9 @@ def test_event_category_rejects_unknown_label() -> None:
             {
                 "message_id": "m1",
                 "thread_id": "t1",
-                "category": "offer",
+                "category": "hired",
                 "occurred_at": T0,
-                "summary": "Offer received",
+                "summary": "Hired",
             }
         )
 
