@@ -42,6 +42,10 @@ class Message(DomainModel):
     sender: NonEmptyStr = Field(description="Sender as 'Display Name <address>'.")
     sent_at: UtcDatetime
     body_text: str = Field(description="Plain-text body; HTML is converted by the provider.")
+    outbound: bool = Field(
+        default=False,
+        description="Sent by the mailbox owner (e.g. the original application in a thread).",
+    )
 
 
 class Event(DomainModel):

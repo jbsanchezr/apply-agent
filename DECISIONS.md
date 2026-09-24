@@ -92,3 +92,57 @@ An offer is the most important message in the domain, and labelling it `other`
 would leave the status unchanged. `offer` maps to the `offer_received` status.
 Status still follows the latest status-bearing event (D3), so a later
 `other` (e.g. a reference check) does not demote an offer.
+
+## D15 - The provider interface is a read-only `Protocol` (M2)
+`EmailProvider` has two methods, `list_messages(since)` and `get_thread(id)`,
+and nothing that could write. `since` is an inclusive lower bound with
+superset semantics: every message at or after it is returned, a few older ones
+may be too, and callers deduplicate by id (they must anyway, see D5).
+Listings exclude the owner's own mail; threads include it, flagged
+`outbound`, because the original application email is the best evidence of
+company and role.
+
+## D16 - One RFC 5322 parser for both providers (M2)
+Gmail is asked for `format=raw`, which returns the same bytes as an `.eml`
+file. Both providers go through `parse_message`, so the fixtures exercise the
+production parsing path, not a parallel one. HTML-only mail is converted with
+the stdlib `html.parser` (no new dependency), and bodies are truncated at
+20,000 characters to bound LLM cost.
+
+## D17 - A typed `GmailApi` port in front of `googleapiclient` (M2)
+The official client is untyped and exposes every endpoint, including send and
+delete. It is imported in exactly one module (a test enforces this), which
+wraps the three GET calls we need behind a typed `GmailApi` protocol.
+`GmailProvider` depends only on that protocol, so the shared provider contract
+suite runs against Gmail offline with an in-memory `GmailApi`. The wrapper
+itself is tested through the client's mock HTTP transport, asserting the
+requests on the wire.
+
+## D18 - Read-only is enforced in layers, not just by scope (M2)
+1. Only `gmail.readonly` is ever requested.
+2. Loading a token checks the scopes *stored in it* and refuses anything else,
+   so a broader token created by some other tool cannot be picked up.
+3. No interface in the codebase has a write method (a test checks the
+   protocols expose only `list_*`/`get_*`).
+4. A test fails if any provider module calls a Gmail write method.
+
+## D19 - Credentials live outside the repository (M2)
+The token and client secret default to `~/.config/apply_agent/`, and the token
+is written with mode 0600. The server only loads and refreshes an existing
+token. The browser consent flow is a separate, manual command, so a server
+never blocks waiting for a login.
+
+## D20 - Gmail operational defaults (M2)
+* The `after:` filter is widened by one day: Gmail filters on receipt time, the
+  contract is about the Date header, and duplicates are cheap.
+* A listing is capped at 500 messages per sync and logs a warning when
+  truncated, so a first sync on a large inbox cannot run away.
+* A message deleted between listing and fetching is skipped, not fatal.
+* Drafts are never returned.
+* A thread is fetched as N+1 calls, because `threads.get` has no raw format.
+  That is fine at personal-inbox scale; batch requests would be the next step.
+
+## D21 - Settings are a plain Pydantic model read from the environment (M2)
+`pydantic-settings` would be one more dependency for about fifteen lines of
+code. Settings come from `APPLY_AGENT_*` variables, and an unknown
+`APPLY_AGENT_*` variable is an error, so typos fail at startup.

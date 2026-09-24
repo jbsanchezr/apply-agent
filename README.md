@@ -25,3 +25,15 @@ uv run pytest
 All email fixtures in `tests/fixtures/emails` are synthetic. Every address and
 URL uses a reserved domain (`*.example`, `example.com`, `*.test`), and a test
 fails the build if a non-reserved domain appears.
+
+## Using a real Gmail inbox (optional)
+
+Access is read-only (`gmail.readonly`). The agent cannot send, delete or modify
+mail, and refuses tokens with any broader scope.
+
+1. In Google Cloud, create an OAuth client of type *Desktop app* with the
+   Gmail API enabled, and save its JSON to
+   `~/.config/apply_agent/client_secret.json`.
+2. Run the one-time consent flow:
+   `uv run python -m apply_agent.providers.gmail_auth`
+3. Set `APPLY_AGENT_EMAIL_PROVIDER=gmail`.

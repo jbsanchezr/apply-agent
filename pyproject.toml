@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 # Runtime dependencies are added milestone by milestone, only when first used.
 dependencies = [
+    "google-api-python-client>=2.200.0",
+    "google-auth>=2.58.0",
+    "google-auth-oauthlib>=1.4.1",
     "pydantic>=2.9,<3",
     "sqlalchemy>=2.0.36,<3",
 ]
@@ -56,6 +59,17 @@ strict = true
 files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
 warn_unreachable = true
+
+# Untyped third-party packages. Each one is imported in a single module that
+# exposes a typed interface to the rest of the code.
+[[tool.mypy.overrides]]
+module = ["googleapiclient.*", "google_auth_oauthlib.*"]
+ignore_missing_imports = true
+
+# google-auth ships type hints but leaves some Credentials methods unannotated.
+[[tool.mypy.overrides]]
+module = ["apply_agent.providers.gmail_auth"]
+disallow_untyped_calls = false
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
