@@ -382,5 +382,14 @@
       "predicted_role": null,
       "notes": "Tricky: conditional offer that also asks for references; offer outranks information_request."
     }
-  ]
+  ],
+  "usage": {
+    "calls": 26,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_usd": null,
+    "latency_p50_seconds": 0.00015675000031478703,
+    "latency_p95_seconds": 0.0001992749998862564
+  },
+  "latency_source": "measured"
 }

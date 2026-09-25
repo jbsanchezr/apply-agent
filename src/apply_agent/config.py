@@ -59,6 +59,11 @@ class Settings(BaseModel):
     anthropic_effort: Effort = Effort.LOW
     anthropic_refusal_fallback: bool = True
 
+    # Tracing is off by default. When on, it needs LANGFUSE_PUBLIC_KEY,
+    # LANGFUSE_SECRET_KEY and optionally LANGFUSE_HOST (read by the SDK itself).
+    langfuse_enabled: bool = False
+    langfuse_redact_bodies: bool = True
+
     max_agent_steps: int = Field(default=4, ge=1, le=10)
     initial_lookback_days: int = Field(default=90, ge=1)
 

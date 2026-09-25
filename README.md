@@ -41,6 +41,10 @@ and the misclassified cases.
 | Keyword baseline | 73.1% (54-86%) | 0.77 | 88.5% | 27% | 27% |
 | `qwen3:8b`, local via Ollama | 100% (87-100%) | 1.00 | 100% | 86% | 95% |
 
+Cost and latency per LLM call, from the same runs: the local model makes 1.08
+calls per email (about 1,000 tokens in, 460 out, reasoning included), costs $0,
+and takes 28.8 s at p50 and 85 s at p95 on a laptop RTX 4050.
+
 Read the 100% as an upper bound: 26 examples, written by the same author as
 the prompt (see D36 in [DECISIONS.md](DECISIONS.md)). The local model's
 mistakes are naming variants ("Cinderpeak" vs "Cinderpeak Games"), not
@@ -52,6 +56,20 @@ reproduced in seconds without Ollama:
 ```bash
 uv run python scripts/evaluate.py --llm ollama --replay eval_results/recordings/qwen3-8b.json
 ```
+
+## Observability
+
+* **Prometheus**: sync runs and duration, messages by outcome and category,
+  model calls per message, tool calls, LLM latency, tokens and estimated spend,
+  and applications by status (read from the database at scrape time). Served
+  on `/metrics` by the API (M6).
+* **Grafana**: [deploy/grafana/dashboards/apply-agent.json](deploy/grafana/dashboards/apply-agent.json),
+  19 panels. A test checks that every query uses a metric the code exposes.
+* **Langfuse** (optional, `APPLY_AGENT_LANGFUSE_ENABLED=true`): one trace per
+  sync, one span per email, with model calls and tool calls nested under it.
+  Email bodies are redacted by default.
+* **Logs**: JSON lines with `thread_id` and `message_id` as correlation ids,
+  never email content.
 
 ## Development
 

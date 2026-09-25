@@ -51,6 +51,7 @@ def format_report(result: EvalResult) -> str:
         f"Company match: {_num(result.company_accuracy)}"
         f"   Role match: {_num(result.role_accuracy)}",
     ]
+    lines += ["", *_usage_lines(result)]
     wrong = [m for m in result.messages if m.predicted_category != m.gold_category]
     if wrong:
         lines += ["", "Misclassified:"]
@@ -59,3 +60,26 @@ def format_report(result: EvalResult) -> str:
             for m in wrong
         ]
     return "\n".join(lines)
+
+
+def _usage_lines(result: EvalResult) -> list[str]:
+    usage, emails = result.usage, max(result.category.n, 1)
+    cost = (
+        "unknown (a model has no price)"
+        if usage.cost_usd is None
+        else f"${usage.cost_usd / emails:.4f} per email (${usage.cost_usd:.2f} total)"
+    )
+    if usage.latency_p50_seconds is None or usage.latency_p95_seconds is None:
+        latency = f"n/a, {result.latency_source}"
+    else:
+        latency = (
+            f"p50 {usage.latency_p50_seconds:.1f} s, p95 {usage.latency_p95_seconds:.1f} s"
+            f" ({result.latency_source})"
+        )
+    tokens = f"{usage.input_tokens // emails} in / {usage.output_tokens // emails} out"
+    return [
+        f"LLM calls: {usage.calls} ({usage.calls / emails:.2f} per email)"
+        f"   Tokens per email: {tokens}",
+        f"Cost: {cost}",
+        f"Latency per LLM call: {latency}",
+    ]

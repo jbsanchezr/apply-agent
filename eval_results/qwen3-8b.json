@@ -382,5 +382,14 @@
       "predicted_role": "Software Engineer, Detection Platform",
       "notes": "Tricky: conditional offer that also asks for references; offer outranks information_request."
     }
-  ]
+  ],
+  "usage": {
+    "calls": 28,
+    "input_tokens": 26080,
+    "output_tokens": 11996,
+    "cost_usd": 0.0,
+    "latency_p50_seconds": 28.799946499999997,
+    "latency_p95_seconds": 85.23293817999999
+  },
+  "latency_source": "server-reported"
 }

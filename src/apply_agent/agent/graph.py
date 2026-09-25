@@ -7,27 +7,27 @@
 Each message gets a fresh, short conversation and a step budget. A message
 that fails (model error, refusal, no valid result within the budget) is not
 recorded, so the next sync retries it; the run continues with the next one.
+Progress is reported to an ``Observer`` (metrics, tracing), never logged
+with email content.
 """
 
 import logging
 import operator
-from collections.abc import Sequence
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, TypedDict
 
 from langchain_core.language_models import LanguageModelInput
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
-from langchain_core.messages.tool import ToolCall
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import Runnable
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from pydantic import ValidationError
 
 from apply_agent.agent.outcomes import MessageOutcome, Outcome
 from apply_agent.agent.prompts import REMINDER, SYSTEM_PROMPT, render_task
-from apply_agent.agent.schemas import GET_THREAD, UPSERT_APPLICATION
+from apply_agent.agent.tool_node import Recorded, ignored, run_tool
 from apply_agent.agent.tools import Toolbox
-from apply_agent.domain import Message, MessageAssessment
+from apply_agent.domain import Message
 from apply_agent.logs import correlated
+from apply_agent.observability.observer import NullObserver, Observer
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +44,36 @@ class AgentState(TypedDict, total=False):
 
 
 def build_graph(
-    model: ChatModel, toolbox: Toolbox, *, max_steps: int
+    model: ChatModel,
+    toolbox: Toolbox,
+    *,
+    max_steps: int,
+    observer: Observer | None = None,
 ) -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
+    obs: Observer = observer or NullObserver()
+
+    def finish(
+        current: Message,
+        outcome: Outcome,
+        steps: int,
+        *,
+        reason: str | None = None,
+        recorded: Recorded | None = None,
+    ) -> AgentState:
+        result = MessageOutcome(
+            message_id=current.id,
+            thread_id=current.thread_id,
+            outcome=outcome,
+            category=recorded.assessment.category if recorded else None,
+            application_id=recorded.result.application_id if recorded else None,
+            reason=reason,
+            steps=steps,
+        )
+        level = logging.WARNING if outcome is Outcome.FAILED else logging.INFO
+        _log(current).log(level, "message processed", extra=result.log_fields())
+        obs.message_finished(result)
+        return {"done": True, "outcomes": [result]}
+
     def fetch(state: AgentState) -> AgentState:
         queue = list(toolbox.list_new_messages())
         logger.info("new messages listed", extra={"count": len(queue)})
@@ -56,6 +84,7 @@ def build_graph(
         if not queue:
             return {"current": None}
         current = queue[0]
+        obs.message_started(current)
         return {
             "queue": queue[1:],
             "current": current,
@@ -65,30 +94,39 @@ def build_graph(
         }
 
     def call_model(state: AgentState) -> AgentState:
-        current = _current(state)
+        current, steps = _current(state), state["steps"] + 1
         try:
             reply = model.invoke(state["conversation"])
         except Exception as err:  # isolation boundary: one bad call must not end the run
             _log(current).exception("model call failed")
-            return _finish(current, Outcome.FAILED, reason=f"model error: {type(err).__name__}")
+            return finish(
+                current, Outcome.FAILED, steps, reason=f"model error: {type(err).__name__}"
+            )
         if reply.response_metadata.get("stop_reason") == "refusal":
-            return _finish(current, Outcome.FAILED, reason="model refused")
-        return {"conversation": [*state["conversation"], reply], "steps": state["steps"] + 1}
+            return finish(current, Outcome.FAILED, steps, reason="model refused")
+        return {"conversation": [*state["conversation"], reply], "steps": steps}
 
     def run_tools(state: AgentState) -> AgentState:
-        current, conversation = _current(state), state["conversation"]
+        current, conversation, steps = _current(state), state["conversation"], state["steps"]
         last = conversation[-1]
         calls = last.tool_calls if isinstance(last, AIMessage) else []
         replies: list[BaseMessage] = []
-        finished: AgentState | None = None
+        recorded: Recorded | None = None
         for call in calls:
-            reply, result = _run_tool(toolbox, current, call, already_done=finished is not None)
-            replies.append(reply)
-            finished = finished or result
-        if finished is not None:
-            return finished
-        if state["steps"] >= max_steps:
-            return _finish(current, Outcome.FAILED, reason="no valid result within step budget")
+            if recorded is not None:
+                replies.append(ignored(call))
+                continue
+            outcome = run_tool(toolbox, current, call)
+            obs.tool_called(call["name"], ok=outcome.ok)
+            replies.append(outcome.reply)
+            recorded = outcome.recorded
+        if recorded is not None:
+            kind = Outcome.DUPLICATE if recorded.result.duplicate else Outcome.RECORDED
+            return finish(current, kind, steps, recorded=recorded)
+        if steps >= max_steps:
+            return finish(
+                current, Outcome.FAILED, steps, reason="no valid result within step budget"
+            )
         if not calls:
             replies.append(HumanMessage(REMINDER))
         return {"conversation": [*conversation, *replies]}
@@ -112,58 +150,6 @@ def build_graph(
     return graph.compile()
 
 
-def _run_tool(
-    toolbox: Toolbox, current: Message, call: ToolCall, *, already_done: bool
-) -> tuple[ToolMessage, AgentState | None]:
-    call_id = call["id"] or ""
-    if already_done:
-        return ToolMessage("Ignored: this email is already recorded.", tool_call_id=call_id), None
-
-    if call["name"] == GET_THREAD:
-        try:
-            thread = toolbox.get_thread(current)
-        except Exception:  # a thread that cannot be read should not sink the message
-            _log(current).exception("get_thread failed")
-            return _error(call_id, "The thread could not be loaded. Assess the email alone."), None
-        return ToolMessage(thread, tool_call_id=call_id), None
-
-    if call["name"] == UPSERT_APPLICATION:
-        try:
-            assessment = MessageAssessment.model_validate(call["args"])
-        except ValidationError as err:
-            _log(current).info("invalid assessment", extra={"errors": err.error_count()})
-            return _error(call_id, f"Nothing was recorded. Fix and retry: {_describe(err)}"), None
-        result = toolbox.upsert_application(current, assessment)
-        outcome = Outcome.DUPLICATE if result.duplicate else Outcome.RECORDED
-        return (
-            ToolMessage("Recorded.", tool_call_id=call_id),
-            _finish(current, outcome, assessment=assessment, application_id=result.application_id),
-        )
-
-    return _error(call_id, f"Unknown tool {call['name']!r}."), None
-
-
-def _finish(
-    current: Message,
-    outcome: Outcome,
-    *,
-    reason: str | None = None,
-    assessment: MessageAssessment | None = None,
-    application_id: int | None = None,
-) -> AgentState:
-    result = MessageOutcome(
-        message_id=current.id,
-        thread_id=current.thread_id,
-        outcome=outcome,
-        category=assessment.category if assessment else None,
-        application_id=application_id,
-        reason=reason,
-    )
-    level = logging.WARNING if outcome is Outcome.FAILED else logging.INFO
-    _log(current).log(level, "message processed", extra=result.log_fields())
-    return {"done": True, "outcomes": [result]}
-
-
 def _current(state: AgentState) -> Message:
     current = state.get("current")
     if current is None:  # the graph's edges make this unreachable
@@ -173,12 +159,3 @@ def _current(state: AgentState) -> Message:
 
 def _log(current: Message) -> logging.LoggerAdapter[logging.Logger]:
     return correlated(logger, thread_id=current.thread_id, message_id=current.id)
-
-
-def _error(call_id: str, text: str) -> ToolMessage:
-    return ToolMessage(text, tool_call_id=call_id, status="error")
-
-
-def _describe(err: ValidationError) -> str:
-    problems: Sequence[Any] = err.errors(include_url=False, include_input=False)
-    return "; ".join(f"{'.'.join(map(str, p['loc'])) or 'arguments'}: {p['msg']}" for p in problems)

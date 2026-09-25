@@ -23,6 +23,7 @@ class MessageOutcome:
     category: MessageCategory | None
     application_id: int | None
     reason: str | None
+    steps: int  # model calls made for this message
 
     def log_fields(self) -> dict[str, Any]:
         # thread_id and message_id come from the correlated logger.
@@ -31,6 +32,7 @@ class MessageOutcome:
             "category": self.category.value if self.category else None,
             "application_id": self.application_id,
             "reason": self.reason,
+            "steps": self.steps,
         }
 
 

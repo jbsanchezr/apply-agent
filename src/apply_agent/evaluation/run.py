@@ -6,7 +6,7 @@ the product does, not what a bare classifier prompt would do.
 """
 
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from pathlib import Path
 
@@ -17,6 +17,8 @@ from apply_agent.agent.tools import Toolbox
 from apply_agent.domain import Message, MessageAssessment, MessageCategory, company_key, role_key
 from apply_agent.evaluation.dataset import DEFAULT_FIXTURES_DIR, load_dataset
 from apply_agent.evaluation.metrics import ClassificationReport, classification_report, match_rate
+from apply_agent.observability.observer import MetricsObserver
+from apply_agent.observability.usage import UsageSummary, summarise
 from apply_agent.providers import FakeEmailProvider
 from apply_agent.storage import init_db, make_engine, make_session_factory
 from apply_agent.storage.repository import RecordResult, Repository
@@ -45,6 +47,8 @@ class EvalResult:
     role_accuracy: float | None
     failures: list[dict[str, object]]
     messages: list[MessageResult]
+    usage: UsageSummary
+    latency_source: str  # "server-reported", "measured" or "unavailable (replayed)"
 
 
 class _CapturingRepository(Repository):
@@ -58,7 +62,7 @@ class _CapturingRepository(Repository):
 
 
 def _run_agent(
-    model: ChatModel, fixtures_dir: Path, max_steps: int
+    model: ChatModel, fixtures_dir: Path, max_steps: int, observer: MetricsObserver
 ) -> tuple[dict[str, MessageAssessment], SyncReport]:
     with tempfile.TemporaryDirectory() as tmp:
         engine = make_engine(f"sqlite:///{Path(tmp) / 'eval.db'}")
@@ -68,7 +72,7 @@ def _run_agent(
             repository.assessments = {}
             provider = FakeEmailProvider(fixtures_dir / "emails")
             toolbox = Toolbox(provider, repository, initial_lookback=_EVERYTHING)
-            report = Agent(toolbox, model, max_steps).sync()
+            report = Agent(toolbox, model, max_steps, observer).sync()
             return repository.assessments, report
         finally:
             engine.dispose()  # release the file before the directory is removed
@@ -80,9 +84,12 @@ def evaluate(
     model_name: str,
     fixtures_dir: Path = DEFAULT_FIXTURES_DIR,
     max_steps: int = 4,
+    replayed: bool = False,
 ) -> EvalResult:
     dataset = load_dataset(fixtures_dir)
-    assessments, report = _run_agent(model, fixtures_dir, max_steps)
+    observer = MetricsObserver()
+    assessments, report = _run_agent(model, fixtures_dir, max_steps, observer)
+    usage, latency_source = _usage(observer, replayed=replayed)
     predicted = [assessments.get(item.message_id) for item in dataset]
     labels = [item.label for item in dataset]
 
@@ -113,6 +120,8 @@ def evaluate(
         company_accuracy=match_rate(companies),
         role_accuracy=match_rate(roles),
         failures=report.failures,
+        usage=usage,
+        latency_source=latency_source,
         messages=[
             MessageResult(
                 file=label.file,
@@ -127,3 +136,15 @@ def evaluate(
             for label, p in zip(labels, predicted, strict=True)
         ],
     )
+
+
+def _usage(observer: MetricsObserver, *, replayed: bool) -> tuple[UsageSummary, str]:
+    """Server-reported latency survives replay; wall time only means something live."""
+    records = observer.usage.records
+    if any(r.model_seconds is not None for r in records):
+        return summarise(records, use_model_latency=True), "server-reported"
+    summary = summarise(records, use_model_latency=False)
+    if replayed:
+        no_latency = replace(summary, latency_p50_seconds=None, latency_p95_seconds=None)
+        return no_latency, "unavailable (replayed)"
+    return summary, "measured"

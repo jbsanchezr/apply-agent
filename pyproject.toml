@@ -11,7 +11,9 @@ dependencies = [
     "google-auth-oauthlib>=1.4.1",
     "langchain-anthropic>=1.7.4",
     "langchain-ollama>=1.1.0",
+    "langfuse>=4.15.6",
     "langgraph>=1.2.12",
+    "prometheus-client>=0.26.0",
     "pydantic>=2.9,<3",
     "sqlalchemy>=2.0.36,<3",
 ]

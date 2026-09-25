@@ -17,7 +17,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.parse_args(argv)
 
     configure_logging()
-    report = build_agent(Settings.from_env()).sync()
+    agent, _ = build_agent(Settings.from_env())
+    report = agent.sync()
     sys.stdout.write(json.dumps(asdict(report), indent=2) + "\n")
     return 1 if report.failed else 0
 

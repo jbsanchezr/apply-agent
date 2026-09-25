@@ -273,3 +273,42 @@ The next step for a trustworthy number is a held-out set labelled by someone
 who has not seen the prompt, ideally from real (anonymised) mail. Extraction
 is where the model is visibly imperfect (company 86%, role 95%). Latency is
 the other real cost: about 40 s per email on a laptop GPU with reasoning on.
+
+## D37 - Instrumentation goes through one `Observer` interface (M5)
+The graph and runner report events (sync, message and tool events), and
+model calls are observed through LangChain callbacks. Metrics and tracing
+are two implementations of the same interface, composed at startup, so agent
+code never imports Prometheus or Langfuse. The metrics use a dedicated
+Prometheus registry, and every label value comes from a closed set
+(outcome, category, tool, provider, model, direction), never from email
+content. A test enforces this. The CLI `sync` is a short-lived process, so
+its metrics become scrapeable once M6 serves `/metrics` from the API.
+
+## D38 - Langfuse via its core SDK, with email bodies redacted by default (M5)
+Langfuse's LangChain integration requires the full `langchain` package, which
+is outside the agreed stack. A small tracer on the core SDK (already a
+dependency) produces the same trace shape (sync, then message, then
+generation and tool spans) and controls exactly what leaves the process. By
+default, email bodies inside prompts are replaced by their length
+(`APPLY_AGENT_LANGFUSE_REDACT_BODIES`). Sender, subject, correlation ids,
+model output, tokens and cost are kept. Tracing is off by default. Turning it
+on without credentials fails at startup rather than silently tracing
+nothing. For a real inbox, point `LANGFUSE_HOST` at a self-hosted instance:
+otherwise the local model's privacy benefit (D34) is lost. Tests capture
+spans with OpenTelemetry's in-memory exporter, so they need no network or keys.
+
+## D39 - Cost and latency are reported honestly, including their gaps (M5)
+Cost is tokens times a price table (Anthropic list prices; $0 for local
+models). A model with no known price is counted in
+`apply_agent_llm_unpriced_calls_total` instead of being treated as free, and
+the dashboard shows that counter next to spend. Latency is measured wall time
+live. The evaluation prefers server-reported time (Ollama's `total_duration`),
+which is stored in recordings and therefore survives replay. When neither is
+available (replaying a hosted model), the report says "unavailable" instead
+of printing a near-zero replay time.
+
+## D40 - The Grafana dashboard is tested against the code (M5)
+`deploy/grafana/dashboards/apply-agent.json` has 19 panels in four rows:
+sync health, agent behaviour, LLM, and applications. A test extracts every
+PromQL expression and fails if it references a metric the registry does not
+expose, so renaming a metric cannot silently blank a panel.

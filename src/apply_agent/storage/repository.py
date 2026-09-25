@@ -79,6 +79,13 @@ class Repository:
                 app.id if app else None, app.status if app else None, created, duplicate=False
             )
 
+    def count_by_status(self) -> dict[str, int]:
+        with self._sessions() as session:
+            rows = session.execute(
+                select(ApplicationRow.status, func.count()).group_by(ApplicationRow.status)
+            )
+            return {status.value: count for status, count in rows}
+
     def list_applications(self) -> list[Application]:
         with self._sessions() as session:
             rows = session.scalars(

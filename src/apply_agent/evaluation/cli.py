@@ -69,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
         model_name=name,
         fixtures_dir=args.fixtures,
         max_steps=settings.max_agent_steps,
+        replayed=args.replay is not None,
     )
 
     if any(ReplayMissError.__name__ in str(f.get("reason")) for f in result.failures):
