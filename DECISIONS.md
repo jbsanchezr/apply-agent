@@ -244,3 +244,32 @@ seed), so evaluations and recordings are reproducible. The context window is
 set explicitly to 8k tokens, because Ollama's default silently truncates the
 system prompt, email and thread. Anthropic stays available as a configuration
 switch, with no code change needed to compare the two.
+
+## D35 - Recording keys: canonical prompt plus an explicit model fingerprint (M4)
+The first real recording could not be replayed. LangChain gives every model
+reply a random id, and that reply is part of the next step's prompt, so every
+second step (after `get_thread` or a validation retry) missed. The same
+investigation showed that `ChatOllama`'s cache key omits temperature, seed and
+context size, so changing them would silently replay stale answers. The key
+is now built from:
+1. a model fingerprint (`model_fingerprint`), defined next to
+   `make_chat_model` from the same constants;
+2. the bound tools;
+3. the prompt reduced to role, content and tool calls (name and arguments),
+   with no ids or timing metadata.
+A regression test drives two-step conversations through the real graph,
+records them and replays them with no model. It fails under the old scheme.
+
+## D36 - How to read the local model's perfect score (M4)
+`qwen3:8b` classified 26/26 fixtures correctly. That figure is an upper bound,
+not a production estimate:
+* The same author wrote the fixtures, their labels and the system prompt,
+  which spells out the labelling rules (D11). The eval checks that the model
+  follows the rules, not that the rules cover real inboxes.
+* 26 examples give a 95% interval of 87-100%.
+* Real mail is messier: long threads, forwarded chains, languages beyond
+  English and Spanish, and marketing HTML.
+The next step for a trustworthy number is a held-out set labelled by someone
+who has not seen the prompt, ideally from real (anonymised) mail. Extraction
+is where the model is visibly imperfect (company 86%, role 95%). Latency is
+the other real cost: about 40 s per email on a laptop GPU with reasoning on.

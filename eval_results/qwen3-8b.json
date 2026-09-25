@@ -1,0 +1,386 @@
+{
+  "model": "qwen3:8b (Ollama, local)",
+  "category": {
+    "per_class": [
+      {
+        "label": "rejection",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 6
+      },
+      {
+        "label": "interview_invitation",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 6
+      },
+      {
+        "label": "information_request",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 4
+      },
+      {
+        "label": "offer",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      {
+        "label": "other",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 7
+      }
+    ],
+    "accuracy": 1.0,
+    "accuracy_ci": [
+      0.8712669561953784,
+      1.0
+    ],
+    "macro_f1": 1.0,
+    "confusion": {
+      "rejection": {
+        "rejection": 6,
+        "interview_invitation": 0,
+        "information_request": 0,
+        "offer": 0,
+        "other": 0
+      },
+      "interview_invitation": {
+        "rejection": 0,
+        "interview_invitation": 6,
+        "information_request": 0,
+        "offer": 0,
+        "other": 0
+      },
+      "information_request": {
+        "rejection": 0,
+        "interview_invitation": 0,
+        "information_request": 4,
+        "offer": 0,
+        "other": 0
+      },
+      "offer": {
+        "rejection": 0,
+        "interview_invitation": 0,
+        "information_request": 0,
+        "offer": 3,
+        "other": 0
+      },
+      "other": {
+        "rejection": 0,
+        "interview_invitation": 0,
+        "information_request": 0,
+        "offer": 0,
+        "other": 7
+      }
+    },
+    "n": 26
+  },
+  "is_job_application": {
+    "per_class": [
+      {
+        "label": "true",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 22
+      },
+      {
+        "label": "false",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 4
+      }
+    ],
+    "accuracy": 1.0,
+    "accuracy_ci": [
+      0.8712669561953784,
+      1.0
+    ],
+    "macro_f1": 1.0,
+    "confusion": {
+      "true": {
+        "true": 22,
+        "false": 0
+      },
+      "false": {
+        "true": 0,
+        "false": 4
+      }
+    },
+    "n": 26
+  },
+  "company_accuracy": 0.8636363636363636,
+  "role_accuracy": 0.9545454545454546,
+  "failures": [],
+  "messages": [
+    {
+      "file": "01-brightloom.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Brightloom",
+      "predicted_company": "Brightloom",
+      "gold_role": "Machine Learning Engineer",
+      "predicted_role": "Machine Learning Engineer",
+      "notes": "Automated acknowledgement. Job-related but changes nothing."
+    },
+    {
+      "file": "02-brightloom.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "interview_invitation",
+      "gold_company": "Brightloom",
+      "predicted_company": "Brightloom",
+      "gold_role": "Machine Learning Engineer",
+      "predicted_role": "Machine Learning Engineer",
+      "notes": "Same thread as 01; recruiter proposes a first call."
+    },
+    {
+      "file": "03-brightloom.eml",
+      "gold_category": "rejection",
+      "predicted_category": "rejection",
+      "gold_company": "Brightloom",
+      "predicted_company": "Brightloom",
+      "gold_role": "Machine Learning Engineer",
+      "predicted_role": "Machine Learning Engineer",
+      "notes": "Tricky: warm, complimentary tone; the rejection is one clause in the middle."
+    },
+    {
+      "file": "04-kestrel.eml",
+      "gold_category": "information_request",
+      "predicted_category": "information_request",
+      "gold_company": "Kestrel Robotics",
+      "predicted_company": "Kestrel Robotics",
+      "gold_role": "Backend Engineer, Platform",
+      "predicted_role": "Backend Engineer, Platform",
+      "notes": "Asks for salary, notice period and sponsorship before proceeding."
+    },
+    {
+      "file": "05-kestrel.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "interview_invitation",
+      "gold_company": "Kestrel Robotics",
+      "predicted_company": "Kestrel Robotics",
+      "gold_role": "Backend Engineer, Platform",
+      "predicted_role": "Backend Engineer, Platform",
+      "notes": "Follow-up in the same thread as 04."
+    },
+    {
+      "file": "06-halcyon.eml",
+      "gold_category": "rejection",
+      "predicted_category": "rejection",
+      "gold_company": "Halcyon Health",
+      "predicted_company": "Halcyon Health",
+      "gold_role": "MLOps Engineer",
+      "predicted_role": "MLOps Engineer",
+      "notes": "Plain, unambiguous ATS rejection."
+    },
+    {
+      "file": "07-quillon.eml",
+      "gold_category": "rejection",
+      "predicted_category": "rejection",
+      "gold_company": "Quillon Data",
+      "predicted_company": "Quillon Data",
+      "gold_role": "AI Engineer",
+      "predicted_role": "AI Engineer",
+      "notes": "Tricky: Spanish-language rejection, quoted-printable body."
+    },
+    {
+      "file": "08-parallax.eml",
+      "gold_category": "rejection",
+      "predicted_category": "rejection",
+      "gold_company": "Parallax Payments",
+      "predicted_company": "Parallax Payments",
+      "gold_role": "Senior Software Engineer (Java)",
+      "predicted_role": "Senior Software Engineer (Java)",
+      "notes": "Tricky: no 'not selected' wording - the requisition was closed. Still a rejection."
+    },
+    {
+      "file": "09-tidewater.eml",
+      "gold_category": "rejection",
+      "predicted_category": "rejection",
+      "gold_company": "Tidewater Logistics",
+      "predicted_company": "Tidewater Logistics",
+      "gold_role": "Data Engineer",
+      "predicted_role": "Data Engineer",
+      "notes": "Tricky: HTML-only body, no text/plain part."
+    },
+    {
+      "file": "10-mirabel.eml",
+      "gold_category": "rejection",
+      "predicted_category": "rejection",
+      "gold_company": "Mirabel Labs",
+      "predicted_company": "Mirabellabs",
+      "gold_role": "AI Engineer",
+      "predicted_role": "AI Engineer",
+      "notes": "Tricky: rejection bundled with an encouraging pointer to other roles."
+    },
+    {
+      "file": "11-orbitra.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "interview_invitation",
+      "gold_company": "Orbitra",
+      "predicted_company": "Orbitra",
+      "gold_role": "Applied Scientist, LLMs",
+      "predicted_role": "Applied Scientist, LLMs",
+      "notes": "Tricky: sent by a third-party assessment platform; a take-home counts as a stage."
+    },
+    {
+      "file": "12-harbor.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "interview_invitation",
+      "gold_company": "Lumen & Vale",
+      "predicted_company": "Lumen & Vale",
+      "gold_role": "ML Platform Engineer",
+      "predicted_role": "ML Platform Engineer",
+      "notes": "Tricky: agency recruiter; the company is the client (Lumen & Vale), not the agency."
+    },
+    {
+      "file": "13-cinderpeak.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "interview_invitation",
+      "gold_company": "Cinderpeak Games",
+      "predicted_company": "Cinderpeak Games",
+      "gold_role": "Backend Engineer",
+      "predicted_role": "Backend Engineer",
+      "notes": "Tricky: automated confirmation of an interview the candidate booked themselves."
+    },
+    {
+      "file": "14-glasswing.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "interview_invitation",
+      "gold_company": "Glasswing Security",
+      "predicted_company": "Glasswing Security",
+      "gold_role": "Software Engineer, Detection Platform",
+      "predicted_role": "Software Engineer",
+      "notes": "Tricky: phrased as a request for information (availability), but the intent is scheduling the next interview stage."
+    },
+    {
+      "file": "15-veridian.eml",
+      "gold_category": "information_request",
+      "predicted_category": "information_request",
+      "gold_company": "Veridian Bank",
+      "predicted_company": "Veridian Bank",
+      "gold_role": "ML Engineer, Fraud",
+      "predicted_role": "ML Engineer, Fraud",
+      "notes": "Asks for documents via a portal with a deadline."
+    },
+    {
+      "file": "16-northbeam.eml",
+      "gold_category": "information_request",
+      "predicted_category": "information_request",
+      "gold_company": "Northbeam Energy",
+      "predicted_company": "Northbeam Energy",
+      "gold_role": "Python Developer",
+      "predicted_role": "Python Developer",
+      "notes": "Tricky: automated ATS message that looks like boilerplate but asks for answers."
+    },
+    {
+      "file": "17-cobalt.eml",
+      "gold_category": "information_request",
+      "predicted_category": "information_request",
+      "gold_company": "Cobalt Mobility",
+      "predicted_company": "Cobalt Mobility",
+      "gold_role": "Senior Backend Engineer",
+      "predicted_role": "Senior Backend Engineer",
+      "notes": "Recruiter asks for references and portfolio before deciding."
+    },
+    {
+      "file": "18-solstice.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Solstice Bio",
+      "predicted_company": "Solstice Bio",
+      "gold_role": "Data Scientist",
+      "predicted_role": "Data Scientist",
+      "notes": "Tricky: status update that says nothing has changed."
+    },
+    {
+      "file": "19-jobpulse-viewed.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Halcyon Health",
+      "predicted_company": "Halcyon Health",
+      "gold_role": "MLOps Engineer",
+      "predicted_role": "MLOps Engineer",
+      "notes": "Tricky: job-board notification about a real application; no status change."
+    },
+    {
+      "file": "20-jobpulse-alert.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": null,
+      "predicted_company": null,
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky noise: job alert full of trigger words ('interview', 'offer')."
+    },
+    {
+      "file": "21-cold-outreach.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": null,
+      "predicted_company": null,
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky noise: recruiter outreach proposing a chat; not a reply to an application."
+    },
+    {
+      "file": "22-cloudnest-newsletter.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": null,
+      "predicted_company": null,
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky noise: rejection-like wording ('we regret to inform you') from a SaaS vendor."
+    },
+    {
+      "file": "23-friend-mock-interview.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": null,
+      "predicted_company": null,
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky noise: personal email proposing a mock interview."
+    },
+    {
+      "file": "24-kestrel.eml",
+      "gold_category": "offer",
+      "predicted_category": "offer",
+      "gold_company": "Kestrel Robotics",
+      "predicted_company": "Kestrel Robotics",
+      "gold_role": "Backend Engineer, Platform",
+      "predicted_role": "Backend Engineer, Platform",
+      "notes": "Formal written offer in the same thread as 04 and 05; e-signature link."
+    },
+    {
+      "file": "25-cinderpeak.eml",
+      "gold_category": "offer",
+      "predicted_category": "offer",
+      "gold_company": "Cinderpeak Games",
+      "predicted_company": "Cinderpeak",
+      "gold_role": "Backend Engineer",
+      "predicted_role": "Backend Engineer",
+      "notes": "Tricky: verbal offer that proposes a call, which looks like an interview invitation."
+    },
+    {
+      "file": "26-glasswing.eml",
+      "gold_category": "offer",
+      "predicted_category": "offer",
+      "gold_company": "Glasswing Security",
+      "predicted_company": "Glasswing",
+      "gold_role": "Software Engineer, Detection Platform",
+      "predicted_role": "Software Engineer, Detection Platform",
+      "notes": "Tricky: conditional offer that also asks for references; offer outranks information_request."
+    }
+  ]
+}

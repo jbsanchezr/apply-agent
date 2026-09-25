@@ -16,7 +16,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from apply_agent.agent.llm import make_chat_model
+from apply_agent.agent.llm import make_chat_model, model_fingerprint
 from apply_agent.config import Effort, LlmKind, Settings
 from apply_agent.evaluation.dataset import DEFAULT_FIXTURES_DIR
 from apply_agent.evaluation.replay import RecordingCache, ReplayMissError
@@ -51,7 +51,13 @@ def main(argv: list[str] | None = None) -> int:
     overrides = {model_field: args.model, "anthropic_effort": args.effort}
     settings = settings.model_copy(update={k: v for k, v in overrides.items() if v is not None})
     recording = args.record or args.replay
-    cache = RecordingCache(recording, replay_only=args.replay is not None) if recording else None
+    cache = (
+        RecordingCache(
+            recording, replay_only=args.replay is not None, fingerprint=model_fingerprint(settings)
+        )
+        if recording
+        else None
+    )
 
     name = {
         LlmKind.BASELINE: "keyword baseline",
@@ -68,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     if any(ReplayMissError.__name__ in str(f.get("reason")) for f in result.failures):
         sys.stderr.write(
             f"Recording {args.replay} is stale (prompt, tools or model changed). "
-            "Re-record it with --record and a live API key.\n"
+            "Re-record it with --record and a live model.\n"
         )
         return EXIT_STALE_RECORDING
 

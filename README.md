@@ -34,7 +34,24 @@ uv run python scripts/evaluate.py --llm ollama # local model, free
 
 This runs the full agent over the 26 labelled fixtures and prints per-class
 precision/recall, accuracy with a 95% confidence interval, a confusion matrix
-and the misclassified cases. Results so far are in [eval_results/](eval_results/).
+and the misclassified cases.
+
+| Model | Category accuracy (95% CI) | Macro-F1 | Job-application flag | Company | Role |
+|---|---|---|---|---|---|
+| Keyword baseline | 73.1% (54-86%) | 0.77 | 88.5% | 27% | 27% |
+| `qwen3:8b`, local via Ollama | 100% (87-100%) | 1.00 | 100% | 86% | 95% |
+
+Read the 100% as an upper bound: 26 examples, written by the same author as
+the prompt (see D36 in [DECISIONS.md](DECISIONS.md)). The local model's
+mistakes are naming variants ("Cinderpeak" vs "Cinderpeak Games"), not
+hallucinations. Full results are in [eval_results/](eval_results/).
+
+The local model's responses are recorded, so the LLM evaluation can be
+reproduced in seconds without Ollama:
+
+```bash
+uv run python scripts/evaluate.py --llm ollama --replay eval_results/recordings/qwen3-8b.json
+```
 
 ## Development
 

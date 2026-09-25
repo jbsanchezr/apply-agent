@@ -1,6 +1,7 @@
 """Chat model construction."""
 
-from typing import Final, assert_never
+import json
+from typing import Any, Final, assert_never
 
 from langchain_core.caches import BaseCache
 from langchain_core.language_models import LanguageModelInput
@@ -17,6 +18,37 @@ REQUEST_TIMEOUT_SECONDS: Final = 120.0
 # Server-side refusal fallback: if the model declines, the API re-runs the
 # request on a fallback model it chooses by refusal category.
 REFUSAL_FALLBACK_BETA: Final = "server-side-fallback-2026-07-01"
+# Deterministic decoding for the local model: the same email gets the same
+# answer, which keeps evaluations and recordings reproducible.
+OLLAMA_DECODING: Final = {"temperature": 0, "seed": 0}
+
+
+def model_fingerprint(settings: Settings) -> str:
+    """Everything, besides the prompt and tools, that can change the model's answer.
+
+    Recordings are keyed on it (see evaluation.replay). It uses the same
+    constants as ``make_chat_model``, so a parameter change invalidates them.
+    """
+    details: dict[str, Any] = {"llm": settings.llm.value}
+    match settings.llm:
+        case LlmKind.BASELINE:
+            pass
+        case LlmKind.OLLAMA:
+            details |= {
+                "model": settings.ollama_model,
+                "num_ctx": settings.ollama_num_ctx,
+                **OLLAMA_DECODING,
+            }
+        case LlmKind.ANTHROPIC:
+            details |= {
+                "model": settings.anthropic_model,
+                "effort": settings.anthropic_effort.value,
+                "max_tokens": MAX_TOKENS,
+                "refusal_fallback": settings.anthropic_refusal_fallback,
+            }
+        case _:
+            assert_never(settings.llm)
+    return json.dumps(details, sort_keys=True)
 
 
 def make_chat_model(
@@ -33,10 +65,8 @@ def make_chat_model(
                 model=settings.ollama_model,
                 base_url=settings.ollama_base_url,
                 num_ctx=settings.ollama_num_ctx,
-                # Deterministic decoding: the same email gets the same answer, which
-                # keeps evaluations and recordings reproducible.
-                temperature=0,
-                seed=0,
+                temperature=OLLAMA_DECODING["temperature"],
+                seed=OLLAMA_DECODING["seed"],
                 cache=cache,
             )
             return local.bind_tools(tool_definitions())

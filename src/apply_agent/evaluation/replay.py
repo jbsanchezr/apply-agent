@@ -1,15 +1,19 @@
 """Record real LLM responses once, replay them for free afterwards.
 
-``RecordingCache`` plugs into LangChain's model cache. The key is a hash of
-the exact prompt (every message, including tool results) and the model
-configuration (model id, parameters, bound tools). Any change to the prompt,
-the tools or the model therefore misses the cache.
+``RecordingCache`` plugs into LangChain's model cache. The key is built from:
 
-* record mode: a miss calls the real model and stores the response.
-* replay mode: a miss raises ``ReplayMissError``, so a stale recording fails
-  loudly instead of silently calling a paid API (or failing half the eval).
+* a model fingerprint supplied by the caller (provider, model, decoding
+  parameters). LangChain's own ``llm_string`` is not enough: for some chat
+  models it omits parameters such as temperature or context size.
+* the bound tools (from ``llm_string``).
+* a canonical form of the prompt: each message's role, content and tool calls
+  (name and arguments). Ids and response metadata are dropped, because
+  LangChain assigns a random id to every model reply, and that reply becomes
+  part of the next step's prompt.
 
-Recordings are committed to the repo; they only ever contain fixture data.
+In record mode a miss calls the real model and stores the response. In replay
+mode a miss raises ``ReplayMissError``, so a stale recording fails loudly
+instead of silently calling a paid or slow model.
 """
 
 import hashlib
@@ -27,19 +31,42 @@ class ReplayMissError(LookupError):
     """The recording has no response for this prompt: re-record with a live model."""
 
 
+def canonical_prompt(prompt: str) -> str:
+    """The parts of a serialised message list that determine the model's answer."""
+    try:
+        messages = json.loads(prompt)
+    except json.JSONDecodeError:
+        return prompt
+    canonical = []
+    for message in messages:
+        kwargs: dict[str, Any] = message.get("kwargs", {})
+        canonical.append(
+            {
+                "role": message.get("id", ["?"])[-1],
+                "content": kwargs.get("content"),
+                "tool_calls": [
+                    {"name": call.get("name"), "args": call.get("args")}
+                    for call in kwargs.get("tool_calls", [])
+                ],
+            }
+        )
+    return json.dumps(canonical, sort_keys=True, ensure_ascii=False)
+
+
 class RecordingCache(BaseCache):
-    def __init__(self, path: Path, *, replay_only: bool) -> None:
+    def __init__(self, path: Path, *, replay_only: bool, fingerprint: str) -> None:
         self._path = path
         self._replay_only = replay_only
+        self._fingerprint = fingerprint
         self._entries: dict[str, list[dict[str, Any]]] = (
             json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
         )
         self.hits = 0
         self.misses = 0
 
-    @staticmethod
-    def key(prompt: str, llm_string: str) -> str:
-        return hashlib.sha256(f"{llm_string}\n{prompt}".encode()).hexdigest()
+    def key(self, prompt: str, llm_string: str) -> str:
+        material = "\n".join([self._fingerprint, llm_string, canonical_prompt(prompt)])
+        return hashlib.sha256(material.encode()).hexdigest()
 
     def lookup(self, prompt: str, llm_string: str) -> RETURN_VAL_TYPE | None:
         entry = self._entries.get(self.key(prompt, llm_string))
