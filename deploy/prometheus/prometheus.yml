@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: apply-agent
+    # /metrics carries counts and timings only (no personal data), so it is
+    # unauthenticated, and only reachable inside the compose network.
+    static_configs:
+      - targets: ["app:8000"]

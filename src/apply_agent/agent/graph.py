@@ -23,6 +23,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from apply_agent.agent.outcomes import MessageOutcome, Outcome
 from apply_agent.agent.prompts import REMINDER, SYSTEM_PROMPT, render_task
+from apply_agent.agent.schemas import tool_label
 from apply_agent.agent.tool_node import Recorded, ignored, run_tool
 from apply_agent.agent.tools import Toolbox
 from apply_agent.domain import Message
@@ -117,7 +118,7 @@ def build_graph(
                 replies.append(ignored(call))
                 continue
             outcome = run_tool(toolbox, current, call)
-            obs.tool_called(call["name"], ok=outcome.ok)
+            obs.tool_called(tool_label(call["name"]), ok=outcome.ok)
             replies.append(outcome.reply)
             recorded = outcome.recorded
         if recorded is not None:

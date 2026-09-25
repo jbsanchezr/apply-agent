@@ -4,6 +4,7 @@ import json
 import re
 from datetime import timedelta
 from pathlib import Path
+from typing import cast
 
 import pytest
 from langchain_core.messages import AIMessage
@@ -157,3 +158,67 @@ def test_metric_label_values_never_come_from_email_content() -> None:
     allowed = {"outcome", "category", "tool", "status", "provider", "model", "direction"}
     for metric in labelled:
         assert set(metric._labelnames) <= allowed
+
+
+def test_known_series_exist_before_anything_happens() -> None:
+    assert (
+        REGISTRY.get_sample_value(
+            "apply_agent_messages_total", {"outcome": "failed", "category": "none"}
+        )
+        is not None
+    )
+    assert (
+        REGISTRY.get_sample_value("apply_agent_sync_runs_total", {"outcome": "error"}) is not None
+    )
+
+
+def test_dashboard_windows_are_never_shorter_than_the_scrape_interval() -> None:
+    """``$__interval`` can drop below the scrape interval and make increase() empty."""
+    assert "[$__interval]" not in DASHBOARD.read_text(encoding="utf-8")
+
+
+def test_invented_tool_names_are_not_used_as_label_values(repository: Repository) -> None:
+    from tests.agent.helpers import tool_call
+
+    before = _value("apply_agent_tool_calls_total", tool="unknown", status="error")
+    model = ScriptedChatModel(script=[tool_call("send_email_to_everyone"), upsert()])
+    toolbox = Toolbox(
+        ListProvider([message("m1")]),
+        repository,
+        initial_lookback=timedelta(days=30),
+        clock=lambda: T0,
+    )
+    Agent(toolbox, model, 4, MetricsObserver()).sync()
+    assert _value("apply_agent_tool_calls_total", tool="unknown", status="error") == before + 1
+    assert (
+        REGISTRY.get_sample_value(
+            "apply_agent_tool_calls_total", {"tool": "send_email_to_everyone", "status": "error"}
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    ("llm", "provider", "model"),
+    [
+        ("baseline", "keyword-baseline", "keyword-baseline"),
+        ("ollama", "ollama", "qwen3:8b"),
+        ("anthropic", "anthropic", "claude-opus-5"),
+    ],
+)
+def test_every_model_reports_the_provider_the_price_table_expects(
+    monkeypatch: pytest.MonkeyPatch, llm: str, provider: str, model: str
+) -> None:
+    """Regression: the baseline once reported 'keywordbaselinemodel' and was counted unpriced."""
+    from langchain_core.language_models import BaseChatModel
+
+    from apply_agent.agent.llm import make_chat_model
+    from apply_agent.config import Settings
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
+    chat = make_chat_model(Settings.from_env({"APPLY_AGENT_LLM": llm}))
+    # bind_tools wraps hosted models; the baseline returns itself.
+    bound = cast(BaseChatModel, getattr(chat, "bound", chat))
+    params = bound._get_ls_params()
+    assert (params["ls_provider"], params["ls_model_name"]) == (provider, model)
+    assert cost_usd(provider, model, 100, 10) is not None

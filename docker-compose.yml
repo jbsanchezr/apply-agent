@@ -1,0 +1,60 @@
+# The agent, Prometheus scraping it, and Grafana with the dashboard provisioned.
+#
+#   docker compose up --build
+#
+# Every port is bound to 127.0.0.1: nothing is reachable from the network.
+# With no configuration the app reads the bundled fixture emails and uses the
+# keyword baseline. Set variables in a .env file (never committed) to change that:
+#   APPLY_AGENT_API_TOKEN=...   otherwise a token is generated and printed in the app logs
+#   APPLY_AGENT_LLM=ollama      uses Ollama running on the host machine
+
+name: apply-agent
+
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      APPLY_AGENT_API_TOKEN: ${APPLY_AGENT_API_TOKEN:-}
+      APPLY_AGENT_LLM: ${APPLY_AGENT_LLM:-baseline}
+      APPLY_AGENT_OLLAMA_MODEL: ${APPLY_AGENT_OLLAMA_MODEL:-qwen3:8b}
+      APPLY_AGENT_OLLAMA_BASE_URL: ${APPLY_AGENT_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # The fixtures have fixed 2026 dates; look back far enough to always include them.
+      APPLY_AGENT_INITIAL_LOOKBACK_DAYS: ${APPLY_AGENT_INITIAL_LOOKBACK_DAYS:-3650}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - app-data:/data
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      # Local demo: read-only anonymous access, no login screen.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/apply-agent.json
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  prometheus-data:

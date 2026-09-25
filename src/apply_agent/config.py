@@ -10,7 +10,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final, Self
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, SecretStr, field_validator
 
 ENV_PREFIX: Final = "APPLY_AGENT_"
 # Credentials live outside the repository by default, so they cannot be committed.
@@ -64,8 +64,18 @@ class Settings(BaseModel):
     langfuse_enabled: bool = False
     langfuse_redact_bodies: bool = True
 
+    # Protects the API. If unset, the API generates a random token at startup
+    # and prints it once, so it is never open by accident.
+    api_token: SecretStr | None = None
+
     max_agent_steps: int = Field(default=4, ge=1, le=10)
     initial_lookback_days: int = Field(default=90, ge=1)
+
+    @field_validator("api_token", mode="before")
+    @classmethod
+    def _blank_token_means_unset(cls, value: object) -> object:
+        # docker-compose passes an unset variable through as an empty string.
+        return None if isinstance(value, str) and not value.strip() else value
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Self:

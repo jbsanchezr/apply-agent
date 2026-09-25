@@ -11,6 +11,29 @@ table of applications and their current status.
 
 ## Run it
 
+With Docker, one command starts the API, Prometheus and Grafana:
+
+```bash
+docker compose up --build
+```
+
+* <http://localhost:8000/applications>: the applications table. Log in with any
+  username and the token printed in the app logs (`docker compose logs app`),
+  or set `APPLY_AGENT_API_TOKEN` in a `.env` file. Press *Sync now*.
+* <http://localhost:3000>: the Grafana dashboard. <http://localhost:9090>: Prometheus.
+
+API (the token also works as `Authorization: Bearer <token>`):
+
+| Endpoint | |
+|---|---|
+| `GET /applications` | HTML table; JSON with `?format=json` or `Accept: application/json` |
+| `POST /sync` | Starts a background sync: `202` with a job id, or `409` if one is running |
+| `GET /sync/{job_id}` | Job status and report |
+| `GET /metrics` | Prometheus metrics (no personal data, no auth) |
+| `GET /healthz` | Liveness |
+
+Without Docker:
+
 With no configuration, the agent reads the bundled fixture emails and uses a
 keyword baseline instead of an LLM, so no credentials are needed:
 

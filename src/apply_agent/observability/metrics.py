@@ -14,6 +14,10 @@ from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 from prometheus_client.core import GaugeMetricFamily, Metric
 from prometheus_client.registry import Collector
 
+from apply_agent.agent.outcomes import Outcome
+from apply_agent.agent.schemas import KNOWN_TOOLS, UNKNOWN_TOOL
+from apply_agent.domain import MessageCategory
+
 REGISTRY: Final = CollectorRegistry(auto_describe=True)
 
 # Local models take tens of seconds per call; hosted ones well under ten.
@@ -89,6 +93,28 @@ LLM_UNPRICED_CALLS = Counter(
     ["provider", "model"],
     registry=REGISTRY,
 )
+
+
+def _initialise_known_series() -> None:
+    """Create every known label combination at zero.
+
+    Prometheus only sees a series once it is scraped. A counter that first
+    appears already incremented hides that first increase from ``increase()``
+    and ``rate()``, so the first sync's messages would never show on a graph.
+    LLM series are created on first use, because their labels come from
+    configuration.
+    """
+    for outcome in ("success", "error"):
+        SYNC_RUNS.labels(outcome)
+    for message_outcome in Outcome:
+        for category in [*(c.value for c in MessageCategory), "none"]:
+            MESSAGES.labels(message_outcome.value, category)
+    for tool in [*KNOWN_TOOLS, UNKNOWN_TOOL]:
+        for status in ("ok", "error"):
+            TOOL_CALLS.labels(tool, status)
+
+
+_initialise_known_series()
 
 
 class ApplicationsCollector(Collector):

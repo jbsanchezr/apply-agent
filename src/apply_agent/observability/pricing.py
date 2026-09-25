@@ -9,6 +9,8 @@ model returns ``None``, never a silent 0.
 
 from typing import Final
 
+from apply_agent.agent.baseline import BASELINE_NAME
+
 _PER_MILLION: Final = 1_000_000
 
 # model id -> (input $/MTok, output $/MTok)
@@ -17,7 +19,7 @@ ANTHROPIC_PRICES: Final[dict[str, tuple[float, float]]] = {
     "claude-sonnet-5": (2.00, 10.00),
     "claude-haiku-4-5": (1.00, 5.00),
 }
-FREE_PROVIDERS: Final = frozenset({"ollama", "keyword-baseline"})
+FREE_PROVIDERS: Final = frozenset({"ollama", BASELINE_NAME})
 
 
 def cost_usd(provider: str, model: str, input_tokens: int, output_tokens: int) -> float | None:

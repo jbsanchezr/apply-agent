@@ -52,3 +52,11 @@ def test_factory_refuses_gmail_without_a_token(tmp_path: Path) -> None:
     )
     with pytest.raises(GmailAuthError):
         make_provider(settings)
+
+
+def test_blank_api_token_means_unset() -> None:
+    assert Settings.from_env({"APPLY_AGENT_API_TOKEN": "  "}).api_token is None
+    token = Settings.from_env({"APPLY_AGENT_API_TOKEN": "abc"}).api_token
+    assert token is not None
+    assert token.get_secret_value() == "abc"
+    assert "abc" not in repr(Settings.from_env({"APPLY_AGENT_API_TOKEN": "abc"}))

@@ -14,6 +14,7 @@ from typing import Any, Final
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
+from langchain_core.language_models.base import LangSmithParams
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import Runnable
@@ -96,10 +97,21 @@ def _company_from_sender(sender: str) -> str:
     return labels[-1].replace("-", " ").title() if labels else "Unknown"
 
 
+BASELINE_NAME: Final = "keyword-baseline"
+
+
 class KeywordBaselineModel(BaseChatModel):
     @property
     def _llm_type(self) -> str:
-        return "keyword-baseline"
+        return BASELINE_NAME
+
+    def _get_ls_params(self, stop: list[str] | None = None, **kwargs: Any) -> LangSmithParams:
+        # Metrics and pricing identify models by these; without the override
+        # LangChain derives the provider from the class name.
+        params = super()._get_ls_params(stop=stop, **kwargs)
+        params["ls_provider"] = BASELINE_NAME
+        params["ls_model_name"] = BASELINE_NAME
+        return params
 
     def _generate(
         self,

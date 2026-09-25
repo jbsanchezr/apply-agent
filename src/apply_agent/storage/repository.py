@@ -27,6 +27,15 @@ from apply_agent.storage.schema import ApplicationRow, ApplicationThreadRow, Eve
 
 
 @dataclass(frozen=True, slots=True)
+class ApplicationView:
+    """An application plus its latest event, for display."""
+
+    application: Application
+    latest_summary: str
+    latest_category: str
+
+
+@dataclass(frozen=True, slots=True)
 class RecordResult:
     application_id: int | None
     status: ApplicationStatus | None
@@ -85,6 +94,19 @@ class Repository:
                 select(ApplicationRow.status, func.count()).group_by(ApplicationRow.status)
             )
             return {status.value: count for status, count in rows}
+
+    def list_application_views(self) -> list[ApplicationView]:
+        with self._sessions() as session:
+            rows = session.scalars(
+                select(ApplicationRow).order_by(ApplicationRow.last_activity_at.desc())
+            )
+            views = []
+            for row in rows:
+                latest = max(row.events, key=lambda e: (e.occurred_at, e.message_id))
+                views.append(
+                    ApplicationView(_to_domain(row), latest.summary, latest.category.value)
+                )
+            return views
 
     def list_applications(self) -> list[Application]:
         with self._sessions() as session:

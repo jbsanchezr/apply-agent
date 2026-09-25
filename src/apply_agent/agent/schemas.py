@@ -12,6 +12,13 @@ from apply_agent.domain import MessageAssessment
 LIST_NEW_MESSAGES: Final = "list_new_messages"
 GET_THREAD: Final = "get_thread"
 UPSERT_APPLICATION: Final = "upsert_application"
+KNOWN_TOOLS: Final = frozenset({GET_THREAD, UPSERT_APPLICATION})
+UNKNOWN_TOOL: Final = "unknown"
+
+
+def tool_label(name: str) -> str:
+    """A tool name safe to use as a metric label: the model may invent names."""
+    return name if name in KNOWN_TOOLS else UNKNOWN_TOOL
 
 
 def tool_definitions() -> list[dict[str, Any]]:

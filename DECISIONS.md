@@ -312,3 +312,58 @@ of printing a near-zero replay time.
 sync health, agent behaviour, LLM, and applications. A test extracts every
 PromQL expression and fails if it references a metric the registry does not
 expose, so renaming a metric cannot silently blank a panel.
+
+## D41 - `POST /sync` starts a background job; one sync at a time (M6)
+With a local model a sync takes minutes. `POST /sync` returns 202 with a job
+id, `GET /sync/{id}` reports status and the final report, and the page's
+button polls it. A single-worker executor runs the jobs, and a second
+`POST /sync` while one runs gets 409 with the running job, so two syncs never
+process the same messages concurrently. Known limit: job history is in
+memory (the last 20) and is lost on restart. The data itself is not, since it
+lives in SQLite.
+
+## D42 - One API token, accepted as Bearer or as a Basic password (M6)
+Scripts send `Authorization: Bearer <token>`. Browsers get a 401 with
+`WWW-Authenticate: Basic`, so the browser's own prompt handles login (any
+username, the token as password) and re-sends it on the page's `fetch` calls.
+No cookies or login page are needed. Tokens are compared in constant time.
+If `APPLY_AGENT_API_TOKEN` is unset, a random token is generated and printed
+once at startup (like Jupyter), so the API is never open by accident and
+still needs no setup. `/healthz` and `/metrics` are open: they carry no
+personal data, and Prometheus scrapes them inside the compose network. Every
+compose port binds to 127.0.0.1.
+
+## D43 - Container: multi-stage uv build, non-root, fixtures baked in (M6)
+The build stage installs the locked, non-dev dependencies with uv (a separate
+layer, so code changes don't reinstall them) and the project non-editable.
+The runtime stage has the virtualenv and the fixture emails only, runs as
+UID 10001, keeps SQLite on a volume, and has a health check. SQLite runs in
+WAL mode with a busy timeout, so the API can read while a background sync
+writes.
+
+## D44 - CI runs the LLM evaluation on every push, at no cost (M6)
+GitHub Actions runs ruff, ruff format, mypy, pytest, the baseline eval (at
+least 70%) and the qwen3 eval replayed from its recording (at least 95%). The
+replay needs no model server or key; a changed prompt fails it with exit
+code 2 until the recording is regenerated. A second job builds the image and
+smoke-tests health, auth and the JSON endpoint. The replay was verified
+inside the Linux image, so recordings made on Windows replay identically.
+
+## D45 - What running the real stack caught that tests did not (M6)
+Bringing up Prometheus and Grafana, rather than trusting the dashboard test,
+exposed five bugs, each now fixed and covered by a test:
+1. Panels used `increase(...[$__interval])`. At short time ranges the window
+   is shorter than the scrape interval and returns nothing. They now use
+   `$__rate_interval`.
+2. Counters that first appear already incremented are invisible to
+   `increase()`, so the first sync never showed on a graph. Known label
+   combinations are now created at zero at startup.
+3. Stat panels over a series that did not exist yet showed "No data" instead
+   of 0. They now use `or vector(0)`.
+4. The baseline reported `provider="keywordbaselinemodel"` (LangChain's
+   default from the class name). The price table did not recognise it, so
+   every call counted as "unpriced". The baseline now declares its provider,
+   and a test checks every model's provider against the price table.
+5. The `tool` label took whatever name the model asked for, so invented tool
+   names could create unbounded series. Unknown tools are now labelled
+   `unknown`.
