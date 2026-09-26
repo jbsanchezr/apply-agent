@@ -5,9 +5,64 @@ An LLM agent that keeps track of job applications by reading an email inbox,
 for information, offer, other), extracts company / role / date / summary, and keeps a
 table of applications and their current status.
 
-> Work in progress. The full README (architecture, eval results, design
-> decisions, limitations) arrives with milestone M7. Non-obvious choices are
-> recorded in [DECISIONS.md](DECISIONS.md) as they are made.
+[![CI](https://github.com/jbsanchezr/apply-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/jbsanchezr/apply-agent/actions/workflows/ci.yml)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+**Stack:** LangGraph · Claude or a local model via Ollama · FastAPI ·
+SQLAlchemy · Prometheus · Grafana · Langfuse · Docker · GitHub Actions
+
+## Highlights
+
+* **Runs with zero credentials.** Out of the box it reads bundled synthetic
+  emails and uses a keyword baseline, so `docker compose up` works on any
+  machine. A free local LLM (Ollama) or Claude is one environment variable away.
+* **Measured, not assumed.** An evaluation harness runs the *whole agent* over
+  26 labelled emails and reports per-class precision/recall, confidence
+  intervals and a confusion matrix. The local `qwen3:8b` model goes from the
+  baseline's 73% accuracy to 100% (with an honest caveat, below).
+* **Read-only by design.** The Gmail integration asks only for
+  `gmail.readonly`, rejects broader tokens, and exposes a read-only interface.
+  Email bodies are never stored or logged.
+* **Contained against prompt injection.** The model gets only two tools, both
+  bound to the email being processed, so a malicious email can at worst get
+  itself misclassified.
+* **Observable.** Prometheus metrics (tokens, cost, latency, outcomes), a
+  19-panel Grafana dashboard that is tested against the code, and optional
+  Langfuse traces.
+* **Reproducible CI for free.** LLM responses are recorded once and replayed,
+  so CI re-runs the LLM evaluation on every push without a GPU or API key.
+* **Documented trade-offs.** 45 design decisions, with their reasons, in
+  [DECISIONS.md](DECISIONS.md).
+
+## How it works
+
+```mermaid
+flowchart LR
+    inbox[(Inbox<br/>Gmail or fixtures)] -->|read-only| fetch
+    subgraph agent [LangGraph agent]
+        fetch[fetch new messages] --> next[next message]
+        next --> model[call model]
+        model <-->|get_thread<br/>upsert_application| tools[run tools]
+        tools --> next
+    end
+    tools --> db[(SQLite<br/>applications + events)]
+    db --> api[FastAPI<br/>/applications, /sync]
+    agent -.-> obs[Prometheus · Grafana · Langfuse]
+```
+
+1. The graph lists new messages itself. Choosing what to read needs no
+   judgement, and this keeps the cost of a sync predictable.
+2. Each email gets a **fresh, short conversation** with a step budget, so one
+   confusing email cannot derail the rest of the inbox.
+3. The model's only way to answer is an `upsert_application` tool call
+   validated by a strict Pydantic schema. Validation errors go back to the
+   model so it can correct itself.
+4. Every message becomes an immutable **event**, and an application's status
+   is **derived** from its events (applied → information requested →
+   interviewing → offer / rejected), never overwritten.
+5. An email that fails (model error, refusal, budget exhausted) is not
+   recorded, so the next sync retries it.
 
 ## Run it
 
@@ -122,3 +177,21 @@ mail, and refuses tokens with any broader scope.
 2. Run the one-time consent flow:
    `uv run python -m apply_agent.providers.gmail_auth`
 3. Set `APPLY_AGENT_EMAIL_PROVIDER=gmail`.
+
+## Limitations and next steps
+
+* **Small evaluation set.** 26 synthetic emails written by the same author as
+  the prompt. The next step is a larger, independently labelled set, and a
+  comparison of cheaper Claude models against the local one.
+* **Local latency.** `qwen3:8b` takes about 30 s per email on a laptop GPU.
+  Fine for a background sync, too slow for anything interactive.
+* **No dead-letter queue.** An email that always fails is retried on every
+  sync. Moving it aside after N attempts is the planned fix.
+* **Single user.** One API token and SQLite with `create_all`. Multi-user use
+  would need real auth, Postgres and migrations (Alembic).
+* **Dates mentioned in an email** (interview time, deadline) are not extracted
+  yet. The event date is the email's `Date` header.
+
+## License
+
+[MIT](LICENSE)

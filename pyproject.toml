@@ -3,6 +3,7 @@ name = "apply-agent"
 version = "0.1.0"
 description = "An LLM agent that tracks job applications by reading an email inbox (read-only)."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12,<3.13"
 # Runtime dependencies are added milestone by milestone, only when first used.
 dependencies = [
