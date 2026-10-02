@@ -4,24 +4,24 @@
     "per_class": [
       {
         "label": "rejection",
-        "precision": 0.8333333333333334,
-        "recall": 0.8333333333333334,
-        "f1": 0.8333333333333334,
-        "support": 6
+        "precision": 0.8571428571428571,
+        "recall": 0.6,
+        "f1": 0.7058823529411764,
+        "support": 10
       },
       {
         "label": "interview_invitation",
-        "precision": 0.625,
-        "recall": 0.8333333333333334,
-        "f1": 0.7142857142857143,
-        "support": 6
+        "precision": 0.5555555555555556,
+        "recall": 0.625,
+        "f1": 0.5882352941176471,
+        "support": 8
       },
       {
         "label": "information_request",
-        "precision": 1.0,
-        "recall": 0.75,
-        "f1": 0.8571428571428571,
-        "support": 4
+        "precision": 0.75,
+        "recall": 0.6,
+        "f1": 0.6666666666666665,
+        "support": 5
       },
       {
         "label": "offer",
@@ -32,39 +32,39 @@
       },
       {
         "label": "other",
-        "precision": 0.5,
-        "recall": 0.42857142857142855,
-        "f1": 0.4615384615384615,
-        "support": 7
+        "precision": 0.5789473684210527,
+        "recall": 0.6875,
+        "f1": 0.6285714285714286,
+        "support": 16
       }
     ],
-    "accuracy": 0.7307692307692307,
+    "accuracy": 0.6666666666666666,
     "accuracy_ci": [
-      0.5391659658023868,
-      0.8629572447493261
+      0.5155222701166692,
+      0.7898771923802769
     ],
-    "macro_f1": 0.7732600732600733,
+    "macro_f1": 0.7178711484593837,
     "confusion": {
       "rejection": {
-        "rejection": 5,
+        "rejection": 6,
         "interview_invitation": 0,
         "information_request": 0,
         "offer": 0,
-        "other": 1
+        "other": 4
       },
       "interview_invitation": {
         "rejection": 0,
         "interview_invitation": 5,
-        "information_request": 0,
+        "information_request": 1,
         "offer": 0,
-        "other": 1
+        "other": 2
       },
       "information_request": {
         "rejection": 0,
         "interview_invitation": 0,
         "information_request": 3,
         "offer": 0,
-        "other": 1
+        "other": 2
       },
       "offer": {
         "rejection": 0,
@@ -75,51 +75,51 @@
       },
       "other": {
         "rejection": 1,
-        "interview_invitation": 3,
+        "interview_invitation": 4,
         "information_request": 0,
         "offer": 0,
-        "other": 3
+        "other": 11
       }
     },
-    "n": 26
+    "n": 42
   },
   "is_job_application": {
     "per_class": [
       {
         "label": "true",
-        "precision": 0.88,
-        "recall": 1.0,
-        "f1": 0.9361702127659575,
-        "support": 22
+        "precision": 0.9117647058823529,
+        "recall": 0.8611111111111112,
+        "f1": 0.8857142857142858,
+        "support": 36
       },
       {
         "label": "false",
-        "precision": 1.0,
-        "recall": 0.25,
-        "f1": 0.4,
-        "support": 4
+        "precision": 0.375,
+        "recall": 0.5,
+        "f1": 0.42857142857142855,
+        "support": 6
       }
     ],
-    "accuracy": 0.8846153846153846,
+    "accuracy": 0.8095238095238095,
     "accuracy_ci": [
-      0.7102370691310166,
-      0.959968281788505
+      0.6669893264500356,
+      0.9001811039014357
     ],
-    "macro_f1": 0.6680851063829787,
+    "macro_f1": 0.6571428571428571,
     "confusion": {
       "true": {
-        "true": 22,
-        "false": 0
+        "true": 31,
+        "false": 5
       },
       "false": {
         "true": 3,
-        "false": 1
+        "false": 3
       }
     },
-    "n": 26
+    "n": 42
   },
-  "company_accuracy": 0.2727272727272727,
-  "role_accuracy": 0.2727272727272727,
+  "company_accuracy": 0.16666666666666666,
+  "role_accuracy": 0.17142857142857143,
   "failures": [],
   "messages": [
     {
@@ -381,15 +381,175 @@
       "gold_role": "Software Engineer, Detection Platform",
       "predicted_role": null,
       "notes": "Tricky: conditional offer that also asks for references; offer outranks information_request."
+    },
+    {
+      "file": "27-linkedin-arcwell.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Arcwell Systems",
+      "predicted_company": "Linkedin",
+      "gold_role": "Data Engineer",
+      "predicted_role": null,
+      "notes": "Tricky: LinkedIn Easy Apply confirmation. The sender is LinkedIn, not the company, and the footer lists other companies' jobs."
+    },
+    {
+      "file": "28-linkedin-nubaria.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Nubaria",
+      "predicted_company": null,
+      "gold_role": "Ingeniero/a de Machine Learning",
+      "predicted_role": null,
+      "notes": "Tricky: Spanish LinkedIn Easy Apply confirmation with similar jobs from other companies."
+    },
+    {
+      "file": "29-linkedin-nubaria.eml",
+      "gold_category": "other",
+      "predicted_category": "interview_invitation",
+      "gold_company": "Nubaria",
+      "predicted_company": "Linkedin",
+      "gold_role": "Ingeniero/a de Machine Learning",
+      "predicted_role": null,
+      "notes": "Tricky: 'application viewed' notice that mentions interview prep. Viewing is not a stage."
+    },
+    {
+      "file": "30-linkedin-arcwell.eml",
+      "gold_category": "rejection",
+      "predicted_category": "rejection",
+      "gold_company": "Arcwell Systems",
+      "predicted_company": "Linkedin",
+      "gold_role": "Data Engineer",
+      "predicted_role": null,
+      "notes": "Company rejection relayed by LinkedIn; the company is in the body, not the sender."
+    },
+    {
+      "file": "31-linkedin-delfos.eml",
+      "gold_category": "rejection",
+      "predicted_category": "other",
+      "gold_company": "Delfos Analytics",
+      "predicted_company": null,
+      "gold_role": "MLOps Engineer",
+      "predicted_role": null,
+      "notes": "Tricky: Spanish rejection via LinkedIn with no 'lamentablemente'; 'avanzar con otras candidaturas' sounds positive."
+    },
+    {
+      "file": "32-linkedin-alert.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": null,
+      "predicted_company": null,
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky noise: Spanish LinkedIn job alert with 'solicitud' and 'entrevistas' in it, from the same platform as real applications."
+    },
+    {
+      "file": "33-infojobs-almenara.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Grupo Almenara",
+      "predicted_company": null,
+      "gold_role": "Analista de Datos Junior",
+      "predicted_role": null,
+      "notes": "Tricky: InfoJobs 'state changed' notice whose new state, 'CV leido', changes nothing."
+    },
+    {
+      "file": "34-infojobs-almenara.eml",
+      "gold_category": "rejection",
+      "predicted_category": "other",
+      "gold_company": "Grupo Almenara",
+      "predicted_company": null,
+      "gold_role": "Analista de Datos Junior",
+      "predicted_role": null,
+      "notes": "Tricky: same subject as 33; the rejection is the single word 'Descartado'."
+    },
+    {
+      "file": "35-workday-lumora.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Lumora Energy",
+      "predicted_company": "Myworkday",
+      "gold_role": "Senior Data Analyst",
+      "predicted_role": null,
+      "notes": "Workday acknowledgement; the sender domain is the ATS, not the company."
+    },
+    {
+      "file": "36-workday-lumora.eml",
+      "gold_category": "rejection",
+      "predicted_category": "other",
+      "gold_company": "Lumora Energy",
+      "predicted_company": "Myworkday",
+      "gold_role": "Senior Data Analyst",
+      "predicted_role": "Senior Data Analyst (R-0041877)",
+      "notes": "Tricky: 'the position has now been filled' with no explicit rejection wording."
+    },
+    {
+      "file": "37-greenhouse-tessellate.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Tessellate",
+      "predicted_company": "Greenhouse Mail",
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Greenhouse acknowledgement that does not name the role."
+    },
+    {
+      "file": "38-greenhouse-tessellate.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "information_request",
+      "gold_company": "Tessellate",
+      "predicted_company": "Greenhouse Mail",
+      "gold_role": "Platform Engineer, Data",
+      "predicted_role": null,
+      "notes": "Coding exercise sent through Greenhouse; an assessment counts as a stage (D11)."
+    },
+    {
+      "file": "39-lever-pinecrest.eml",
+      "gold_category": "information_request",
+      "predicted_category": "other",
+      "gold_company": "Pinecrest Analytics",
+      "predicted_company": "Lever",
+      "gold_role": "Machine Learning Engineer, Forecasting",
+      "predicted_role": null,
+      "notes": "Lever form asking for right to work and notice period; the application is on hold until answered."
+    },
+    {
+      "file": "40-indeed-ocaso.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Ocaso Log\u00edstica",
+      "predicted_company": null,
+      "gold_role": "T\u00e9cnico/a de Datos",
+      "predicted_role": null,
+      "notes": "Tricky: Spanish Indeed confirmation, HTML only, sent by the job board."
+    },
+    {
+      "file": "41-linkedin-arcwell.eml",
+      "gold_category": "interview_invitation",
+      "predicted_category": "other",
+      "gold_company": "Arcwell Systems",
+      "predicted_company": "Linkedin",
+      "gold_role": "Data Engineer",
+      "predicted_role": null,
+      "notes": "Tricky: LinkedIn InMail from the company's recruiter replying to an application; looks like cold outreach."
+    },
+    {
+      "file": "42-linkedin-inmail.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": null,
+      "predicted_company": null,
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky noise: Spanish agency InMail about an interview process the user never applied to."
     }
   ],
   "usage": {
-    "calls": 26,
+    "calls": 42,
     "input_tokens": 0,
     "output_tokens": 0,
-    "cost_usd": null,
-    "latency_p50_seconds": 0.00015675000031478703,
-    "latency_p95_seconds": 0.0001992749998862564
+    "cost_usd": 0.0,
+    "latency_p50_seconds": 0.00020380003843456507,
+    "latency_p95_seconds": 0.0002679799566976726
   },
   "latency_source": "measured"
 }

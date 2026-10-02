@@ -230,8 +230,8 @@ or the model misses the recording, and the script exits with code 2 ("stale
 recording, re-record") instead of silently calling a paid API.
 
 ## D33 - The baseline's scores are pinned in a test (M4)
-The keyword baseline is deterministic, so its accuracy (19/26) is asserted
-exactly. An unintended change anywhere in the pipeline (parsing, rendering,
+The keyword baseline is deterministic, so its accuracy (19/26, 28/42 since
+D46) is asserted exactly. An unintended change anywhere in the pipeline (parsing, rendering,
 the graph, the metrics) shows up as a failing test.
 
 ## D34 - A local model through Ollama is the free LLM option (M4)
@@ -343,7 +343,7 @@ writes.
 
 ## D44 - CI runs the LLM evaluation on every push, at no cost (M6)
 GitHub Actions runs ruff, ruff format, mypy, pytest, the baseline eval (at
-least 70%) and the qwen3 eval replayed from its recording (at least 95%). The
+least 70%, 65% since D46) and the qwen3 eval replayed from its recording (at least 95%). The
 replay needs no model server or key; a changed prompt fails it with exit
 code 2 until the recording is regenerated. A second job builds the image and
 smoke-tests health, auth and the JSON endpoint. The replay was verified
@@ -367,3 +367,43 @@ exposed five bugs, each now fixed and covered by a test:
 5. The `tool` label took whatever name the model asked for, so invented tool
    names could create unbounded series. Unknown tools are now labelled
    `unknown`.
+
+## D46 - Job-board and ATS notifications in the corpus (M7)
+Most applications are sent through LinkedIn or a company's ATS, so most
+replies come from a platform, not from the company. Sixteen fixtures were
+added (corpus 26 -> 42, size guard raised to 50): LinkedIn Easy Apply
+confirmations, "application viewed" notices, rejections relayed by LinkedIn,
+a recruiter InMail about a real application next to an agency InMail about
+none, a LinkedIn job alert, InfoJobs state changes ("CV leido", "Descartado"),
+and Indeed, Workday, Greenhouse and Lever messages, in English and Spanish.
+Labelling rules, in addition to D11:
+* A job board saying the company viewed the application or read the CV is
+  `other`: being looked at is not a stage.
+* Recruiter outreach through a job board's messaging is not a job application
+  unless it refers to the user's application, even if it describes an
+  interview process.
+* The company is the hiring company, never the job board relaying the message.
+
+The first `qwen3:8b` run scored 95.2%. Its mistakes would have hurt a real
+user: an "application viewed" notice read as an interview, an agency InMail
+recorded as an application (a phantom row), and a Spanish job title translated
+to English, which gives the same application a second role key and splits it
+in two (D4). The prompt now states the first two rules and asks for the title
+verbatim, in its original language. After that change the model scored 97.6%;
+its one error is an older fixture (a friend's mock-interview offer). Because
+the prompt was changed after seeing these failures, the score is optimistic
+in the same way as D36.
+
+The keyword baseline drops to 66.7% and matches the company on 17% of emails,
+because it reads the company from the sender's domain. Its CI floor moves
+from 70% to 65%; the floor guards against regressions, not quality.
+
+## D47 - The local model's output is capped (M7)
+Re-recording the evaluation hung for half an hour on one email: with greedy
+decoding and no output limit, `qwen3:8b` can loop in its reasoning, and the
+Ollama client had no timeout either. A real sync would have hung the same way
+and blocked every later sync (D41). `num_predict` is now capped at 4,096
+tokens (the same budget as the Anthropic path) and requests time out after
+5 minutes. A capped reply without a tool call gets the usual reminder and
+retry, then counts as a failed message (D25). The cap is part of the model
+fingerprint, so the change invalidated and regenerated the recording.

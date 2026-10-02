@@ -47,7 +47,7 @@ def _body(msg: EmailMessage) -> str:
 
 
 def test_corpus_has_expected_size() -> None:
-    assert 20 <= len(EML_FILES) <= 30
+    assert 20 <= len(EML_FILES) <= 50
 
 
 def test_every_fixture_is_labelled_exactly_once() -> None:

@@ -21,6 +21,11 @@ REFUSAL_FALLBACK_BETA: Final = "server-side-fallback-2026-07-01"
 # Deterministic decoding for the local model: the same email gets the same
 # answer, which keeps evaluations and recordings reproducible.
 OLLAMA_DECODING: Final = {"temperature": 0, "seed": 0}
+# Without a cap, greedy decoding can loop in its reasoning and never return:
+# one email once held the GPU for half an hour. A capped reply without a tool
+# call gets the usual reminder and a retry.
+OLLAMA_NUM_PREDICT: Final = MAX_TOKENS
+OLLAMA_TIMEOUT_SECONDS: Final = 300.0
 
 
 def model_fingerprint(settings: Settings) -> str:
@@ -37,6 +42,7 @@ def model_fingerprint(settings: Settings) -> str:
             details |= {
                 "model": settings.ollama_model,
                 "num_ctx": settings.ollama_num_ctx,
+                "num_predict": OLLAMA_NUM_PREDICT,
                 **OLLAMA_DECODING,
             }
         case LlmKind.ANTHROPIC:
@@ -65,6 +71,8 @@ def make_chat_model(
                 model=settings.ollama_model,
                 base_url=settings.ollama_base_url,
                 num_ctx=settings.ollama_num_ctx,
+                num_predict=OLLAMA_NUM_PREDICT,
+                client_kwargs={"timeout": OLLAMA_TIMEOUT_SECONDS},
                 temperature=OLLAMA_DECODING["temperature"],
                 seed=OLLAMA_DECODING["seed"],
                 cache=cache,

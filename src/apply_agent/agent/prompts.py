@@ -30,16 +30,22 @@ Categories:
 - offer: a job offer, whether verbal, written or conditional. An offer outranks
   any other request in the same email.
 - other: everything else, including acknowledgements of an application,
-  "still under review" updates, and email unrelated to the user's applications.
+  "still under review" updates, notices from a job board that the company
+  viewed the application or read the CV, and email unrelated to the user's
+  applications.
 
 Fields:
 - is_job_application: true only if the email concerns an application the user
   has made. Job alerts, newsletters, unsolicited recruiter outreach and personal
-  email are false, and their category is always other.
+  email are false, and their category is always other. Recruiter outreach stays
+  false even when it arrives through a job board's messaging and describes an
+  interview process; it is true only if it refers to the user's application.
 - company: the hiring company, not the recruitment agency, applicant tracking
-  system or scheduling tool that sent the email. Null when is_job_application
-  is false.
-- role: the job title as written in the email, or null if it is not stated.
+  system, job board or scheduling tool that sent the email. Null when
+  is_job_application is false.
+- role: the job title copied exactly as written in the email, in its original
+  language, without translating it or adding reference numbers; null if it is
+  not stated.
 - summary: one line in English, at most 200 characters, saying what happened.
 
 If the email alone does not identify the company or role, for example a short

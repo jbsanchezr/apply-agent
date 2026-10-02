@@ -27,9 +27,9 @@ def test_every_label_maps_to_a_fixture_message() -> None:
 def test_baseline_scores_are_pinned() -> None:
     """The baseline is deterministic: any change here is a real behaviour change."""
     result = evaluate(KeywordBaselineModel(), model_name="baseline", fixtures_dir=FIXTURES_DIR)
-    assert result.category.accuracy == pytest.approx(19 / 26)
+    assert result.category.accuracy == pytest.approx(28 / 42)
     assert result.failures == []
-    assert "Category accuracy: 0.731" in format_report(result)
+    assert "Category accuracy: 0.667" in format_report(result)
 
 
 def test_failed_messages_are_scored_as_failures() -> None:
@@ -42,7 +42,7 @@ def test_failed_messages_are_scored_as_failures() -> None:
 
 def test_cli_writes_json_and_enforces_the_threshold(tmp_path: Path) -> None:
     output = tmp_path / "result.json"
-    assert main(["--llm", "baseline", "--output", str(output), "--min-accuracy", "0.7"]) == 0
+    assert main(["--llm", "baseline", "--output", str(output), "--min-accuracy", "0.65"]) == 0
     assert json.loads(output.read_text(encoding="utf-8"))["model"] == "keyword baseline"
     assert main(["--llm", "baseline", "--min-accuracy", "0.9"]) == EXIT_BELOW_THRESHOLD
 

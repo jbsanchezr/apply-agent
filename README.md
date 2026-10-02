@@ -18,9 +18,11 @@ SQLAlchemy · Prometheus · Grafana · Langfuse · Docker · GitHub Actions
   emails and uses a keyword baseline, so `docker compose up` works on any
   machine. A free local LLM (Ollama) or Claude is one environment variable away.
 * **Measured, not assumed.** An evaluation harness runs the *whole agent* over
-  26 labelled emails and reports per-class precision/recall, confidence
-  intervals and a confusion matrix. The local `qwen3:8b` model goes from the
-  baseline's 73% accuracy to 100% (with an honest caveat, below).
+  42 labelled emails, including LinkedIn, InfoJobs, Indeed, Workday, Greenhouse
+  and Lever notifications in English and Spanish, and reports per-class
+  precision/recall, confidence intervals and a confusion matrix. The local
+  `qwen3:8b` model goes from the baseline's 67% accuracy to 98% (with an honest
+  caveat, below).
 * **Read-only by design.** The Gmail integration asks only for
   `gmail.readonly`, rejects broader tokens, and exposes a read-only interface.
   Email bodies are never stored or logged.
@@ -110,23 +112,29 @@ uv run python scripts/evaluate.py              # keyword baseline, no API key
 uv run python scripts/evaluate.py --llm ollama # local model, free
 ```
 
-This runs the full agent over the 26 labelled fixtures and prints per-class
+This runs the full agent over the 42 labelled fixtures and prints per-class
 precision/recall, accuracy with a 95% confidence interval, a confusion matrix
 and the misclassified cases.
 
 | Model | Category accuracy (95% CI) | Macro-F1 | Job-application flag | Company | Role |
 |---|---|---|---|---|---|
-| Keyword baseline | 73.1% (54-86%) | 0.77 | 88.5% | 27% | 27% |
-| `qwen3:8b`, local via Ollama | 100% (87-100%) | 1.00 | 100% | 86% | 95% |
+| Keyword baseline | 66.7% (52-79%) | 0.72 | 81.0% | 17% | 17% |
+| `qwen3:8b`, local via Ollama | 97.6% (88-100%) | 0.98 | 97.6% | 92% | 91% |
 
-Cost and latency per LLM call, from the same runs: the local model makes 1.08
-calls per email (about 1,000 tokens in, 460 out, reasoning included), costs $0,
-and takes 28.8 s at p50 and 85 s at p95 on a laptop RTX 4050.
+Cost and latency per LLM call, from the same runs: the local model makes 1.05
+calls per email (about 1,080 tokens in, 465 out, reasoning included), costs $0,
+and takes 6.7 s at p50 and 23 s at p95 on a desktop RTX 3060 Ti.
 
-Read the 100% as an upper bound: 26 examples, written by the same author as
-the prompt (see D36 in [DECISIONS.md](DECISIONS.md)). The local model's
-mistakes are naming variants ("Cinderpeak" vs "Cinderpeak Games"), not
-hallucinations. Full results are in [eval_results/](eval_results/).
+The keyword baseline takes the company from the sender's domain, so it
+attributes every job-board notification to the job board. Use an LLM for a
+real inbox that mostly hears back through LinkedIn or an ATS.
+
+Read the 98% as an upper bound: 42 examples, written by the same author as
+the prompt, which was tightened after the first run on the job-board emails
+(see D36 and D46 in [DECISIONS.md](DECISIONS.md)). The one misclassified email
+is a friend's mock-interview offer read as an application; the extraction
+mistakes are naming variants ("Cinderpeak" vs "Cinderpeak Games") and a
+requisition number kept in the role, not hallucinations. Full results are in [eval_results/](eval_results/).
 
 The local model's responses are recorded, so the LLM evaluation can be
 reproduced in seconds without Ollama:
@@ -180,10 +188,10 @@ mail, and refuses tokens with any broader scope.
 
 ## Limitations and next steps
 
-* **Small evaluation set.** 26 synthetic emails written by the same author as
+* **Small evaluation set.** 42 synthetic emails written by the same author as
   the prompt. The next step is a larger, independently labelled set, and a
   comparison of cheaper Claude models against the local one.
-* **Local latency.** `qwen3:8b` takes about 30 s per email on a laptop GPU.
+* **Local latency.** `qwen3:8b` takes 7-30 s per email depending on the GPU.
   Fine for a background sync, too slow for anything interactive.
 * **No dead-letter queue.** An email that always fails is retried on every
   sync. Moving it aside after N attempts is the planned fix.

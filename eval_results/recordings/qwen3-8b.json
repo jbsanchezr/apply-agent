@@ -1,69 +1,157 @@
 {
- "031239d8fa7200ef97d8fd577d222b714c865943da533d87de7de1da937938ea": [
+ "134c9d128f834b773360a1ec35e5e87b23ed009377daeafa6cbb1fc938313fb8": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d808-efb7-7022-ad67-876167957bb8-0",
+   "id": "lc_run--01a0fbee-422a-7f03-adb6-e8941ccb79bb-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:08:06.9802299Z",
+    "created_at": "2026-10-02T09:24:57.7286448Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 373,
-    "eval_duration": 27221358000,
-    "load_duration": 5501200,
+    "eval_count": 376,
+    "eval_duration": 6765268000,
+    "load_duration": 2041700,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 929,
-    "prompt_eval_duration": 298415000,
-    "total_duration": 27533529700
+    "prompt_eval_count": 1031,
+    "prompt_eval_duration": 95726000,
+    "total_duration": 6869513700
    },
    "tool_calls": [
     {
      "args": {
       "category": "interview_invitation",
-      "company": "Kestrel Robotics",
+      "company": "Brightloom",
       "is_job_application": true,
-      "role": "Backend Engineer, Platform",
-      "summary": "Interview invitation for Backend Engineer role on 21 July at 10:00 CEST"
+      "role": "Machine Learning Engineer",
+      "summary": "Invitation to a 30-minute introductory call for the Machine Learning Engineer role at Brightloom"
      },
-     "id": "3b88e995-4faf-48e5-ba30-d8faaf7cae55",
+     "id": "0de81b7e-2d4b-4712-96fb-3bdce8ba52b1",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 929,
-    "output_tokens": 373,
-    "total_tokens": 1302
+    "input_tokens": 1031,
+    "output_tokens": 376,
+    "total_tokens": 1407
    }
   }
  ],
- "053fac98ae4e4ea8a005ff02c22b4b92ffa2d98ae73148ebc107db4949cae7f2": [
+ "149682b5d25928acf43833a3d9597ac20742339192d91a9da26cf86e9d51d095": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d817-70ec-7273-8d78-d4bfc3a1f89b-0",
+   "id": "lc_run--01a0fbf2-18d8-7211-838e-b4f8b38a9968-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:23:52.3650053Z",
+    "created_at": "2026-10-02T09:29:07.2906946Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 283,
-    "eval_duration": 21912313000,
-    "load_duration": 3190000,
+    "eval_count": 264,
+    "eval_duration": 4760241000,
+    "load_duration": 2136800,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 916,
-    "prompt_eval_duration": 410955000,
-    "total_duration": 22335097200
+    "prompt_eval_count": 1021,
+    "prompt_eval_duration": 95324000,
+    "total_duration": 4865182900
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "interview_invitation",
+      "company": "Arcwell Systems",
+      "is_job_application": true,
+      "role": "Data Engineer",
+      "summary": "Invitation to schedule an intro call for the Data Engineer role."
+     },
+     "id": "31b63a80-d45b-4a9b-a032-f2143fba2a14",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1021,
+    "output_tokens": 264,
+    "total_tokens": 1285
+   }
+  }
+ ],
+ "19df8fc881dacfde220e6d7dca2dbd9e8857790a03c0631eb7b7ca34bf256b9f": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf2-9243-7410-9d3f-3ed43d533aa8-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:29:37.3779212Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 204,
+    "eval_duration": 3765814000,
+    "load_duration": 2821400,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1009,
+    "prompt_eval_duration": 95731000,
+    "total_duration": 3870791200
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "interview_invitation",
+      "company": "Tessellate",
+      "is_job_application": true,
+      "role": "Platform Engineer, Data",
+      "summary": "Invited to 90-minute coding exercise on CodeSignal"
+     },
+     "id": "459799e2-1124-4a8a-bfad-7c0661b86e4d",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1009,
+    "output_tokens": 204,
+    "total_tokens": 1213
+   }
+  }
+ ],
+ "24a60b565683cbdd142291f18ddc37466b57cf4432205ddc139eaf21a0c5d1b8": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf1-9d12-7403-8858-12d14938df29-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:28:36.5152726Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 312,
+    "eval_duration": 5676041000,
+    "load_duration": 2106800,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 995,
+    "prompt_eval_duration": 91610000,
+    "total_duration": 5776439900
    },
    "tool_calls": [
     {
@@ -72,306 +160,218 @@
       "company": "Glasswing",
       "is_job_application": true,
       "role": "Software Engineer, Detection Platform",
-      "summary": "Conditional job offer requiring references by Friday"
+      "summary": "Conditional job offer pending background check and references"
      },
-     "id": "6ce950df-8303-4814-a5b8-7a8d936f982b",
+     "id": "1aa5c910-bf05-473c-8290-91c09f1434e3",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 916,
-    "output_tokens": 283,
-    "total_tokens": 1199
-   }
-  }
- ],
- "0a159322d075d1e671cd55f31716b82485f0eb1fb89da0549b9c091de108a6a9": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d80b-4df6-7312-b7f8-8ec4afdc4f50-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:10:48.4497663Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 425,
-    "eval_duration": 33425377000,
-    "load_duration": 3505300,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 956,
-    "prompt_eval_duration": 364752000,
-    "total_duration": 33802453600
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "rejection",
-      "company": "Brightloom",
-      "is_job_application": true,
-      "role": "Machine Learning Engineer",
-      "summary": "Rejection: Selected a more suitable candidate for the role"
-     },
-     "id": "2b551cda-1615-46d5-9025-ecfabd2b9a6d",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 956,
-    "output_tokens": 425,
-    "total_tokens": 1381
-   }
-  }
- ],
- "15ec50796ea6b94adf6edb0f2e3d8d80243a907f2c3ab94103e3ace5e5baa6d8": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d80b-d20f-7363-b150-c3ea35591eeb-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:11:14.2491977Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 303,
-    "eval_duration": 25331088000,
-    "load_duration": 6153000,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 952,
-    "prompt_eval_duration": 440182000,
-    "total_duration": 25784873000
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "interview_invitation",
-      "company": "Lumen & Vale",
-      "is_job_application": true,
-      "role": "ML Platform Engineer",
-      "summary": "Interview scheduled for ML Platform Engineer role at Lumen & Vale"
-     },
-     "id": "74476598-9be1-4a77-a706-aed12f4f6c34",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 952,
-    "output_tokens": 303,
-    "total_tokens": 1255
-   }
-  }
- ],
- "4739f37196d316d9124fb73e6f4485a576bd02ee021cbef264bf39df612fc07e": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d80c-c298-7713-9af1-f54a0ffee724-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:12:25.2413747Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 383,
-    "eval_duration": 34757867000,
-    "load_duration": 5328800,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 927,
-    "prompt_eval_duration": 426005000,
-    "total_duration": 35200979900
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "information_request",
-      "company": "Veridian Bank",
-      "is_job_application": true,
-      "role": "ML Engineer, Fraud",
-      "summary": "Requesting documents for ML Engineer, Fraud role"
-     },
-     "id": "51d79064-cfba-4795-80e7-d6d2bd4ae504",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 927,
-    "output_tokens": 383,
-    "total_tokens": 1310
-   }
-  }
- ],
- "5a4c06cc38eaef706daf20cff9ac65885967c477a47527c0ca6131a73d2465ad": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d809-5b50-7ba3-9954-5d9f45c07350-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:08:34.0691846Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 365,
-    "eval_duration": 26717014000,
-    "load_duration": 5801500,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 942,
-    "prompt_eval_duration": 344875000,
-    "total_duration": 27076148200
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "rejection",
-      "company": "Quillon Data",
-      "is_job_application": true,
-      "role": "AI Engineer",
-      "summary": "Application rejected - no further consideration"
-     },
-     "id": "125b4bba-3af7-4e68-bb50-ed6bdbd5f005",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 942,
-    "output_tokens": 365,
+    "input_tokens": 995,
+    "output_tokens": 312,
     "total_tokens": 1307
    }
   }
  ],
- "5e078e125463de9848724daee37fceabcfd39e0deb162901a8eca7f87a117763": [
+ "2fa76459b663dc4680f55ff04a759e309ef1299af505b5530dc132a4d72286b9": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d807-05c5-75a1-90a3-73fdb1b4ac16-0",
+   "id": "lc_run--01a0fbee-fc10-7ef3-a10b-e93313e6a1dd-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:05:57.7901351Z",
+    "created_at": "2026-10-02T09:25:46.058028Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 291,
-    "eval_duration": 21160180000,
-    "load_duration": 10574400,
+    "eval_count": 413,
+    "eval_duration": 7491448000,
+    "load_duration": 2617900,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 929,
-    "prompt_eval_duration": 545034000,
-    "total_duration": 21724365500
+    "prompt_eval_count": 1035,
+    "prompt_eval_duration": 107589000,
+    "total_duration": 7608593300
    },
    "tool_calls": [
     {
      "args": {
-      "category": "other",
+      "category": "rejection",
       "company": "Brightloom",
       "is_job_application": true,
       "role": "Machine Learning Engineer",
-      "summary": "Application received, no further action needed"
+      "summary": "Rejection: The candidate was not selected for the Machine Learning Engineer role at Brightloom."
      },
-     "id": "34ad2c7f-1b66-4c2e-b657-e5ca4b46ad58",
+     "id": "f3ad2d0b-66f2-4c36-873c-f016abbccdf2",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 929,
-    "output_tokens": 291,
-    "total_tokens": 1220
+    "input_tokens": 1035,
+    "output_tokens": 413,
+    "total_tokens": 1448
    }
   }
  ],
- "6f86032c53dba01adc0e4743eb45261464bb832653ee79709d3792ee83ddd22e": [
+ "30b2648331d824dec7fd0833bdc786dfee1cf66729bf6b601166b877b7c2cdea": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d80c-36de-7193-a42a-1344c3f03fa7-0",
+   "id": "lc_run--01a0fbf1-6ada-7cd3-8dc0-8d133abeb05e-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:11:50.0258047Z",
+    "created_at": "2026-10-02T09:28:25.2273765Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 369,
-    "eval_duration": 35402900000,
-    "load_duration": 3747900,
+    "eval_count": 394,
+    "eval_duration": 7147299000,
+    "load_duration": 2042800,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 965,
-    "prompt_eval_duration": 336896000,
-    "total_duration": 35754227600
+    "prompt_eval_count": 990,
+    "prompt_eval_duration": 75105000,
+    "total_duration": 7343732200
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "offer",
+      "company": "Cinderpeak",
+      "is_job_application": true,
+      "role": "Backend Engineer",
+      "summary": "Offer details to be discussed via call"
+     },
+     "id": "f0187496-f1af-4866-b036-748f440100ed",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 990,
+    "output_tokens": 394,
+    "total_tokens": 1384
+   }
+  }
+ ],
+ "351ba3ed88c49bca08cf71ca7c7b5f77d78ca519d08b7cd0ef7570d06e09685a": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf1-b3ad-7ba1-aa03-90cbd92c5fcc-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:28:43.7464392Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 382,
+    "eval_duration": 7072274000,
+    "load_duration": 2614400,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1117,
+    "prompt_eval_duration": 136463000,
+    "total_duration": 7219612300
    },
    "tool_calls": [
     {
      "args": {
       "category": "other",
-      "company": null,
-      "is_job_application": false,
-      "role": null,
-      "summary": "Job alert for AI Engineer positions."
+      "company": "Arcwell Systems",
+      "is_job_application": true,
+      "role": "Data Engineer",
+      "summary": "Application submitted to Arcwell Systems for Data Engineer role"
      },
-     "id": "752775b8-d211-4475-9078-f2b09b387af0",
+     "id": "324510e8-797e-4133-be0c-acbf42da0b6d",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 965,
-    "output_tokens": 369,
-    "total_tokens": 1334
+    "input_tokens": 1117,
+    "output_tokens": 382,
+    "total_tokens": 1499
    }
   }
  ],
- "73cb718779ed4a589853d1b8b9f7605544aade033fd0e81d34927a8fd3dccf2e": [
+ "35b3a0ab9f3db9ebacde85bfe90c7862867f04a4bf4115029c234ae457118c6c": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d808-4d90-71f2-97c4-f58bdee504b4-0",
+   "id": "lc_run--01a0fbee-ae46-7db0-b59c-25d3568fa9a3-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:07:20.9247079Z",
+    "created_at": "2026-10-02T09:25:25.4849919Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 304,
-    "eval_duration": 22649994000,
-    "load_duration": 3063300,
+    "eval_count": 372,
+    "eval_duration": 6846112000,
+    "load_duration": 2494000,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 926,
-    "prompt_eval_duration": 325731000,
-    "total_duration": 22987716400
+    "prompt_eval_count": 1013,
+    "prompt_eval_duration": 95352000,
+    "total_duration": 6950591000
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "rejection",
+      "company": "Parallax Payments",
+      "is_job_application": true,
+      "role": "Senior Software Engineer (Java)",
+      "summary": "The Senior Software Engineer (Java) role has been closed and the process will not continue."
+     },
+     "id": "c3862fac-8330-42e2-9d51-cbbca496b5c1",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1013,
+    "output_tokens": 372,
+    "total_tokens": 1385
+   }
+  }
+ ],
+ "37c10d71a5eda1ac3a91525abb951dbfd47154f888e8d633733cada364db3d50": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbee-2611-76c3-b06b-c354759fdf47-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:24:50.8511339Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 386,
+    "eval_duration": 7084593000,
+    "load_duration": 2114100,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1005,
+    "prompt_eval_duration": 91708000,
+    "total_duration": 7185093700
    },
    "tool_calls": [
     {
@@ -382,476 +382,254 @@
       "role": "MLOps Engineer",
       "summary": "Application rejected due to high volume of candidates"
      },
-     "id": "316a9daf-0c16-4697-8d26-d539644e73a1",
+     "id": "e05dbc5b-37c8-4e6f-93bb-58be5e27ea5b",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 926,
-    "output_tokens": 304,
-    "total_tokens": 1230
+    "input_tokens": 1005,
+    "output_tokens": 386,
+    "total_tokens": 1391
    }
   }
  ],
- "80a0fbc360ac211d507ea147f6dba1bdeb6a7339bb91d46182d899d36df0eb95": [
+ "4110a524963f4ddf2a7c393d995c233901b93e710d0357bf2fdfd459989b88cd": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d812-6c91-75b1-9a75-8288173e2ba0-0",
+   "id": "lc_run--01a0fbf2-5daf-72c3-a552-45942ccf137f-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:18:42.8062584Z",
+    "created_at": "2026-10-02T09:29:27.431916Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 510,
-    "eval_duration": 41229322000,
-    "load_duration": 4227300,
+    "eval_count": 402,
+    "eval_duration": 7265976000,
+    "load_duration": 2045600,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 916,
-    "prompt_eval_duration": 328041000,
-    "total_duration": 41572126800
+    "prompt_eval_count": 1028,
+    "prompt_eval_duration": 108185000,
+    "total_duration": 7383280800
    },
    "tool_calls": [
     {
      "args": {
       "category": "other",
-      "company": null,
-      "is_job_application": false,
-      "role": null,
-      "summary": "Cloudnest informs of plan changes unrelated to job applications."
-     },
-     "id": "3f099488-e940-4953-8350-e1a2be4ff241",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 916,
-    "output_tokens": 510,
-    "total_tokens": 1426
-   }
-  }
- ],
- "80adc38a6fcd7eda2d9e33dafc9821ead0b6394028cafeafcc3e709d381b7e8d": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d807-62b1-7e51-9fe4-dbe086fef725-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:06:29.3935163Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 425,
-    "eval_duration": 31307600000,
-    "load_duration": 6652600,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 907,
-    "prompt_eval_duration": 260452000,
-    "total_duration": 31582565900
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "other",
-      "company": "Halcyon Health",
+      "company": "Grupo Almenara",
       "is_job_application": true,
-      "role": "MLOps Engineer",
-      "summary": "Halcyon Health viewed your MLOps Engineer application"
+      "role": "Analista de Datos Junior",
+      "summary": "Application status updated to CV read"
      },
-     "id": "0ff97e02-89e3-4b25-841f-dc9a43ec5478",
+     "id": "1ed6b9b9-ba35-46c8-941f-4a94d08ac470",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 907,
-    "output_tokens": 425,
-    "total_tokens": 1332
+    "input_tokens": 1028,
+    "output_tokens": 402,
+    "total_tokens": 1430
    }
   }
  ],
- "82355995e5c424bb3a4146adab7555be8a5a16f914980e132adb3cf861fcb2e0": [
+ "414f5aa022fb5e02c5543c396d9ed92724fc86e454fb608287a7e35fee4c8ba5": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d80a-841f-7f73-b1f5-a176e17d2151-0",
+   "id": "lc_run--01a0fbf0-34e2-7a13-af0a-df46c2d6d9e8-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:09:51.6507119Z",
+    "created_at": "2026-10-02T09:27:29.6474909Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 389,
-    "eval_duration": 28361226000,
-    "load_duration": 3168600,
+    "eval_count": 1664,
+    "eval_duration": 31040209000,
+    "load_duration": 2308100,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 927,
-    "prompt_eval_duration": 302506000,
-    "total_duration": 28674208200
+    "prompt_eval_count": 967,
+    "prompt_eval_duration": 66887000,
+    "total_duration": 31115666200
    },
    "tool_calls": [
     {
-     "args": {
-      "category": "information_request",
-      "company": "Northbeam Energy",
-      "is_job_application": true,
-      "role": "Python Developer",
-      "summary": "Requesting answers to screening questions for Python Developer role at Northbeam Energy"
-     },
-     "id": "ee7acf80-ae0e-49e1-8bc1-e0f994ada857",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 927,
-    "output_tokens": 389,
-    "total_tokens": 1316
-   }
-  }
- ],
- "827ab80eeeb310f5cc6e8e8bb0836c65a235f6963c50cb1602f53e06fbb7a74e": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d811-8e7f-7652-a0f9-83afbf19207a-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:17:32.2710337Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 357,
-    "eval_duration": 27549986000,
-    "load_duration": 2700700,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 898,
-    "prompt_eval_duration": 325532000,
-    "total_duration": 27886305500
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "other",
-      "company": "Solstice Bio",
-      "is_job_application": true,
-      "role": "Data Scientist",
-      "summary": "Application status update: still under review"
-     },
-     "id": "69638efe-e92c-462a-aa31-e7e52e3d4a97",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 898,
-    "output_tokens": 357,
-    "total_tokens": 1255
-   }
-  }
- ],
- "9060479c1f938af1eebbd45f1782f1bcb8d1f02428778ac6542ba329fb601b5e": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d820-268d-7583-857f-4c223348acca-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:34:44.6783849Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 1098,
-    "eval_duration": 103363389000,
-    "load_duration": 5148800,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 927,
-    "prompt_eval_duration": 484910000,
-    "total_duration": 103863106100
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "other",
-      "company": null,
-      "is_job_application": false,
-      "role": null,
-      "summary": "Interview prep discussion with Jordan Lee."
-     },
-     "id": "5482bfba-9983-470a-9b11-0115883bcac1",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 927,
-    "output_tokens": 1098,
-    "total_tokens": 2025
-   }
-  }
- ],
- "9d5e556b17a1cd2d1d4b9df93d696cd58ecea627c0d76db75d40089d3c9b1191": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d80e-6685-7ac0-8f41-badab4a6f297-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:15:52.6577698Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 1273,
-    "eval_duration": 134636704000,
-    "load_duration": 3688000,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 913,
-    "prompt_eval_duration": 462980000,
-    "total_duration": 135114682400
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "other",
-      "company": "TalentForge",
-      "is_job_application": false,
-      "role": "Staff ML Engineer",
-      "summary": "Invitation to chat about Staff ML Engineer role"
-     },
-     "id": "776dbb60-3520-4837-a325-86e6c7745022",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 913,
-    "output_tokens": 1273,
-    "total_tokens": 2186
-   }
-  }
- ],
- "b8242d9e5127b035674f794081939ef6e1ff76ac1e40c71903c47e7ab5755674": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d813-0f02-7812-ab2b-8e0d8eff9b7a-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:19:33.4537264Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 609,
-    "eval_duration": 50366147000,
-    "load_duration": 3798400,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 888,
-    "prompt_eval_duration": 255634000,
-    "total_duration": 50634054900
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "thread_id": "current"
-     },
-     "id": "55d6512b-45dd-47a3-a70b-c34a118291fb",
+     "args": {},
+     "id": "c95c45a5-b916-4497-bc8a-523b7bbbb1ca",
      "name": "get_thread",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 888,
-    "output_tokens": 609,
-    "total_tokens": 1497
+    "input_tokens": 967,
+    "output_tokens": 1664,
+    "total_tokens": 2631
    }
   }
  ],
- "bb981d2bc129e87a3abb3f3ebddce1dbeb347e82459383d53783b214dd9067fb": [
+ "45b9c10ff78e0962b99f0985fc13535aff955cb070836a35213affd8ad3da91b": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d80a-2774-7ea1-abec-e9e6de358799-0",
+   "id": "lc_run--01a0fbef-5053-79d3-9b81-7ee297e9e0a7-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:09:22.9636366Z",
+    "created_at": "2026-10-02T09:26:06.4308062Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 321,
-    "eval_duration": 23370976000,
-    "load_duration": 4371800,
+    "eval_count": 348,
+    "eval_duration": 6318902000,
+    "load_duration": 2034600,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 934,
-    "prompt_eval_duration": 326689000,
-    "total_duration": 23709930500
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "rejection",
-      "company": "Parallax Payments",
-      "is_job_application": true,
-      "role": "Senior Software Engineer (Java)",
-      "summary": "Role put on hold and closed."
-     },
-     "id": "4b5d0055-dcee-4592-a008-b716566af7da",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 934,
-    "output_tokens": 321,
-    "total_tokens": 1255
-   }
-  }
- ],
- "c0ed29a85df9d8a20c3ceb7d89b1cb9b2b5102f3de650087041e26c709e9f476": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d807-de1b-7532-ac81-4224281f0e7c-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:06:57.9213398Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 378,
-    "eval_duration": 28187671000,
-    "load_duration": 5872700,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 943,
-    "prompt_eval_duration": 315528000,
-    "total_duration": 28516970800
+    "prompt_eval_count": 1006,
+    "prompt_eval_duration": 82484000,
+    "total_duration": 6410740700
    },
    "tool_calls": [
     {
      "args": {
       "category": "information_request",
-      "company": "Kestrel Robotics",
+      "company": "Veridian Bank",
       "is_job_application": true,
-      "role": "Backend Engineer, Platform",
-      "summary": "Requesting salary expectations, notice period, and visa sponsorship details"
+      "role": "ML Engineer, Fraud",
+      "summary": "Request for documents to proceed with application"
      },
-     "id": "6a4b4bc3-27b6-42d7-b148-5f9e7923a6f4",
+     "id": "1cc486d0-b8db-49fe-b808-61f2f0945616",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 943,
-    "output_tokens": 378,
-    "total_tokens": 1321
+    "input_tokens": 1006,
+    "output_tokens": 348,
+    "total_tokens": 1354
    }
   }
  ],
- "c48c693b8d27deab1bb1fa816587dbe4e41e496fc1b6c02b81d051030e3ab862": [
+ "4600372d7a18e246c861cf6f2591b9170f7e16102875f919877de69eaab3d8da": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d80a-f430-7c10-b875-4740dcf86bf4-0",
+   "id": "lc_run--01a0fbf3-3cc7-7b10-b932-acd686ca7c3a-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:10:14.6340898Z",
+    "created_at": "2026-10-02T09:30:23.7171802Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 312,
-    "eval_duration": 22633308000,
-    "load_duration": 5450100,
+    "eval_count": 319,
+    "eval_duration": 6397066000,
+    "load_duration": 2627600,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 923,
-    "prompt_eval_duration": 322661000,
-    "total_duration": 22969163900
+    "prompt_eval_count": 1111,
+    "prompt_eval_duration": 144846000,
+    "total_duration": 6556758700
    },
    "tool_calls": [
     {
      "args": {
-      "category": "rejection",
-      "company": "Tidewater Logistics",
-      "is_job_application": true,
-      "role": "Data Engineer",
-      "summary": "Application rejected; not selected for next stage."
+      "category": "other",
+      "company": null,
+      "is_job_application": false,
+      "role": null,
+      "summary": "LinkedIn job alert for 30+ machine learning engineer roles in Madrid"
      },
-     "id": "1326c739-f1ed-485d-8d72-63a3a44c09d9",
+     "id": "70f280e7-93bf-4016-bb71-673d52dee076",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 923,
-    "output_tokens": 312,
-    "total_tokens": 1235
+    "input_tokens": 1111,
+    "output_tokens": 319,
+    "total_tokens": 1430
    }
   }
  ],
- "c50ae4f93e8794dd47301bf15e7cd7c2359061141f87cc74a85d786312bb5e51": [
+ "56dd1dc9dadf8ef598a0a86107f77abcee4bcce6f82ebc26253c026efc485e9a": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d809-c521-76b2-abef-4635b5c144bd-0",
+   "id": "lc_run--01a0fbef-19d0-75c1-bc0e-2577c3a3fd3c-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:08:59.2411257Z",
+    "created_at": "2026-10-02T09:25:52.7276756Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 340,
-    "eval_duration": 24818230000,
-    "load_duration": 2635900,
+    "eval_count": 356,
+    "eval_duration": 6544355000,
+    "load_duration": 2096700,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 941,
-    "prompt_eval_duration": 330544000,
-    "total_duration": 25158789700
+    "prompt_eval_count": 1031,
+    "prompt_eval_duration": 108471000,
+    "total_duration": 6661976400
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "interview_invitation",
+      "company": "Lumen & Vale",
+      "is_job_application": true,
+      "role": "ML Platform Engineer",
+      "summary": "Interview requested for ML Platform Engineer role on 30/31 July."
+     },
+     "id": "4ca160c9-6b42-49a1-8f01-d4fcc1765082",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1031,
+    "output_tokens": 356,
+    "total_tokens": 1387
+   }
+  }
+ ],
+ "5d03e986887519ea0652539e53473e0977550125ce13eea96ee3981715589f58": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbee-97b9-7f41-9dca-741daee94fc0-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:25:18.5231044Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 310,
+    "eval_duration": 5656061000,
+    "load_duration": 2070000,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1020,
+    "prompt_eval_duration": 95913000,
+    "total_duration": 5760461100
    },
    "tool_calls": [
     {
@@ -862,40 +640,40 @@
       "role": "Applied Scientist, LLMs",
       "summary": "Invited to complete technical assessment for Applied Scientist, LLMs role"
      },
-     "id": "40f7057b-05f3-4311-a91a-1363ae97d6ee",
+     "id": "fc7022b5-5f25-4562-aaab-e645a0e3b748",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 941,
-    "output_tokens": 340,
-    "total_tokens": 1281
+    "input_tokens": 1020,
+    "output_tokens": 310,
+    "total_tokens": 1330
    }
   }
  ],
- "c740aedbcd138cda01526eb966192ceab5027029a7b771720f938ab8b0571fd3": [
+ "64f194ef833d9d3bfaf6f23510311c2641c1798b6248a8ec8ddaa7765391a0cd": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d81f-758d-7883-9f48-10c73ff1ca75-0",
+   "id": "lc_run--01a0fbf2-a16e-7413-809a-c4812da86044-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:33:00.735506Z",
+    "created_at": "2026-10-02T09:29:55.5244808Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 366,
-    "eval_duration": 30901966000,
-    "load_duration": 11038312700,
+    "eval_count": 975,
+    "eval_duration": 18001955000,
+    "load_duration": 2022100,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 999,
-    "prompt_eval_duration": 1244854000,
-    "total_duration": 43197711400
+    "prompt_eval_count": 1072,
+    "prompt_eval_duration": 121382000,
+    "total_duration": 18132856200
    },
    "tool_calls": [
     {
@@ -903,43 +681,87 @@
       "category": "other",
       "company": null,
       "is_job_application": false,
-      "role": null,
-      "summary": "Outreach from TalentForge about Staff ML Engineer role"
+      "role": "Lead Data Scientist",
+      "summary": "Recruiter invited to discuss a Lead Data Scientist role at a fintech scale-up."
      },
-     "id": "eb647bc1-3430-4b15-9002-904b1157ba08",
+     "id": "10b0e294-b27b-407a-95da-db1003f52c42",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 999,
-    "output_tokens": 366,
-    "total_tokens": 1365
+    "input_tokens": 1072,
+    "output_tokens": 975,
+    "total_tokens": 2047
    }
   }
  ],
- "d8a78c9b598f88e1794440f6267f468c8d92d28c6e8f837f5ebc271a2ffd8abf": [
+ "6d79c59931689e7e0dbe70ef6d999a3131a65b92264d6c35285c20010e63ae1f": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d816-f9a9-7411-b575-99ba46c02d31-0",
+   "id": "lc_run--01a0fbee-c977-7c92-a9b7-44f91dadba8a-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:23:30.0088488Z",
+    "created_at": "2026-10-02T09:25:32.1339251Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 396,
-    "eval_duration": 30193641000,
-    "load_duration": 3163600,
+    "eval_count": 356,
+    "eval_duration": 6533472000,
+    "load_duration": 2040100,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 923,
-    "prompt_eval_duration": 304592000,
-    "total_duration": 30509470500
+    "prompt_eval_count": 1006,
+    "prompt_eval_duration": 95170000,
+    "total_duration": 6637338400
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "information_request",
+      "company": "Northbeam Energy",
+      "is_job_application": true,
+      "role": "Python Developer",
+      "summary": "Request for screening questions answers"
+     },
+     "id": "140bb4f0-ee77-49d2-b6d1-cf75bfee4142",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1006,
+    "output_tokens": 356,
+    "total_tokens": 1362
+   }
+  }
+ ],
+ "718c63c0e45b559cd1e8bba25b6da3289e3fe40fa35986cbe61436f10b84ab5a": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf1-8797-77a2-b334-56ba08ec8f2a-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:28:30.7263954Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 296,
+    "eval_duration": 5384229000,
+    "load_duration": 2052100,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1002,
+    "prompt_eval_duration": 92428000,
+    "total_duration": 5486112600
    },
    "tool_calls": [
     {
@@ -948,86 +770,1010 @@
       "company": "Cobalt Mobility",
       "is_job_application": true,
       "role": "Senior Backend Engineer",
-      "summary": "Requested updated CV, references, and code link by end of week"
+      "summary": "Requesting additional documents and references"
      },
-     "id": "d8794f62-4548-4f9f-9428-97aa342735bc",
+     "id": "21333ef4-97c6-4811-9dbc-1744c74bc5d3",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 923,
-    "output_tokens": 396,
-    "total_tokens": 1319
+    "input_tokens": 1002,
+    "output_tokens": 296,
+    "total_tokens": 1298
    }
   }
  ],
- "e1d4d2dc0fde4fc001c9b608ca7a052f9ff1e32a1bf585e23a8fadb38974a47d": [
+ "71dc86262b40a0bdc86461a0724d028d0cc1f9afb4685992a72f69495bcc1c30": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d816-7cf0-7eb1-abcf-d13fca728f5f-0",
+   "id": "lc_run--01a0fbf2-469a-7b31-92ef-fd41dcaea846-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:22:59.474287Z",
+    "created_at": "2026-10-02T09:29:20.0360022Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 412,
-    "eval_duration": 31333495000,
-    "load_duration": 5082700,
+    "eval_count": 317,
+    "eval_duration": 5780210000,
+    "load_duration": 2045500,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 911,
-    "prompt_eval_duration": 441768000,
-    "total_duration": 31904235200
+    "prompt_eval_count": 1030,
+    "prompt_eval_duration": 107038000,
+    "total_duration": 5896822800
    },
    "tool_calls": [
     {
      "args": {
-      "category": "offer",
-      "company": "Cinderpeak",
+      "category": "other",
+      "company": "Ocaso Logística",
       "is_job_application": true,
-      "role": "Backend Engineer",
-      "summary": "Offer details call scheduled"
+      "role": "Técnico/a de Datos",
+      "summary": "Application sent to Ocaso Logística for Data Technician role"
      },
-     "id": "7df45346-f0a7-4a9b-99cd-c27f71c38577",
+     "id": "768b2f38-efee-4987-9748-a888b69c381a",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 911,
-    "output_tokens": 412,
-    "total_tokens": 1323
+    "input_tokens": 1030,
+    "output_tokens": 317,
+    "total_tokens": 1347
    }
   }
  ],
- "e73048b06e27b6ca04b000782951af1199330d10fc7d48d513dad9d1033bcbaf": [
+ "7a1526530791b980ec8464964c1263736d0f043116b55cc174cb29e6346d7a86": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d80d-4c2c-7ec0-8479-408d17c977c6-0",
+   "id": "lc_run--01a0fbf2-e84a-77b0-bbf3-aa25c3dbdeb3-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:13:03.5360089Z",
+    "created_at": "2026-10-02T09:30:01.6812502Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 455,
-    "eval_duration": 37812614000,
-    "load_duration": 2637700,
+    "eval_count": 322,
+    "eval_duration": 5915137000,
+    "load_duration": 2097100,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 953,
-    "prompt_eval_duration": 447911000,
-    "total_duration": 38273994900
+    "prompt_eval_count": 1088,
+    "prompt_eval_duration": 133033999,
+    "total_duration": 6149433000
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "rejection",
+      "company": "Arcwell Systems",
+      "is_job_application": true,
+      "role": "Data Engineer",
+      "summary": "Application rejected"
+     },
+     "id": "820240c3-c60a-45e1-a089-c937d7a8e613",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1088,
+    "output_tokens": 322,
+    "total_tokens": 1410
+   }
+  }
+ ],
+ "7bea2c519517efa51a2f0f80bcf93b47f7ecb528bbe6049b190a82dcdd4dea70": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbed-eb22-7352-9a64-8ac17e543ca9-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:24:36.2898929Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 420,
+    "eval_duration": 7628802000,
+    "load_duration": 2077500,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 986,
+    "prompt_eval_duration": 73133000,
+    "total_duration": 7710527900
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": "Halcyon Health",
+      "is_job_application": true,
+      "role": "MLOps Engineer",
+      "summary": "Halcyon Health viewed your application for MLOps Engineer"
+     },
+     "id": "710504b6-590a-413c-8150-8791a9f260d4",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 986,
+    "output_tokens": 420,
+    "total_tokens": 1406
+   }
+  }
+ ],
+ "7c97d0b7223ef12686012cd7447ddbf06f44080d5b208d27c69d49a4e305b674": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbee-e370-72a0-97e6-79c7d13c7315-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:25:38.4407072Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 338,
+    "eval_duration": 6195107000,
+    "load_duration": 1691300,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1002,
+    "prompt_eval_duration": 91333000,
+    "total_duration": 6294934000
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "rejection",
+      "company": "Tidewater Logistics",
+      "is_job_application": true,
+      "role": "Data Engineer",
+      "summary": "Application rejected: Not selected for next stage."
+     },
+     "id": "5c2ae31a-0f61-4bc6-b609-a75586a4c364",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1002,
+    "output_tokens": 338,
+    "total_tokens": 1340
+   }
+  }
+ ],
+ "864e8329bcd52fcf40f05d51b7390709b853af211f18c15cb5bddb7526d7cb5d": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbee-5d0b-75e3-a2c4-c7847070a655-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:25:06.4004135Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 467,
+    "eval_duration": 8556575000,
+    "load_duration": 2133000,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1008,
+    "prompt_eval_duration": 95185000,
+    "total_duration": 8660280700
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "interview_invitation",
+      "company": "Kestrel-Robotics",
+      "is_job_application": true,
+      "role": "Backend Engineer, Platform",
+      "summary": "Invited to a technical interview for Backend Engineer, Platform role"
+     },
+     "id": "6c6c139a-13c3-47ff-a46a-ba14577d42aa",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1008,
+    "output_tokens": 467,
+    "total_tokens": 1475
+   }
+  }
+ ],
+ "8e6ce6822fc5d23f72f40e61d007fbb7af1becda00afdf14b71d9b44eeffc18e": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf0-ae73-7383-8001-aeec7b857ef2-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:27:54.155067Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 1310,
+    "eval_duration": 24253173000,
+    "load_duration": 2604000,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1002,
+    "prompt_eval_duration": 16853000,
+    "total_duration": 24503350300
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "interview_invitation",
+      "company": null,
+      "is_job_application": true,
+      "role": null,
+      "summary": "Interview invitation for mock system design interview"
+     },
+     "id": "818c08d2-359c-451a-99c1-d46306372907",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1002,
+    "output_tokens": 1310,
+    "total_tokens": 2312
+   }
+  }
+ ],
+ "8fe494c85ac165f748f1eccc9cb975402c410a1cb797050d5746e93b7d87eb6c": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbee-094c-79b0-a382-3abbc0607c7a-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:24:43.6536946Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 396,
+    "eval_duration": 7259959000,
+    "load_duration": 2078200,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1022,
+    "prompt_eval_duration": 84004000,
+    "total_duration": 7352959100
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "information_request",
+      "company": "Kestrel Robotics",
+      "is_job_application": true,
+      "role": "Backend Engineer, Platform",
+      "summary": "Requested salary, notice period, and visa sponsorship details"
+     },
+     "id": "59b4eb46-1500-415b-b24b-c2e0da4bd1f5",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1022,
+    "output_tokens": 396,
+    "total_tokens": 1418
+   }
+  }
+ ],
+ "92c1f8a5d38861bbf11339083c101f2592760012ad5cb1a7f5324fc76e1fe566": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbef-db78-7871-9d36-30fee74d6513-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:26:42.3981725Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 370,
+    "eval_duration": 6677117000,
+    "load_duration": 2080800,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 977,
+    "prompt_eval_duration": 71600000,
+    "total_duration": 6757291100
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": "Solstice Bio",
+      "is_job_application": true,
+      "role": "Data Scientist",
+      "summary": "Application status: still under review"
+     },
+     "id": "1eb1969d-52d6-47bf-beba-0ad22492a22e",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 977,
+    "output_tokens": 370,
+    "total_tokens": 1347
+   }
+  }
+ ],
+ "92f3b39098a3ead630c9dd7523094dbb183bbbb8eff6dee244bcbddbff58e194": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbee-7eea-7390-a133-d67cc0e2894e-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:25:12.7509744Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 342,
+    "eval_duration": 6251478000,
+    "load_duration": 2199000,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1021,
+    "prompt_eval_duration": 80303000,
+    "total_duration": 6340479800
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "rejection",
+      "company": "Quillon Data",
+      "is_job_application": true,
+      "role": "AI Engineer",
+      "summary": "Application rejected; moving forward with other candidates."
+     },
+     "id": "99efab45-3fd1-43a7-b917-1d9819b0f1bd",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1021,
+    "output_tokens": 342,
+    "total_tokens": 1363
+   }
+  }
+ ],
+ "9fff368b52a4976e85f1968003145f548cb3abdfee433147473c98e810e00e27": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbed-c8ec-7341-ae9d-af6fd18bb9b3-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:24:28.5649055Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 330,
+    "eval_duration": 6302501000,
+    "load_duration": 2299200,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1008,
+    "prompt_eval_duration": 102558000,
+    "total_duration": 6708163500
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": "Brightloom",
+      "is_job_application": true,
+      "role": "Machine Learning Engineer",
+      "summary": "Acknowledged application for Machine Learning Engineer role at Brightloom"
+     },
+     "id": "6e6702ef-5e60-46fc-aadb-09e76b569605",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1008,
+    "output_tokens": 330,
+    "total_tokens": 1338
+   }
+  }
+ ],
+ "a0aca5d56758a79e5dd9950336cef8814d57a0a9edf2b36ff5a5420148360167": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbef-f5e9-7e42-be58-723029321fb8-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:26:48.6556349Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 336,
+    "eval_duration": 6164677000,
+    "load_duration": 1615000,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 995,
+    "prompt_eval_duration": 73288000,
+    "total_duration": 6245739100
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "interview_invitation",
+      "company": "Glasswing Security",
+      "is_job_application": true,
+      "role": "Software Engineer, Detection Platform",
+      "summary": "Interview invitation for Software Engineer role at Glasswing Security"
+     },
+     "id": "8582b47e-3d15-4b5a-bddb-8fdbfe36696f",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 995,
+    "output_tokens": 336,
+    "total_tokens": 1331
+   }
+  }
+ ],
+ "a8f004d8115f15ca683c209440fc0e3a4f935a8ecc169807e25053f171e8f5e7": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbef-a486-7710-b441-d1b8882c3695-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:26:30.4090496Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 474,
+    "eval_duration": 8733316000,
+    "load_duration": 2185800,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 992,
+    "prompt_eval_duration": 91402000,
+    "total_duration": 8833256200
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": null,
+      "is_job_application": false,
+      "role": "Staff ML Engineer",
+      "summary": "Recruiter outreach for Staff ML Engineer role"
+     },
+     "id": "ea370109-490b-49ce-8eee-5d66f58b4be7",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 992,
+    "output_tokens": 474,
+    "total_tokens": 1466
+   }
+  }
+ ],
+ "acf7c1358ddde9d05aab9c84403ced48124c3efb8b411bf8f19ff692c288f2b0": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf1-0e2e-7552-93c8-7bc0a249f640-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:28:17.8745181Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 1255,
+    "eval_duration": 23552349000,
+    "load_duration": 2041600,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1084,
+    "prompt_eval_duration": 51207000,
+    "total_duration": 23714899900
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "interview_invitation",
+      "company": "example.org",
+      "is_job_application": true,
+      "role": "System Designer",
+      "summary": "Interview invitation for mock system design interview"
+     },
+     "id": "fae81d98-f90b-42f3-8beb-67e43d25c081",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1084,
+    "output_tokens": 1255,
+    "total_tokens": 2339
+   }
+  }
+ ],
+ "b9e0b9f60c72963a9b2540c539a66df2f184a744fc9346e0064e8165b1841e51": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf2-2be6-7d82-a210-7165613dfc81-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:29:14.126539Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 365,
+    "eval_duration": 6702877000,
+    "load_duration": 2042900,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1052,
+    "prompt_eval_duration": 110630000,
+    "total_duration": 6823503800
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": "Nubaria",
+      "is_job_application": true,
+      "role": "Ingeniero/a de Machine Learning",
+      "summary": "Nubaria has seen your application"
+     },
+     "id": "404039f9-0835-49e4-b452-7eb3a6695b07",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1052,
+    "output_tokens": 365,
+    "total_tokens": 1417
+   }
+  }
+ ],
+ "c04549d76c4db423a145f3d9e0cd8587e53d32c0dfdf5648abfa4a7312a353c5": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbef-8bc6-7c60-ba1c-0233eff6b83d-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:26:21.5637741Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 344,
+    "eval_duration": 6239562000,
+    "load_duration": 2042400,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1007,
+    "prompt_eval_duration": 76325000,
+    "total_duration": 6324792700
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "rejection",
+      "company": "Mirabellabs",
+      "is_job_application": true,
+      "role": "AI Engineer",
+      "summary": "Application rejected, but your background may fit future MLOps roles."
+     },
+     "id": "c4c98a35-f71f-452d-8b97-966096e67130",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1007,
+    "output_tokens": 344,
+    "total_tokens": 1351
+   }
+  }
+ ],
+ "c60cc8a7968a3bba07a776f211490be57ff44194be52554d7dc8cda883236acc": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf3-14f4-7d32-8820-474db80a89fa-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:30:17.1476914Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 533,
+    "eval_duration": 10031786000,
+    "load_duration": 2052800,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1111,
+    "prompt_eval_duration": 140648000,
+    "total_duration": 10181892500
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "rejection",
+      "company": "Delfos Analytics",
+      "is_job_application": true,
+      "role": "MLOps Engineer",
+      "summary": "Application rejected as they moved forward with other candidates."
+     },
+     "id": "1438bd36-6a40-40ee-adbf-8efda0def798",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1111,
+    "output_tokens": 533,
+    "total_tokens": 1644
+   }
+  }
+ ],
+ "c70d8699a950d00a785e19fde63295b9fc401ec48c723d587d1ba05be2b327ae": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbef-33e2-7673-a6d9-6d3489ad5002-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:26:00.0143404Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 390,
+    "eval_duration": 7158269000,
+    "load_duration": 2166400,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1044,
+    "prompt_eval_duration": 108178000,
+    "total_duration": 7275033700
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": null,
+      "is_job_application": false,
+      "role": null,
+      "summary": "Job alert: 12 AI Engineer positions listed."
+     },
+     "id": "a435b280-70d2-4b39-92e5-c8fb6c755f0f",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1044,
+    "output_tokens": 390,
+    "total_tokens": 1434
+   }
+  }
+ ],
+ "c8ada83e444056bcc907a552360aebfeefb9b5e9b3ca3c2e3ab3c713485a41a4": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf3-566f-77b2-9841-7e3eda560cb7-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:30:28.6207473Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 234,
+    "eval_duration": 4787946000,
+    "load_duration": 2069800,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1011,
+    "prompt_eval_duration": 95492000,
+    "total_duration": 4893098800
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "rejection",
+      "company": "Lumora Energy",
+      "is_job_application": true,
+      "role": "Senior Data Analyst (R-0041877)",
+      "summary": "Application rejected as the role is filled"
+     },
+     "id": "4a4e254b-0054-490d-8c7a-f95546bec3e4",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1011,
+    "output_tokens": 234,
+    "total_tokens": 1245
+   }
+  }
+ ],
+ "cb04ef5132de11811e3e1093b0de3bb1de385d37e5d6ea81a5091d3a6c8ae8a5": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf0-0e5a-79c1-814d-844491c0c265-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:26:58.5217568Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 529,
+    "eval_duration": 9754324000,
+    "load_duration": 2106800,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 995,
+    "prompt_eval_duration": 91264000,
+    "total_duration": 9854043000
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": null,
+      "is_job_application": false,
+      "role": null,
+      "summary": "Cloudnest informs about plan changes, not related to job application"
+     },
+     "id": "eb91d2c3-84f8-4ad1-a7a2-e6f90221be3d",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 995,
+    "output_tokens": 529,
+    "total_tokens": 1524
+   }
+  }
+ ],
+ "cbfec3af0161d898263e06900e9f7bc33c494f8af7c61cc81c4f8c2831ca5139": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf1-cfee-70f1-aa23-b9e0dad1eec0-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:28:49.9160027Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 326,
+    "eval_duration": 5990604000,
+    "load_duration": 2044600,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1148,
+    "prompt_eval_duration": 153668000,
+    "total_duration": 6156596900
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": "Nubaria",
+      "is_job_application": true,
+      "role": "Ingeniero/a de Machine Learning",
+      "summary": "Application sent to Nubaria for Machine Learning Engineer role"
+     },
+     "id": "4c5962ff-8cd2-4dc6-bb32-5661d972a2b9",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1148,
+    "output_tokens": 326,
+    "total_tokens": 1474
+   }
+  }
+ ],
+ "ccbd5d587c980c02f5347c11eff1560d9b4e803ba34cbfc8d356f371574dd5b4": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf1-ff08-7320-bd88-997ff59f14bc-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:29:02.413157Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 353,
+    "eval_duration": 6494163000,
+    "load_duration": 2077500,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1003,
+    "prompt_eval_duration": 92855000,
+    "total_duration": 6595842100
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": "Tessellate",
+      "is_job_application": true,
+      "role": null,
+      "summary": "Application received and under review"
+     },
+     "id": "c42958b7-efd6-4e9a-834f-c1cbd8bc3ff6",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1003,
+    "output_tokens": 353,
+    "total_tokens": 1356
+   }
+  }
+ ],
+ "d32ce8bd3102843211785d260214f1b446f9a4c9332b7b4c746337044b7fe513": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf2-7a93-75f1-b685-9279fdafbfac-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:29:33.4957781Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 324,
+    "eval_duration": 5950174000,
+    "load_duration": 1630000,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1027,
+    "prompt_eval_duration": 92824000,
+    "total_duration": 6051728800
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "information_request",
+      "company": "Pinecrest Analytics",
+      "is_job_application": true,
+      "role": "Machine Learning Engineer, Forecasting",
+      "summary": "Request for work permissions, notice period, and start date details."
+     },
+     "id": "278e7226-f37c-4ef8-9b5f-a49256601dec",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1027,
+    "output_tokens": 324,
+    "total_tokens": 1351
+   }
+  }
+ ],
+ "e2027bae31caafad6eab58e5cbedefe096a58990549269ad0331349f3cbaec6c": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbef-6966-7ff0-95fd-4c83099df545-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:26:15.2318031Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 471,
+    "eval_duration": 8692582000,
+    "load_duration": 2039200,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1032,
+    "prompt_eval_duration": 91462000,
+    "total_duration": 8792427500
    },
    "tool_calls": [
     {
@@ -1038,84 +1784,40 @@
       "role": "Backend Engineer, Platform",
       "summary": "Job offer received for Backend Engineer, Platform at Kestrel Robotics"
      },
-     "id": "fb51e562-43cb-4dad-b165-c92662c167dc",
+     "id": "6f05a8b0-9ef0-4069-b2a0-f7a6e8b07f7a",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 953,
-    "output_tokens": 455,
-    "total_tokens": 1408
+    "input_tokens": 1032,
+    "output_tokens": 471,
+    "total_tokens": 1503
    }
   }
  ],
- "f0bac38315759b2925a76161c891c9b232c0a3268cd62d984ed1f3cedabb95d0": [
+ "f882131443afea32e26176fb7396089577963c3a7d09dfe26ae73fd1e423ed19": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d811-fb7f-75b2-a967-88733fecc0b6-0",
+   "id": "lc_run--01a0fbef-c711-7761-be64-900983270424-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:18:01.2142713Z",
+    "created_at": "2026-10-02T09:26:35.6283968Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 358,
-    "eval_duration": 28583644000,
-    "load_duration": 2681700,
+    "eval_count": 274,
+    "eval_duration": 5125229000,
+    "load_duration": 2057500,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 916,
-    "prompt_eval_duration": 331125000,
-    "total_duration": 28925684800
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "interview_invitation",
-      "company": "Glasswing Security",
-      "is_job_application": true,
-      "role": "Software Engineer",
-      "summary": "Invited to interview with engineering lead; request availability for next week."
-     },
-     "id": "59eefd26-bee2-4c82-8e2a-41f66ca5b34f",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 916,
-    "output_tokens": 358,
-    "total_tokens": 1274
-   }
-  }
- ],
- "fe10a4ec93d2646f48ef5def094e9f138940d9cd37dc79adc6d98888e82a359c": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d811-2f25-7e31-a1c4-0ca1958e15f2-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:17:04.3683927Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 316,
-    "eval_duration": 24008001000,
-    "load_duration": 3358400,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 939,
-    "prompt_eval_duration": 372210000,
-    "total_duration": 24394106800
+    "prompt_eval_count": 1018,
+    "prompt_eval_duration": 76611000,
+    "total_duration": 5209903400
    },
    "tool_calls": [
     {
@@ -1123,107 +1825,107 @@
       "category": "interview_invitation",
       "company": "Cinderpeak Games",
       "is_job_application": true,
-      "role": "Backend Engineer",
-      "summary": "Backend Engineer interview confirmed for August 11, 2026"
+      "role": "Backend Engineer - Technical Interview (Cinderpeak Games)",
+      "summary": "Backend Engineer interview confirmed for August 11, 2026."
      },
-     "id": "1e64583a-05df-4e92-8f98-c8f66ce1f974",
+     "id": "f41bf3b7-19a3-4890-8877-646b148a3daf",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 939,
-    "output_tokens": 316,
-    "total_tokens": 1255
+    "input_tokens": 1018,
+    "output_tokens": 274,
+    "total_tokens": 1292
    }
   }
  ],
- "ffd86cb5a1cf16e7102adf3cd00291f9c65f5a76d2178985602176302491907e": [
+ "f9ee432beaa253fab4f23d61a47f17e2b49ff1e4d32d2253af6acfadba15cf7c": [
   {
    "additional_kwargs": {},
    "content": "",
-   "id": "lc_run--01a0d80d-e1c7-7ac1-be99-da0fc47b72b0-0",
+   "id": "lc_run--01a0fbf1-e807-7032-b576-a5f4198f98f1-0",
    "invalid_tool_calls": [],
    "name": null,
    "response_metadata": {
-    "created_at": "2026-09-25T10:13:37.5248178Z",
+    "created_at": "2026-10-02T09:28:55.8042674Z",
     "done": true,
     "done_reason": "stop",
-    "eval_count": 346,
-    "eval_duration": 33445892000,
-    "load_duration": 5705400,
+    "eval_count": 315,
+    "eval_duration": 5758953000,
+    "load_duration": 2583500,
     "logprobs": null,
     "model": "qwen3:8b",
     "model_name": "qwen3:8b",
     "model_provider": "ollama",
-    "prompt_eval_count": 928,
-    "prompt_eval_duration": 498329000,
-    "total_duration": 33964140500
+    "prompt_eval_count": 1031,
+    "prompt_eval_duration": 107590000,
+    "total_duration": 5875769500
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": "Lumora Energy",
+      "is_job_application": true,
+      "role": "Senior Data Analyst (R-0041877)",
+      "summary": "Application received and under review."
+     },
+     "id": "a1b40176-61de-4296-a90c-acba3c7fb402",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1031,
+    "output_tokens": 315,
+    "total_tokens": 1346
+   }
+  }
+ ],
+ "fff494ff1df18d1fe3e6c64be9a6bf5976e4324b56b8a9264a51f750a6e41321": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a0fbf3-005d-7b82-986b-32ab59987957-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-02T09:30:06.9527219Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 278,
+    "eval_duration": 5138641000,
+    "load_duration": 2097700,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1053,
+    "prompt_eval_duration": 110855000,
+    "total_duration": 5258729500
    },
    "tool_calls": [
     {
      "args": {
       "category": "rejection",
-      "company": "Mirabellabs",
+      "company": "Grupo Almenara",
       "is_job_application": true,
-      "role": "AI Engineer",
-      "summary": "Rejection: AI Engineer application not progressing"
+      "role": "Analista de Datos Junior",
+      "summary": "Application rejected"
      },
-     "id": "0fd500b5-ff21-4c67-a0dc-6578a6700bf9",
+     "id": "b8ad1266-80db-4daa-8314-7dc3d36de027",
      "name": "upsert_application",
      "type": "tool_call"
     }
    ],
    "type": "ai",
    "usage_metadata": {
-    "input_tokens": 928,
-    "output_tokens": 346,
-    "total_tokens": 1274
-   }
-  }
- ],
- "ffef075783df21f067815caab40c014083689d85a87833e5cb85b1db6512bad3": [
-  {
-   "additional_kwargs": {},
-   "content": "",
-   "id": "lc_run--01a0d808-a768-7810-9515-c18abdffcdb8-0",
-   "invalid_tool_calls": [],
-   "name": null,
-   "response_metadata": {
-    "created_at": "2026-09-25T10:07:39.435345Z",
-    "done": true,
-    "done_reason": "stop",
-    "eval_count": 239,
-    "eval_duration": 18024967000,
-    "load_duration": 84764100,
-    "logprobs": null,
-    "model": "qwen3:8b",
-    "model_name": "qwen3:8b",
-    "model_provider": "ollama",
-    "prompt_eval_count": 952,
-    "prompt_eval_duration": 379081000,
-    "total_duration": 18497866600
-   },
-   "tool_calls": [
-    {
-     "args": {
-      "category": "interview_invitation",
-      "company": "Brightloom",
-      "is_job_application": true,
-      "role": "Machine Learning Engineer",
-      "summary": "Invitation for a 30-minute introductory call"
-     },
-     "id": "ca448aa7-851f-4420-9a86-f371dd7205d1",
-     "name": "upsert_application",
-     "type": "tool_call"
-    }
-   ],
-   "type": "ai",
-   "usage_metadata": {
-    "input_tokens": 952,
-    "output_tokens": 239,
-    "total_tokens": 1191
+    "input_tokens": 1053,
+    "output_tokens": 278,
+    "total_tokens": 1331
    }
   }
  ]

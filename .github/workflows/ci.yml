@@ -40,7 +40,7 @@ jobs:
         run: uv run pytest
 
       - name: Evaluate the keyword baseline
-        run: uv run python scripts/evaluate.py --min-accuracy 0.70
+        run: uv run python scripts/evaluate.py --min-accuracy 0.65
 
       # Replays recorded responses: no model server, no API key, no cost.
       # Exit code 2 means the prompt, tools or model changed and the recording

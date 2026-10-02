@@ -101,4 +101,5 @@ def test_ollama_model_is_local_deterministic_and_has_room_for_the_prompt() -> No
     assert bound.model == "qwen3:8b"
     assert bound.base_url == "http://localhost:11434"
     assert (bound.temperature, bound.seed, bound.num_ctx) == (0, 0, 8_192)
+    assert bound.num_predict == 4_096
     assert [t["function"]["name"] for t in kwargs["tools"]] == ["get_thread", "upsert_application"]

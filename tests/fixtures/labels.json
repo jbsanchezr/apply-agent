@@ -206,5 +206,133 @@
     "role": "Software Engineer, Detection Platform",
     "is_job_application": true,
     "notes": "Tricky: conditional offer that also asks for references; offer outranks information_request."
+  },
+  {
+    "file": "27-linkedin-arcwell.eml",
+    "category": "other",
+    "company": "Arcwell Systems",
+    "role": "Data Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: LinkedIn Easy Apply confirmation. The sender is LinkedIn, not the company, and the footer lists other companies' jobs."
+  },
+  {
+    "file": "28-linkedin-nubaria.eml",
+    "category": "other",
+    "company": "Nubaria",
+    "role": "Ingeniero/a de Machine Learning",
+    "is_job_application": true,
+    "notes": "Tricky: Spanish LinkedIn Easy Apply confirmation with similar jobs from other companies."
+  },
+  {
+    "file": "29-linkedin-nubaria.eml",
+    "category": "other",
+    "company": "Nubaria",
+    "role": "Ingeniero/a de Machine Learning",
+    "is_job_application": true,
+    "notes": "Tricky: 'application viewed' notice that mentions interview prep. Viewing is not a stage."
+  },
+  {
+    "file": "30-linkedin-arcwell.eml",
+    "category": "rejection",
+    "company": "Arcwell Systems",
+    "role": "Data Engineer",
+    "is_job_application": true,
+    "notes": "Company rejection relayed by LinkedIn; the company is in the body, not the sender."
+  },
+  {
+    "file": "31-linkedin-delfos.eml",
+    "category": "rejection",
+    "company": "Delfos Analytics",
+    "role": "MLOps Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: Spanish rejection via LinkedIn with no 'lamentablemente'; 'avanzar con otras candidaturas' sounds positive."
+  },
+  {
+    "file": "32-linkedin-alert.eml",
+    "category": "other",
+    "company": null,
+    "role": null,
+    "is_job_application": false,
+    "notes": "Tricky noise: Spanish LinkedIn job alert with 'solicitud' and 'entrevistas' in it, from the same platform as real applications."
+  },
+  {
+    "file": "33-infojobs-almenara.eml",
+    "category": "other",
+    "company": "Grupo Almenara",
+    "role": "Analista de Datos Junior",
+    "is_job_application": true,
+    "notes": "Tricky: InfoJobs 'state changed' notice whose new state, 'CV leido', changes nothing."
+  },
+  {
+    "file": "34-infojobs-almenara.eml",
+    "category": "rejection",
+    "company": "Grupo Almenara",
+    "role": "Analista de Datos Junior",
+    "is_job_application": true,
+    "notes": "Tricky: same subject as 33; the rejection is the single word 'Descartado'."
+  },
+  {
+    "file": "35-workday-lumora.eml",
+    "category": "other",
+    "company": "Lumora Energy",
+    "role": "Senior Data Analyst",
+    "is_job_application": true,
+    "notes": "Workday acknowledgement; the sender domain is the ATS, not the company."
+  },
+  {
+    "file": "36-workday-lumora.eml",
+    "category": "rejection",
+    "company": "Lumora Energy",
+    "role": "Senior Data Analyst",
+    "is_job_application": true,
+    "notes": "Tricky: 'the position has now been filled' with no explicit rejection wording."
+  },
+  {
+    "file": "37-greenhouse-tessellate.eml",
+    "category": "other",
+    "company": "Tessellate",
+    "role": null,
+    "is_job_application": true,
+    "notes": "Greenhouse acknowledgement that does not name the role."
+  },
+  {
+    "file": "38-greenhouse-tessellate.eml",
+    "category": "interview_invitation",
+    "company": "Tessellate",
+    "role": "Platform Engineer, Data",
+    "is_job_application": true,
+    "notes": "Coding exercise sent through Greenhouse; an assessment counts as a stage (D11)."
+  },
+  {
+    "file": "39-lever-pinecrest.eml",
+    "category": "information_request",
+    "company": "Pinecrest Analytics",
+    "role": "Machine Learning Engineer, Forecasting",
+    "is_job_application": true,
+    "notes": "Lever form asking for right to work and notice period; the application is on hold until answered."
+  },
+  {
+    "file": "40-indeed-ocaso.eml",
+    "category": "other",
+    "company": "Ocaso Logística",
+    "role": "Técnico/a de Datos",
+    "is_job_application": true,
+    "notes": "Tricky: Spanish Indeed confirmation, HTML only, sent by the job board."
+  },
+  {
+    "file": "41-linkedin-arcwell.eml",
+    "category": "interview_invitation",
+    "company": "Arcwell Systems",
+    "role": "Data Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: LinkedIn InMail from the company's recruiter replying to an application; looks like cold outreach."
+  },
+  {
+    "file": "42-linkedin-inmail.eml",
+    "category": "other",
+    "company": null,
+    "role": null,
+    "is_job_application": false,
+    "notes": "Tricky noise: Spanish agency InMail about an interview process the user never applied to."
   }
 ]

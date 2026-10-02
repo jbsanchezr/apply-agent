@@ -94,7 +94,7 @@ def _thread_then_upsert(conversation: list[BaseMessage]) -> AIMessage:
 def test_multi_step_conversations_replay_through_the_real_graph(tmp_path: Path) -> None:
     """Regression: LangChain gives every reply a random id that ends up in the next prompt."""
     path = tmp_path / "rec.json"
-    steps = [_thread_then_upsert] * 60
+    steps = [_thread_then_upsert] * (2 * len(list((FIXTURES_DIR / "emails").glob("*.eml"))))
     live = ScriptedChatModel(script=list(steps), cache=_cache(path, replay_only=False))
     recorded = evaluate(live, model_name="live", fixtures_dir=FIXTURES_DIR)
 
