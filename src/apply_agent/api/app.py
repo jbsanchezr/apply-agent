@@ -13,6 +13,7 @@ import secrets
 import sys
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -23,8 +24,9 @@ from apply_agent.agent.outcomes import SyncReport
 from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
-from apply_agent.api.page import render_applications
+from apply_agent.api.page import days_since, render_applications
 from apply_agent.config import Settings
+from apply_agent.domain import stage_of
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
 from apply_agent.storage.repository import Repository
@@ -49,8 +51,9 @@ def create_app(
     *,
     run_sync: Callable[[], SyncReport] | None = None,
     repository: Repository | None = None,
+    clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> FastAPI:
-    """Build the app. ``run_sync`` and ``repository`` can be injected for tests."""
+    """Build the app. ``run_sync``, ``repository`` and ``clock`` can be injected for tests."""
     settings = settings or Settings.from_env()
     if run_sync is None or repository is None:
         agent, built_repository = build_agent(settings)
@@ -84,6 +87,7 @@ def create_app(
     @app.get("/applications", dependencies=protected, response_model=None)
     def applications_view(request: Request, format: str | None = None) -> Response:
         views = repo.list_application_views()
+        now = clock()
         wants_json = format == "json" or (
             format is None and "application/json" in request.headers.get("accept", "")
         )
@@ -95,11 +99,20 @@ def create_app(
                         "thread_ids": sorted(view.application.thread_ids),
                         "latest_summary": view.latest_summary,
                         "latest_category": view.latest_category,
+                        "stage": stage_of(view.application.status).value,
+                        "days_since_last_news": days_since(view.application.last_activity_at, now),
                     }
                     for view in views
                 ]
             )
-        return HTMLResponse(render_applications(views, sync_service.latest()))
+        return HTMLResponse(
+            render_applications(
+                views,
+                sync_service.latest(),
+                now=now,
+                quiet_after_days=settings.quiet_after_days,
+            )
+        )
 
     @app.post("/sync", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
     def start_sync() -> Any:

@@ -5,6 +5,7 @@ import re
 import threading
 import time
 from collections.abc import Iterator
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ from apply_agent.config import Settings
 from apply_agent.domain import MessageAssessment
 from apply_agent.storage import make_session_factory
 from apply_agent.storage.repository import Repository
-from tests.agent.helpers import assessment, message
+from tests.agent.helpers import T0, assessment, message
 from tests.conftest import FIXTURES_DIR
 
 TOKEN = "test-token-not-secret"  # noqa: S105 - fake token for tests
@@ -185,3 +186,59 @@ def test_without_a_configured_token_one_is_generated_and_printed(
         assert client.get("/applications").status_code == 401
         headers = {"Authorization": f"Bearer {printed.group(1)}"}
         assert client.get("/applications", headers=headers).status_code == 200
+
+
+def _section(page: str, stage: str) -> str:
+    match = re.search(rf'<section id="{stage}">(.*?)</section>', page, re.S)
+    assert match, f"no {stage} section"
+    return match.group(1)
+
+
+def test_applications_are_grouped_by_stage_with_quiet_ones_flagged(
+    tmp_path: Path, repository: Repository
+) -> None:
+    """Sent day 0, Nubaria interviewed day 2, Arcwell rejected day 5; viewed on day 30."""
+    sent = assessment("other", company="Lumora Energy", role="Data Analyst")
+    advancing = assessment("interview_invitation", company="Nubaria", role="ML Engineer")
+    rejected = assessment("rejection", company="Arcwell Systems", role="Data Engineer")
+    for i, (raw, days) in enumerate([(sent, 0), (advancing, 2), (rejected, 5)]):
+        repository.record(
+            message(f"m{i}", f"t{i}", days=days), MessageAssessment.model_validate(raw)
+        )
+
+    app = create_app(
+        _settings(tmp_path, APPLY_AGENT_QUIET_AFTER_DAYS="28"),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        clock=lambda: T0 + timedelta(days=30),
+    )
+    with TestClient(app) as client:
+        page = client.get("/applications", headers=AUTH).text
+        rows = client.get("/applications?format=json", headers=AUTH).json()
+
+    assert "Nubaria" in _section(page, "advancing")
+    assert "Lumora Energy" in _section(page, "sent")
+    assert "Arcwell Systems" in _section(page, "rejected")
+    assert page.index('id="advancing"') < page.index('id="sent"') < page.index('id="rejected"')
+    assert "<details>" in _section(page, "rejected"), "rejections are folded away"
+
+    # 30 days without news on the sent one (quiet), 28 on the advancing one
+    # (quiet, at the threshold), 25 on the rejection (never flagged).
+    assert '<span class="quiet">30 days ago</span>' in _section(page, "sent")
+    assert '<span class="quiet">28 days ago</span>' in _section(page, "advancing")
+    assert '<span class="muted">25 days ago</span>' in _section(page, "rejected")
+    assert "2 with no news lately" in page
+
+    by_company = {r["company"]: r for r in rows}
+    assert by_company["Lumora Energy"]["stage"] == "sent"
+    assert by_company["Nubaria"]["stage"] == "advancing"
+    assert by_company["Arcwell Systems"]["stage"] == "rejected"
+    assert by_company["Lumora Energy"]["days_since_last_news"] == 30
+
+
+def test_an_empty_table_asks_for_a_sync(tmp_path: Path, repository: Repository) -> None:
+    app = create_app(_settings(tmp_path), run_sync=lambda: EMPTY_REPORT, repository=repository)
+    with TestClient(app) as client:
+        page = client.get("/applications", headers=AUTH).text
+    assert "No applications yet. Run a sync." in page
+    assert "<section" not in page

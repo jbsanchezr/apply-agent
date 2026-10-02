@@ -3,7 +3,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from apply_agent.domain import ApplicationStatus, Event, MessageCategory, derive_status
+from apply_agent.domain import (
+    ApplicationStage,
+    ApplicationStatus,
+    Event,
+    MessageCategory,
+    derive_status,
+    stage_of,
+)
 
 C = MessageCategory
 S = ApplicationStatus
@@ -65,3 +72,21 @@ def test_simultaneous_events_resolve_deterministically() -> None:
         for mid, cat in (("m-a", C.INTERVIEW_INVITATION), ("m-b", C.REJECTION))
     )
     assert derive_status([a, b]) == derive_status([b, a]) == S.REJECTED
+
+
+@pytest.mark.parametrize(
+    ("status", "stage"),
+    [
+        (S.APPLIED, ApplicationStage.SENT),
+        (S.INFORMATION_REQUESTED, ApplicationStage.ADVANCING),
+        (S.INTERVIEWING, ApplicationStage.ADVANCING),
+        (S.OFFER_RECEIVED, ApplicationStage.ADVANCING),
+        (S.REJECTED, ApplicationStage.REJECTED),
+    ],
+)
+def test_every_status_falls_in_one_stage(status: S, stage: ApplicationStage) -> None:
+    assert stage_of(status) is stage
+
+
+def test_acknowledgements_alone_leave_an_application_sent() -> None:
+    assert stage_of(derive_status(_events(C.OTHER, C.OTHER))) is ApplicationStage.SENT

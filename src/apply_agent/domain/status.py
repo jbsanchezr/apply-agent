@@ -8,7 +8,7 @@ receiving messages out of order, always yields the same status.
 from collections.abc import Iterable, Mapping
 from typing import Final
 
-from apply_agent.domain.enums import ApplicationStatus, MessageCategory
+from apply_agent.domain.enums import ApplicationStage, ApplicationStatus, MessageCategory
 from apply_agent.domain.models import Event
 
 _STATUS_BY_CATEGORY: Final[Mapping[MessageCategory, ApplicationStatus]] = {
@@ -31,3 +31,20 @@ def derive_status(events: Iterable[Event]) -> ApplicationStatus:
         return ApplicationStatus.APPLIED
     latest = max(bearing, key=lambda e: (e.occurred_at, e.message_id))
     return _STATUS_BY_CATEGORY[latest.category]
+
+
+_STAGE_BY_STATUS: Final[Mapping[ApplicationStatus, ApplicationStage]] = {
+    ApplicationStatus.APPLIED: ApplicationStage.SENT,
+    ApplicationStatus.INFORMATION_REQUESTED: ApplicationStage.ADVANCING,
+    ApplicationStatus.INTERVIEWING: ApplicationStage.ADVANCING,
+    ApplicationStatus.OFFER_RECEIVED: ApplicationStage.ADVANCING,
+    ApplicationStatus.REJECTED: ApplicationStage.REJECTED,
+}
+
+
+def stage_of(status: ApplicationStatus) -> ApplicationStage:
+    """Collapse a status into sent / advancing / rejected.
+
+    ``SENT`` means only acknowledgements so far: nobody has replied yet.
+    """
+    return _STAGE_BY_STATUS[status]

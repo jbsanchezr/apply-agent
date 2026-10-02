@@ -1,4 +1,7 @@
-"""The one server-rendered HTML page: the applications table.
+"""The one server-rendered HTML page: applications grouped by stage.
+
+Advancing applications come first, because they need the user; then the ones
+sent and still waiting, with the quiet ones flagged; rejections last, folded.
 
 Plain string rendering with ``html.escape`` on every value, so no template
 engine dependency. Everything shown comes from email content or the LLM, so
@@ -6,11 +9,13 @@ it is treated as untrusted and always escaped.
 """
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from html import escape
 from typing import Final
 
 from apply_agent.api.jobs import SyncJob
+from apply_agent.domain import ApplicationStage, stage_of
 from apply_agent.storage.repository import ApplicationView
 
 _STATUS_COLOURS: Final = {
@@ -52,6 +57,11 @@ th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: 
   white-space: nowrap;
 }
 .muted { color: var(--muted); font-size: .85rem; }
+h2 { font-size: 1.15rem; margin: 2rem 0 0; }
+summary h2 { display: inline; }
+summary { cursor: pointer; margin-top: 2rem; }
+.quiet { color: #b45309; font-weight: 600; }
+.count { color: var(--muted); font-weight: normal; }
 button { font: inherit; padding: .4rem .9rem; cursor: pointer; }
 .wrap { overflow-x: auto; }
 """
@@ -71,13 +81,39 @@ async function sync(button) {
 """
 
 
+@dataclass(frozen=True, slots=True)
+class _Section:
+    stage: ApplicationStage
+    title: str
+    empty: str
+    folded: bool = False
+
+
+_SECTIONS: Final = (
+    _Section(ApplicationStage.ADVANCING, "Advancing", "Nothing moving yet."),
+    _Section(ApplicationStage.SENT, "Sent, waiting for a reply", "No applications waiting."),
+    _Section(ApplicationStage.REJECTED, "Rejected", "No rejections.", folded=True),
+)
+
+
+def days_since(when: datetime, now: datetime) -> int:
+    return max((now - when).days, 0)
+
+
 def _date(value: datetime) -> str:
     return value.strftime("%Y-%m-%d")
 
 
-def _row(view: ApplicationView) -> str:
+def _ago(days: int) -> str:
+    return "today" if days == 0 else "1 day ago" if days == 1 else f"{days} days ago"
+
+
+def _row(view: ApplicationView, now: datetime, quiet_after_days: int) -> str:
     app = view.application
     colour = _STATUS_COLOURS.get(app.status.value, "#64748b")
+    days = days_since(app.last_activity_at, now)
+    quiet = stage_of(app.status) is not ApplicationStage.REJECTED and days >= quiet_after_days
+    news = f'<span class="{"quiet" if quiet else "muted"}">{_ago(days)}</span>'
     return (
         "<tr>"
         f"<td>{escape(app.company)}</td>"
@@ -86,9 +122,40 @@ def _row(view: ApplicationView) -> str:
         f"{escape(app.status.value.replace('_', ' '))}</span></td>"
         f"<td>{escape(view.latest_summary)}</td>"
         f"<td>{_date(app.first_seen_at)}</td>"
-        f"<td>{_date(app.last_activity_at)}</td>"
+        f"<td>{_date(app.last_activity_at)}<br>{news}</td>"
         "</tr>"
     )
+
+
+_HEAD: Final = (
+    "<thead><tr><th>Company</th><th>Role</th><th>Status</th><th>Latest</th>"
+    "<th>First seen</th><th>Last news</th></tr></thead>"
+)
+
+
+def _section(
+    section: _Section, views: Sequence[ApplicationView], now: datetime, quiet_after_days: int
+) -> str:
+    rows = "\n".join(_row(v, now, quiet_after_days) for v in views) or (
+        f'<tr><td colspan="6" class="muted">{section.empty}</td></tr>'
+    )
+    heading = f'<h2>{section.title} <span class="count">({len(views)})</span></h2>'
+    table = f'<div class="wrap"><table>{_HEAD}<tbody>\n{rows}\n</tbody></table></div>'
+    body = f'<section id="{section.stage.value}">'
+    if section.folded:
+        return f"{body}<details><summary>{heading}</summary>{table}</details></section>"
+    return f"{body}{heading}{table}</section>"
+
+
+def _overview(groups: dict[ApplicationStage, list[ApplicationView]], quiet: int) -> str:
+    parts = [
+        f"{len(groups[ApplicationStage.ADVANCING])} advancing",
+        f"{len(groups[ApplicationStage.SENT])} waiting",
+        f"{len(groups[ApplicationStage.REJECTED])} rejected",
+    ]
+    if quiet:
+        parts.append(f'<span class="quiet">{quiet} with no news lately</span>')
+    return " &middot; ".join(parts)
 
 
 def _last_sync(job: SyncJob | None) -> str:
@@ -98,10 +165,26 @@ def _last_sync(job: SyncJob | None) -> str:
     return f"Last sync: {escape(job.status.value)}, started {when}."
 
 
-def render_applications(views: Sequence[ApplicationView], last_job: SyncJob | None) -> str:
-    rows = "\n".join(_row(v) for v in views) or (
-        '<tr><td colspan="6" class="muted">No applications yet. Run a sync.</td></tr>'
+def render_applications(
+    views: Sequence[ApplicationView],
+    last_job: SyncJob | None,
+    *,
+    now: datetime,
+    quiet_after_days: int,
+) -> str:
+    groups: dict[ApplicationStage, list[ApplicationView]] = {s: [] for s in ApplicationStage}
+    for view in views:
+        groups[stage_of(view.application.status)].append(view)
+    quiet = sum(
+        1
+        for stage in (ApplicationStage.ADVANCING, ApplicationStage.SENT)
+        for v in groups[stage]
+        if days_since(v.application.last_activity_at, now) >= quiet_after_days
     )
+    if views:
+        sections = "\n".join(_section(s, groups[s.stage], now, quiet_after_days) for s in _SECTIONS)
+    else:
+        sections = '<p class="muted">No applications yet. Run a sync.</p>'
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -114,19 +197,12 @@ def render_applications(views: Sequence[ApplicationView], last_job: SyncJob | No
 <header>
   <div>
     <h1>Job applications</h1>
+    <div>{_overview(groups, quiet)}</div>
     <div class="muted">{len(views)} tracked. {_last_sync(last_job)}</div>
   </div>
   <button type="button" onclick="sync(this)">Sync now</button>
 </header>
-<div class="wrap">
-<table>
-  <thead><tr><th>Company</th><th>Role</th><th>Status</th><th>Latest</th>
-  <th>First seen</th><th>Last activity</th></tr></thead>
-  <tbody>
-{rows}
-  </tbody>
-</table>
-</div>
+{sections}
 <script>{_SCRIPT}</script>
 </body>
 </html>

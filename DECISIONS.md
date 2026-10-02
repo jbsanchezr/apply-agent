@@ -407,3 +407,25 @@ tokens (the same budget as the Anthropic path) and requests time out after
 5 minutes. A capped reply without a tool call gets the usual reminder and
 retry, then counts as a failed message (D25). The cap is part of the model
 fingerprint, so the change invalidated and regenerated the recording.
+
+## D48 - The page groups applications into three stages (M7)
+The user's question is "who replied, who didn't, and where am I moving
+forward", not "what is each status". `stage_of` collapses the five statuses
+into three stages, as a pure function next to `derive_status` (D3):
+* advancing: information requested, interviewing or offer received;
+* sent: only acknowledgements so far ("we received your application",
+  "application viewed"), meaning nobody has replied yet;
+* rejected.
+
+The page shows advancing first, because it needs the user, then sent, then
+rejected inside a closed `<details>`. Every row shows how many days ago its
+last news arrived. An open application at or past `quiet_after_days` (default
+14) is flagged, so silence becomes visible rather than inferred from a date.
+The JSON adds `stage` and `days_since_last_news`. The current time is
+injected into the app (`clock`), so the day arithmetic is tested without
+freezing time.
+
+Running the page over the fixtures with `qwen3:8b` showed one application
+split in two: "Cinderpeak" and "Cinderpeak Games" give different company keys
+(D4). Matching company names that differ by a trailing word is the next fix,
+and needs care so that distinct companies sharing a first word are not merged.

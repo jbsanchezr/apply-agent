@@ -27,3 +27,11 @@ class ApplicationStatus(StrEnum):
     INTERVIEWING = "interviewing"
     OFFER_RECEIVED = "offer_received"
     REJECTED = "rejected"
+
+
+class ApplicationStage(StrEnum):
+    """The three groups the user thinks in: sent, moving, or over."""
+
+    SENT = "sent"
+    ADVANCING = "advancing"
+    REJECTED = "rejected"

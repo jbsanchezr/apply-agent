@@ -70,6 +70,8 @@ class Settings(BaseModel):
 
     max_agent_steps: int = Field(default=4, ge=1, le=10)
     initial_lookback_days: int = Field(default=90, ge=1)
+    # An open application with no news for this long is flagged as quiet.
+    quiet_after_days: int = Field(default=14, ge=1)
 
     @field_validator("api_token", mode="before")
     @classmethod
