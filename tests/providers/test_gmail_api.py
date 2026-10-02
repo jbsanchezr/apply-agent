@@ -10,10 +10,15 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import HttpMockSequence
 
 from apply_agent.providers import ThreadNotFoundError
-from apply_agent.providers.gmail_api import GoogleGmailApi, MessageNotFoundError
+from apply_agent.providers.gmail_api import (
+    QUOTA_BACKOFF_SECONDS,
+    GoogleGmailApi,
+    MessageNotFoundError,
+)
 
 OK = {"status": "200"}
 NOT_FOUND = {"status": "404"}
@@ -87,3 +92,53 @@ def test_missing_message_maps_to_domain_error() -> None:
     api, _ = _api((NOT_FOUND, "{}"))
     with pytest.raises(MessageNotFoundError):
         api.get_raw_message("a")
+
+
+FORBIDDEN = {"status": "403"}
+QUOTA_ERROR = json.dumps(
+    {
+        "error": {
+            "code": 403,
+            "message": "Quota exceeded for quota metric 'Total Query Cost' and limit "
+            "'Units per minute per user' of service 'gmail.googleapis.com'",
+            "errors": [{"reason": "rateLimitExceeded"}],
+        }
+    }
+)
+
+
+def _sleeping_api(
+    *responses: tuple[dict[str, str], str],
+) -> tuple[GoogleGmailApi, list[float]]:
+    http = HttpMockSequence(list(responses))
+    service = build("gmail", "v1", http=http, static_discovery=True, cache_discovery=False)
+    slept: list[float] = []
+    return GoogleGmailApi(service, num_retries=0, sleep=slept.append), slept
+
+
+@pytest.mark.parametrize(
+    "limited",
+    [(FORBIDDEN, QUOTA_ERROR), ({"status": "429"}, "{}")],
+    ids=["403-quota", "429"],
+)
+def test_per_user_quota_errors_are_waited_out(limited: tuple[dict[str, str], str]) -> None:
+    """Regression: the first real sync of a 400-message inbox died on Gmail's quota."""
+    api, slept = _sleeping_api(limited, limited, (OK, json.dumps({"messages": [{"id": "a"}]})))
+    assert api.list_message_ids("", page_token=None) == (["a"], None)
+    assert slept == list(QUOTA_BACKOFF_SECONDS[:2])
+
+
+def test_quota_retries_eventually_give_up() -> None:
+    attempts = [(FORBIDDEN, QUOTA_ERROR)] * (len(QUOTA_BACKOFF_SECONDS) + 1)
+    api, slept = _sleeping_api(*attempts)
+    with pytest.raises(HttpError):
+        api.list_message_ids("", page_token=None)
+    assert slept == list(QUOTA_BACKOFF_SECONDS)
+
+
+def test_other_forbidden_errors_are_not_retried() -> None:
+    denied = json.dumps({"error": {"code": 403, "message": "Insufficient Permission"}})
+    api, slept = _sleeping_api((FORBIDDEN, denied))
+    with pytest.raises(HttpError):
+        api.list_message_ids("", page_token=None)
+    assert slept == []

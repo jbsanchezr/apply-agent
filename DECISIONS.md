@@ -429,3 +429,13 @@ Running the page over the fixtures with `qwen3:8b` showed one application
 split in two: "Cinderpeak" and "Cinderpeak Games" give different company keys
 (D4). Matching company names that differ by a trailing word is the next fix,
 and needs care so that distinct companies sharing a first word are not merged.
+
+## D49 - Gmail per-user quota errors are waited out (M7)
+The first sync of a real inbox (424 messages in 30 days) died after a few
+seconds: fetching every message back to back exceeded Gmail's per-user quota
+per minute, which Gmail reports as 403 or 429. The client's own retries give
+up within seconds, and a failure while listing aborts the whole sync. The
+adapter now recognises quota errors (429, or 403 with a rate-limit reason)
+and waits 5, 15, 30, 60 and 60 seconds before giving up. Other 403s, such as
+a missing permission, still fail at once. The real sync then waited six times
+and completed.
