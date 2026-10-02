@@ -18,10 +18,10 @@ SQLAlchemy · Prometheus · Grafana · Langfuse · Docker · GitHub Actions
   emails and uses a keyword baseline, so `docker compose up` works on any
   machine. A free local LLM (Ollama) or Claude is one environment variable away.
 * **Measured, not assumed.** An evaluation harness runs the *whole agent* over
-  42 labelled emails, including LinkedIn, InfoJobs, Indeed, Workday, Greenhouse
+  47 labelled emails, including LinkedIn, InfoJobs, Indeed, Workday, Greenhouse
   and Lever notifications in English and Spanish, and reports per-class
   precision/recall, confidence intervals and a confusion matrix. The local
-  `qwen3:8b` model goes from the baseline's 67% accuracy to 98% (with an honest
+  `qwen3:8b` model goes from the baseline's 70% accuracy to 96% (with an honest
   caveat, below).
 * **Read-only by design.** The Gmail integration asks only for
   `gmail.readonly`, rejects broader tokens, and exposes a read-only interface.
@@ -116,27 +116,28 @@ uv run python scripts/evaluate.py              # keyword baseline, no API key
 uv run python scripts/evaluate.py --llm ollama # local model, free
 ```
 
-This runs the full agent over the 42 labelled fixtures and prints per-class
+This runs the full agent over the 47 labelled fixtures and prints per-class
 precision/recall, accuracy with a 95% confidence interval, a confusion matrix
 and the misclassified cases.
 
 | Model | Category accuracy (95% CI) | Macro-F1 | Job-application flag | Company | Role |
 |---|---|---|---|---|---|
-| Keyword baseline | 66.7% (52-79%) | 0.72 | 81.0% | 17% | 17% |
-| `qwen3:8b`, local via Ollama | 97.6% (88-100%) | 0.98 | 97.6% | 92% | 91% |
+| Keyword baseline | 70.2% (56-81%) | 0.73 | 78.7% | 17% | 18% |
+| `qwen3:8b`, local via Ollama | 95.7% (86-99%) | 0.96 | 100% | 90% | 87% |
 
-Cost and latency per LLM call, from the same runs: the local model makes 1.05
-calls per email (about 1,080 tokens in, 465 out, reasoning included), costs $0,
-and takes 6.7 s at p50 and 23 s at p95 on a desktop RTX 3060 Ti.
+Cost and latency per LLM call, from the same runs: the local model makes 1.06
+calls per email (about 1,230 tokens in, 410 out, reasoning included), costs $0,
+and takes 6.9 s at p50 and 13 s at p95 on a desktop RTX 3060 Ti.
 
 The keyword baseline takes the company from the sender's domain, so it
 attributes every job-board notification to the job board. Use an LLM for a
 real inbox that mostly hears back through LinkedIn or an ATS.
 
-Read the 98% as an upper bound: 42 examples, written by the same author as
-the prompt, which was tightened after the first run on the job-board emails
-(see D36 and D46 in [DECISIONS.md](DECISIONS.md)). The one misclassified email
-is a friend's mock-interview offer read as an application; the extraction
+Read the 96% as an upper bound: 47 examples, written by the same author as
+the prompt, which was tightened after seeing failures on job-board emails and
+on a real inbox (see D36, D46 and D50 in [DECISIONS.md](DECISIONS.md)). The two
+misclassified emails are housekeeping (a reminder to finish an application, a
+verification code) read as information requests; the extraction
 mistakes are naming variants ("Cinderpeak" vs "Cinderpeak Games") and a
 requisition number kept in the role, not hallucinations. Full results are in [eval_results/](eval_results/).
 
@@ -192,7 +193,7 @@ mail, and refuses tokens with any broader scope.
 
 ## Limitations and next steps
 
-* **Small evaluation set.** 42 synthetic emails written by the same author as
+* **Small evaluation set.** 47 synthetic emails written by the same author as
   the prompt. The next step is a larger, independently labelled set, and a
   comparison of cheaper Claude models against the local one.
 * **Local latency.** `qwen3:8b` takes 7-30 s per email depending on the GPU.

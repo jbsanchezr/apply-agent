@@ -439,3 +439,28 @@ adapter now recognises quota errors (429, or 403 with a rate-limit reason)
 and waits 5, 15, 30, 60 and 60 seconds before giving up. Other 403s, such as
 a missing permission, still fail at once. The real sync then waited six times
 and completed.
+
+## D50 - Housekeeping is not an information request; a rejection stays closed (M7)
+The first sync of a real inbox (30 days, 424 emails, 82 applications) put six
+applications under "advancing", all as information requests, and all six
+were wrong: candidate-experience surveys, "confirm your email" and
+verification-code steps, a reminder to finish an incomplete application, and
+a privacy-consent request. One survey arrived after a rejection and, because
+status follows the latest status-bearing event (D3), reopened it.
+
+Five fixtures of those kinds were added (corpus 42 -> 47), and the prompt now
+says that an information request comes from a hiring team that has reviewed
+the submitted application, and that form steps, consent and surveys are
+`other`. `qwen3:8b` resists this rule: four wordings were tried against a
+ten-email subset (the five new emails plus five genuine requests). Listing the
+exclusions in the `other` definition, listing them as "NOT
+information_request", and writing the summary before the category all left
+three or four of the five wrong. Describing a request as "having reviewed the
+submitted application" did best. On the full corpus the model scores 95.7%,
+still missing two of the five (which two varies between runs).
+
+Because the classifier will keep making this mistake, status derivation now
+guards against its worst effect. After a rejection, only an interview
+invitation or an offer reopens an application; a later information request
+does not. Status is still a pure function of the events, sorted by time
+(D3), so processing order still does not matter.

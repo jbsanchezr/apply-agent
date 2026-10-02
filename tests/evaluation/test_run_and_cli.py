@@ -27,9 +27,9 @@ def test_every_label_maps_to_a_fixture_message() -> None:
 def test_baseline_scores_are_pinned() -> None:
     """The baseline is deterministic: any change here is a real behaviour change."""
     result = evaluate(KeywordBaselineModel(), model_name="baseline", fixtures_dir=FIXTURES_DIR)
-    assert result.category.accuracy == pytest.approx(28 / 42)
+    assert result.category.accuracy == pytest.approx(33 / 47)
     assert result.failures == []
-    assert "Category accuracy: 0.667" in format_report(result)
+    assert "Category accuracy: 0.702" in format_report(result)
 
 
 def test_failed_messages_are_scored_as_failures() -> None:

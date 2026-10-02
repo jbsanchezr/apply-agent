@@ -334,5 +334,45 @@
     "role": null,
     "is_job_application": false,
     "notes": "Tricky noise: Spanish agency InMail about an interview process the user never applied to."
+  },
+  {
+    "file": "43-survey-halcyon.eml",
+    "category": "other",
+    "company": "Halcyon Health",
+    "role": "MLOps Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: candidate-experience survey after the rejection in 06; 'could you please answer' is not an information request and must not reopen the application."
+  },
+  {
+    "file": "44-saltmarsh-confirm.eml",
+    "category": "other",
+    "company": "Saltmarsh AI",
+    "role": "Junior AI Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: confirm-your-email step of the application form; administrative, not an information request."
+  },
+  {
+    "file": "45-talentio-quintal.eml",
+    "category": "other",
+    "company": "Quintal Software",
+    "role": "Senior Product Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: Spanish job-platform reminder to finish an incomplete application; the user has not even applied yet."
+  },
+  {
+    "file": "46-brezo-privacidad.eml",
+    "category": "other",
+    "company": "Brezo Labs",
+    "role": null,
+    "is_job_application": true,
+    "notes": "Tricky: Spanish GDPR consent request after applying; administrative, not an information request."
+  },
+  {
+    "file": "47-ferrolux-codigo.eml",
+    "category": "other",
+    "company": "Ferrolux",
+    "role": "Data Platform Engineer",
+    "is_job_application": true,
+    "notes": "Tricky: one-time verification code to continue an application; administrative."
   }
 ]

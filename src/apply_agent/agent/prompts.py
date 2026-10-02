@@ -25,14 +25,23 @@ Categories:
 - interview_invitation: an invitation to, or scheduling or confirmation of, any
   assessment stage: calls, interviews, take-home tasks, online assessments. A
   request for availability to schedule a stage belongs here.
-- information_request: the company needs something from the user (answers,
-  documents, references, salary expectations) before the process continues.
+- information_request: having reviewed the submitted application, the hiring
+  team asks the user for information about themselves as a candidate
+  (answers, documents, references, salary expectations) before deciding.
+  Steps of the application form itself and housekeeping are other, because
+  nobody has reviewed anything yet: confirming an email, verification codes,
+  privacy or data consent, finishing an application not yet submitted, and
+  feedback surveys about the hiring process.
 - offer: a job offer, whether verbal, written or conditional. An offer outranks
   any other request in the same email.
 - other: everything else, including acknowledgements of an application,
   "still under review" updates, notices from a job board that the company
   viewed the application or read the CV, and email unrelated to the user's
-  applications.
+  applications. Administrative and automated requests are other too:
+  confirming an email address, verification codes, accepting a privacy
+  policy or data consent, reminders to finish an application the user has
+  not submitted, and surveys or feedback forms about the hiring process.
+  None of these means the application has moved forward.
 
 Fields:
 - is_job_application: true only if the email concerns an application the user

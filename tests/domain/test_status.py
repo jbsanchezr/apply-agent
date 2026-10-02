@@ -90,3 +90,16 @@ def test_every_status_falls_in_one_stage(status: S, stage: ApplicationStage) -> 
 
 def test_acknowledgements_alone_leave_an_application_sent() -> None:
     assert stage_of(derive_status(_events(C.OTHER, C.OTHER))) is ApplicationStage.SENT
+
+
+def test_an_information_request_after_a_rejection_does_not_reopen_it() -> None:
+    """Regression from a real inbox: a feedback survey after a rejection read as a request."""
+    assert derive_status(_events(C.REJECTION, C.INFORMATION_REQUEST)) == S.REJECTED
+
+
+@pytest.mark.parametrize(
+    ("category", "status"),
+    [(C.INTERVIEW_INVITATION, S.INTERVIEWING), (C.OFFER, S.OFFER_RECEIVED)],
+)
+def test_an_interview_or_offer_after_a_rejection_reopens_it(category: C, status: S) -> None:
+    assert derive_status(_events(C.REJECTION, category)) == status

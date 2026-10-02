@@ -32,18 +32,18 @@
       },
       {
         "label": "other",
-        "precision": 0.5789473684210527,
-        "recall": 0.6875,
-        "f1": 0.6285714285714286,
-        "support": 16
+        "precision": 0.6666666666666666,
+        "recall": 0.7619047619047619,
+        "f1": 0.7111111111111111,
+        "support": 21
       }
     ],
-    "accuracy": 0.6666666666666666,
+    "accuracy": 0.7021276595744681,
     "accuracy_ci": [
-      0.5155222701166692,
-      0.7898771923802769
+      0.5602205595363459,
+      0.8134891584898374
     ],
-    "macro_f1": 0.7178711484593837,
+    "macro_f1": 0.7343790849673202,
     "confusion": {
       "rejection": {
         "rejection": 6,
@@ -78,48 +78,48 @@
         "interview_invitation": 4,
         "information_request": 0,
         "offer": 0,
-        "other": 11
+        "other": 16
       }
     },
-    "n": 42
+    "n": 47
   },
   "is_job_application": {
     "per_class": [
       {
         "label": "true",
-        "precision": 0.9117647058823529,
-        "recall": 0.8611111111111112,
-        "f1": 0.8857142857142858,
-        "support": 36
+        "precision": 0.918918918918919,
+        "recall": 0.8292682926829268,
+        "f1": 0.8717948717948718,
+        "support": 41
       },
       {
         "label": "false",
-        "precision": 0.375,
+        "precision": 0.3,
         "recall": 0.5,
-        "f1": 0.42857142857142855,
+        "f1": 0.37499999999999994,
         "support": 6
       }
     ],
-    "accuracy": 0.8095238095238095,
+    "accuracy": 0.7872340425531915,
     "accuracy_ci": [
-      0.6669893264500356,
-      0.9001811039014357
+      0.6509569794902073,
+      0.8801041987575269
     ],
-    "macro_f1": 0.6571428571428571,
+    "macro_f1": 0.6233974358974359,
     "confusion": {
       "true": {
-        "true": 31,
-        "false": 5
+        "true": 34,
+        "false": 7
       },
       "false": {
         "true": 3,
         "false": 3
       }
     },
-    "n": 42
+    "n": 47
   },
-  "company_accuracy": 0.16666666666666666,
-  "role_accuracy": 0.17142857142857143,
+  "company_accuracy": 0.17073170731707318,
+  "role_accuracy": 0.1794871794871795,
   "failures": [],
   "messages": [
     {
@@ -541,15 +541,65 @@
       "gold_role": null,
       "predicted_role": null,
       "notes": "Tricky noise: Spanish agency InMail about an interview process the user never applied to."
+    },
+    {
+      "file": "43-survey-halcyon.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Halcyon Health",
+      "predicted_company": "Halcyonhealth",
+      "gold_role": "MLOps Engineer",
+      "predicted_role": "MLOps Engineer",
+      "notes": "Tricky: candidate-experience survey after the rejection in 06; 'could you please answer' is not an information request and must not reopen the application."
+    },
+    {
+      "file": "44-saltmarsh-confirm.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Saltmarsh AI",
+      "predicted_company": "Saltmarsh",
+      "gold_role": "Junior AI Engineer",
+      "predicted_role": null,
+      "notes": "Tricky: confirm-your-email step of the application form; administrative, not an information request."
+    },
+    {
+      "file": "45-talentio-quintal.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Quintal Software",
+      "predicted_company": null,
+      "gold_role": "Senior Product Engineer",
+      "predicted_role": null,
+      "notes": "Tricky: Spanish job-platform reminder to finish an incomplete application; the user has not even applied yet."
+    },
+    {
+      "file": "46-brezo-privacidad.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Brezo Labs",
+      "predicted_company": null,
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky: Spanish GDPR consent request after applying; administrative, not an information request."
+    },
+    {
+      "file": "47-ferrolux-codigo.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Ferrolux",
+      "predicted_company": "Ferrolux",
+      "gold_role": "Data Platform Engineer",
+      "predicted_role": null,
+      "notes": "Tricky: one-time verification code to continue an application; administrative."
     }
   ],
   "usage": {
-    "calls": 42,
+    "calls": 47,
     "input_tokens": 0,
     "output_tokens": 0,
     "cost_usd": 0.0,
-    "latency_p50_seconds": 0.00020380003843456507,
-    "latency_p95_seconds": 0.0002679799566976726
+    "latency_p50_seconds": 0.0002466000150889158,
+    "latency_p95_seconds": 0.0003210200695320964
   },
   "latency_source": "measured"
 }

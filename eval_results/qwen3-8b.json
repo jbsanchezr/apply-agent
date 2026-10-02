@@ -11,16 +11,16 @@
       },
       {
         "label": "interview_invitation",
-        "precision": 0.8888888888888888,
+        "precision": 1.0,
         "recall": 1.0,
-        "f1": 0.9411764705882353,
+        "f1": 1.0,
         "support": 8
       },
       {
         "label": "information_request",
-        "precision": 1.0,
+        "precision": 0.7142857142857143,
         "recall": 1.0,
-        "f1": 1.0,
+        "f1": 0.8333333333333333,
         "support": 5
       },
       {
@@ -33,17 +33,17 @@
       {
         "label": "other",
         "precision": 1.0,
-        "recall": 0.9375,
-        "f1": 0.967741935483871,
-        "support": 16
+        "recall": 0.9047619047619048,
+        "f1": 0.9500000000000001,
+        "support": 21
       }
     ],
-    "accuracy": 0.9761904761904762,
+    "accuracy": 0.9574468085106383,
     "accuracy_ci": [
-      0.8767851883475174,
-      0.9957847045008997
+      0.8575121280614056,
+      0.9882519706294303
     ],
-    "macro_f1": 0.9817836812144213,
+    "macro_f1": 0.9566666666666667,
     "confusion": {
       "rejection": {
         "rejection": 10,
@@ -75,51 +75,51 @@
       },
       "other": {
         "rejection": 0,
-        "interview_invitation": 1,
-        "information_request": 0,
+        "interview_invitation": 0,
+        "information_request": 2,
         "offer": 0,
-        "other": 15
+        "other": 19
       }
     },
-    "n": 42
+    "n": 47
   },
   "is_job_application": {
     "per_class": [
       {
         "label": "true",
-        "precision": 0.972972972972973,
+        "precision": 1.0,
         "recall": 1.0,
-        "f1": 0.9863013698630138,
-        "support": 36
+        "f1": 1.0,
+        "support": 41
       },
       {
         "label": "false",
         "precision": 1.0,
-        "recall": 0.8333333333333334,
-        "f1": 0.9090909090909091,
+        "recall": 1.0,
+        "f1": 1.0,
         "support": 6
       }
     ],
-    "accuracy": 0.9761904761904762,
+    "accuracy": 1.0,
     "accuracy_ci": [
-      0.8767851883475174,
-      0.9957847045008997
+      0.9244398288016114,
+      1.0
     ],
-    "macro_f1": 0.9476961394769614,
+    "macro_f1": 1.0,
     "confusion": {
       "true": {
-        "true": 36,
+        "true": 41,
         "false": 0
       },
       "false": {
-        "true": 1,
-        "false": 5
+        "true": 0,
+        "false": 6
       }
     },
-    "n": 42
+    "n": 47
   },
-  "company_accuracy": 0.9166666666666666,
-  "role_accuracy": 0.9142857142857143,
+  "company_accuracy": 0.9024390243902439,
+  "role_accuracy": 0.8717948717948718,
   "failures": [],
   "messages": [
     {
@@ -167,7 +167,7 @@
       "gold_category": "interview_invitation",
       "predicted_category": "interview_invitation",
       "gold_company": "Kestrel Robotics",
-      "predicted_company": "Kestrel-Robotics",
+      "predicted_company": "Kestrel Robotics",
       "gold_role": "Backend Engineer, Platform",
       "predicted_role": "Backend Engineer, Platform",
       "notes": "Follow-up in the same thread as 04."
@@ -209,7 +209,7 @@
       "gold_company": "Tidewater Logistics",
       "predicted_company": "Tidewater Logistics",
       "gold_role": "Data Engineer",
-      "predicted_role": "Data Engineer",
+      "predicted_role": "Data Engineer (R-10442)",
       "notes": "Tricky: HTML-only body, no text/plain part."
     },
     {
@@ -287,7 +287,7 @@
       "gold_category": "information_request",
       "predicted_category": "information_request",
       "gold_company": "Cobalt Mobility",
-      "predicted_company": "Cobalt Mobility",
+      "predicted_company": "Cobaltmobility",
       "gold_role": "Senior Backend Engineer",
       "predicted_role": "Senior Backend Engineer",
       "notes": "Recruiter asks for references and portfolio before deciding."
@@ -345,11 +345,11 @@
     {
       "file": "23-friend-mock-interview.eml",
       "gold_category": "other",
-      "predicted_category": "interview_invitation",
+      "predicted_category": "other",
       "gold_company": null,
-      "predicted_company": "example.org",
+      "predicted_company": null,
       "gold_role": null,
-      "predicted_role": "System Designer",
+      "predicted_role": null,
       "notes": "Tricky noise: personal email proposing a mock interview."
     },
     {
@@ -541,15 +541,65 @@
       "gold_role": null,
       "predicted_role": "Lead Data Scientist",
       "notes": "Tricky noise: Spanish agency InMail about an interview process the user never applied to."
+    },
+    {
+      "file": "43-survey-halcyon.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Halcyon Health",
+      "predicted_company": "Halcyon Health",
+      "gold_role": "MLOps Engineer",
+      "predicted_role": "MLOps Engineer",
+      "notes": "Tricky: candidate-experience survey after the rejection in 06; 'could you please answer' is not an information request and must not reopen the application."
+    },
+    {
+      "file": "44-saltmarsh-confirm.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Saltmarsh AI",
+      "predicted_company": "Saltmarsh AI",
+      "gold_role": "Junior AI Engineer",
+      "predicted_role": "Junior AI Engineer",
+      "notes": "Tricky: confirm-your-email step of the application form; administrative, not an information request."
+    },
+    {
+      "file": "45-talentio-quintal.eml",
+      "gold_category": "other",
+      "predicted_category": "information_request",
+      "gold_company": "Quintal Software",
+      "predicted_company": "Quintal Software",
+      "gold_role": "Senior Product Engineer",
+      "predicted_role": "Senior Product Engineer",
+      "notes": "Tricky: Spanish job-platform reminder to finish an incomplete application; the user has not even applied yet."
+    },
+    {
+      "file": "46-brezo-privacidad.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Brezo Labs",
+      "predicted_company": "Brezo Labs",
+      "gold_role": null,
+      "predicted_role": null,
+      "notes": "Tricky: Spanish GDPR consent request after applying; administrative, not an information request."
+    },
+    {
+      "file": "47-ferrolux-codigo.eml",
+      "gold_category": "other",
+      "predicted_category": "information_request",
+      "gold_company": "Ferrolux",
+      "predicted_company": "Ferrolux",
+      "gold_role": "Data Platform Engineer",
+      "predicted_role": "Data Platform Engineer (Req. 7406)",
+      "notes": "Tricky: one-time verification code to continue an application; administrative."
     }
   ],
   "usage": {
-    "calls": 44,
-    "input_tokens": 45206,
-    "output_tokens": 19542,
+    "calls": 50,
+    "input_tokens": 57723,
+    "output_tokens": 19394,
     "cost_usd": 0.0,
-    "latency_p50_seconds": 6.685069950000001,
-    "latency_p95_seconds": 22.877593344999998
+    "latency_p50_seconds": 6.93045025,
+    "latency_p95_seconds": 13.194755749999999
   },
   "latency_source": "server-reported"
 }

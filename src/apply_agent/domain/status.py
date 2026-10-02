@@ -18,19 +18,32 @@ _STATUS_BY_CATEGORY: Final[Mapping[MessageCategory, ApplicationStatus]] = {
     MessageCategory.OFFER: ApplicationStatus.OFFER_RECEIVED,
 }
 
+# A company may reconsider and invite or hire after rejecting; little else
+# arriving after a rejection means the application is open again.
+_REOPENS_REJECTION: Final = frozenset({MessageCategory.INTERVIEW_INVITATION, MessageCategory.OFFER})
+
 
 def derive_status(events: Iterable[Event]) -> ApplicationStatus:
     """Return the status implied by the most recent status-bearing event.
+
+    A rejection is only undone by an interview invitation or an offer: an
+    information request after it is almost always a feedback survey or
+    housekeeping that the classifier mistook for a request.
 
     ``OTHER`` events (acknowledgements, "still reviewing") never change the
     status. Events with identical timestamps are ordered by message id so the
     result is deterministic.
     """
-    bearing = [e for e in events if e.category in _STATUS_BY_CATEGORY]
-    if not bearing:
-        return ApplicationStatus.APPLIED
-    latest = max(bearing, key=lambda e: (e.occurred_at, e.message_id))
-    return _STATUS_BY_CATEGORY[latest.category]
+    bearing = sorted(
+        (e for e in events if e.category in _STATUS_BY_CATEGORY),
+        key=lambda e: (e.occurred_at, e.message_id),
+    )
+    status = ApplicationStatus.APPLIED
+    for event in bearing:
+        if status is ApplicationStatus.REJECTED and event.category not in _REOPENS_REJECTION:
+            continue
+        status = _STATUS_BY_CATEGORY[event.category]
+    return status
 
 
 _STAGE_BY_STATUS: Final[Mapping[ApplicationStatus, ApplicationStage]] = {
