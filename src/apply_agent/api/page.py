@@ -15,7 +15,7 @@ from html import escape
 from typing import Final
 
 from apply_agent.api.jobs import SyncJob
-from apply_agent.domain import ApplicationStage, stage_of
+from apply_agent.domain import ApplicationStage, ApplicationStatus, stage_of
 from apply_agent.storage.repository import ApplicationView
 
 _STATUS_COLOURS: Final = {
@@ -62,7 +62,16 @@ summary h2 { display: inline; }
 summary { cursor: pointer; margin-top: 2rem; }
 .quiet { color: #b45309; font-weight: 600; }
 .count { color: var(--muted); font-weight: normal; }
-button { font: inherit; padding: .4rem .9rem; cursor: pointer; }
+button, .button, select { font: inherit; padding: .4rem .9rem; cursor: pointer; }
+.button {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  text-decoration: none;
+  color: inherit;
+}
+select { padding: .2rem .3rem; font-size: .85rem; width: 8.5rem; }
+.actions { display: flex; gap: .5rem; align-items: center; }
+.edited { font-size: .8rem; color: var(--muted); white-space: nowrap; }
 .wrap { overflow-x: auto; }
 """
 
@@ -77,6 +86,22 @@ async function sync(button) {
     const state = await (await fetch("sync/" + id)).json();
     if (state.status !== "running") { location.reload(); return; }
   }
+}
+async function correct(id, select) {
+  const value = select.value;
+  if (!value) return;
+  select.disabled = true;
+  const url = "applications/" + id + "/status";
+  const response = value === "auto"
+    ? await fetch(url, {method: "DELETE"})
+    : await fetch(url, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({status: value}),
+      });
+  if (response.ok) { location.reload(); return; }
+  select.disabled = false; select.value = "";
+  alert("Could not change the status.");
 }
 """
 
@@ -108,28 +133,47 @@ def _ago(days: int) -> str:
     return "today" if days == 0 else "1 day ago" if days == 1 else f"{days} days ago"
 
 
+def _correction(view: ApplicationView) -> str:
+    """A menu to set the status by hand, for when the classifier got it wrong."""
+    app = view.application
+    options = "".join(
+        f'<option value="{s.value}">{s.value.replace("_", " ")}</option>'
+        for s in ApplicationStatus
+        if s is not app.status
+    )
+    if app.status_overridden:
+        options += '<option value="auto">automatic (undo)</option>'
+    return (
+        f'<select aria-label="Correct the status of {escape(app.company, quote=True)}" '
+        f'onchange="correct({app.id}, this)">'
+        f'<option value="">Change&hellip;</option>{options}</select>'
+    )
+
+
 def _row(view: ApplicationView, now: datetime, quiet_after_days: int) -> str:
     app = view.application
     colour = _STATUS_COLOURS.get(app.status.value, "#64748b")
     days = days_since(app.last_activity_at, now)
     quiet = stage_of(app.status) is not ApplicationStage.REJECTED and days >= quiet_after_days
     news = f'<span class="{"quiet" if quiet else "muted"}">{_ago(days)}</span>'
+    edited = '<br><span class="edited">set by hand</span>' if app.status_overridden else ""
     return (
         "<tr>"
         f"<td>{escape(app.company)}</td>"
         f"<td>{escape(app.role or '-')}</td>"
         f'<td><span class="status" style="background:{colour}">'
-        f"{escape(app.status.value.replace('_', ' '))}</span></td>"
+        f"{escape(app.status.value.replace('_', ' '))}</span>{edited}</td>"
         f"<td>{escape(view.latest_summary)}</td>"
         f"<td>{_date(app.first_seen_at)}</td>"
         f"<td>{_date(app.last_activity_at)}<br>{news}</td>"
+        f"<td>{_correction(view)}</td>"
         "</tr>"
     )
 
 
 _HEAD: Final = (
     "<thead><tr><th>Company</th><th>Role</th><th>Status</th><th>Latest</th>"
-    "<th>First seen</th><th>Last news</th></tr></thead>"
+    "<th>First seen</th><th>Last news</th><th>Correct</th></tr></thead>"
 )
 
 
@@ -137,7 +181,7 @@ def _section(
     section: _Section, views: Sequence[ApplicationView], now: datetime, quiet_after_days: int
 ) -> str:
     rows = "\n".join(_row(v, now, quiet_after_days) for v in views) or (
-        f'<tr><td colspan="6" class="muted">{section.empty}</td></tr>'
+        f'<tr><td colspan="7" class="muted">{section.empty}</td></tr>'
     )
     heading = f'<h2>{section.title} <span class="count">({len(views)})</span></h2>'
     table = f'<div class="wrap"><table>{_HEAD}<tbody>\n{rows}\n</tbody></table></div>'
@@ -200,7 +244,10 @@ def render_applications(
     <div>{_overview(groups, quiet)}</div>
     <div class="muted">{len(views)} tracked. {_last_sync(last_job)}</div>
   </div>
-  <button type="button" onclick="sync(this)">Sync now</button>
+  <div class="actions">
+    <a class="button" href="applications?format=xlsx">Export to Excel</a>
+    <button type="button" onclick="sync(this)">Sync now</button>
+  </div>
 </header>
 {sections}
 <script>{_SCRIPT}</script>

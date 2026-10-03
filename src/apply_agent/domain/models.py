@@ -58,6 +58,18 @@ class Event(DomainModel):
     summary: Annotated[str, Field(min_length=1, max_length=200), AfterValidator(_single_line)]
 
 
+class StatusOverride(DomainModel):
+    """A status the user set by hand, correcting the classifier.
+
+    It replaces everything the emails said up to ``set_at``. Emails dated
+    after it still move the status, so a correction never freezes an
+    application.
+    """
+
+    status: ApplicationStatus
+    set_at: UtcDatetime
+
+
 class Application(DomainModel):
     """One job application and its current status."""
 
@@ -65,6 +77,7 @@ class Application(DomainModel):
     company: Annotated[str, Field(min_length=1, max_length=200)]
     role: Annotated[str, Field(min_length=1, max_length=200)] | None = None
     status: ApplicationStatus
+    status_overridden: bool = False
     first_seen_at: UtcDatetime
     last_activity_at: UtcDatetime
     thread_ids: frozenset[NonEmptyStr] = Field(min_length=1)

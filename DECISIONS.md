@@ -464,3 +464,31 @@ guards against its worst effect. After a rejection, only an interview
 invitation or an offer reopens an application; a later information request
 does not. Status is still a pure function of the events, sorted by time
 (D3), so processing order still does not matter.
+
+## D51 - A manual correction is a starting point, not a frozen status (M8)
+The classifier makes mistakes (D50), so the user can set an application's
+status by hand. The correction must fit D3, where status is derived from
+events and never mutated. Three designs were considered:
+* Overwrite `applications.status`: lost on the next `_refresh`.
+* A permanent override: a real interview arriving next week would be ignored.
+* An override with a timestamp (chosen): `derive_status` starts from the
+  status the user set and applies only events dated after it. Earlier emails,
+  including ones processed later, no longer count. Later emails still move
+  the status, and a manual rejection is as sticky as a real one (D50).
+
+The override lives in its own table, `status_overrides`, one row per
+application. A new table is created by `create_all` on existing databases,
+whereas a new column would need the migrations D9 deferred; a test drops the
+table and checks it comes back. `PUT /applications/{id}/status` sets it and
+`DELETE` removes it, returning to the derived status. The page marks a
+corrected row as "set by hand". The mailbox stays read-only: a correction
+only changes the local database.
+
+## D52 - Excel export writes email text as strings, never formulas (M8)
+`GET /applications?format=xlsx` returns the table as a workbook (openpyxl),
+with real date cells, a frozen header and an auto-filter. Company, role and
+summary come from email content or the LLM. openpyxl stores a value starting
+with `=` as a formula, so a hostile email could have a formula run when the
+user opens the export. Every text cell is therefore forced to the string
+type, and a test exports `=HYPERLINK(...)` as a company name and checks the
+cell type. This is the spreadsheet counterpart of escaping on the HTML page.

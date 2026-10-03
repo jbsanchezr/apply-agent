@@ -19,17 +19,19 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from pydantic import BaseModel, ConfigDict
 
 from apply_agent.agent.outcomes import SyncReport
 from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
+from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
 from apply_agent.api.page import days_since, render_applications
 from apply_agent.config import Settings
-from apply_agent.domain import stage_of
+from apply_agent.domain import Application, ApplicationStatus, stage_of
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
-from apply_agent.storage.repository import Repository
+from apply_agent.storage.repository import ApplicationNotFoundError, Repository
 
 
 def _api_token(settings: Settings) -> str:
@@ -44,6 +46,22 @@ def _api_token(settings: Settings) -> str:
         "'Authorization: Bearer <token>'. Set APPLY_AGENT_API_TOKEN to keep it fixed.\n\n"
     )
     return token
+
+
+class StatusCorrection(BaseModel):
+    """Body of ``PUT /applications/{id}/status``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: ApplicationStatus
+
+
+def _application_json(application: Application) -> dict[str, Any]:
+    return {
+        **application.model_dump(mode="json"),
+        "thread_ids": sorted(application.thread_ids),
+        "stage": stage_of(application.status).value,
+    }
 
 
 def create_app(
@@ -91,15 +109,20 @@ def create_app(
         wants_json = format == "json" or (
             format is None and "application/json" in request.headers.get("accept", "")
         )
+        if format == "xlsx":
+            filename = f"applications-{now:%Y-%m-%d}.xlsx"
+            return Response(
+                applications_workbook(views, now),
+                media_type=XLSX_MEDIA_TYPE,
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
         if wants_json:
             return JSONResponse(
                 [
                     {
-                        **view.application.model_dump(mode="json"),
-                        "thread_ids": sorted(view.application.thread_ids),
+                        **_application_json(view.application),
                         "latest_summary": view.latest_summary,
                         "latest_category": view.latest_category,
-                        "stage": stage_of(view.application.status).value,
                         "days_since_last_news": days_since(view.application.last_activity_at, now),
                     }
                     for view in views
@@ -113,6 +136,24 @@ def create_app(
                 quiet_after_days=settings.quiet_after_days,
             )
         )
+
+    @app.put("/applications/{application_id}/status", dependencies=protected)
+    def correct_status(application_id: int, correction: StatusCorrection) -> dict[str, Any]:
+        """Set the status by hand. Emails dated after this moment still move it."""
+        try:
+            fixed = repo.set_status_override(application_id, correction.status, clock())
+        except ApplicationNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown application") from err
+        return _application_json(fixed)
+
+    @app.delete("/applications/{application_id}/status", dependencies=protected)
+    def clear_status_correction(application_id: int) -> dict[str, Any]:
+        """Drop a manual correction and go back to the status the emails imply."""
+        try:
+            restored = repo.clear_status_override(application_id)
+        except ApplicationNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown application") from err
+        return _application_json(restored)
 
     @app.post("/sync", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
     def start_sync() -> Any:

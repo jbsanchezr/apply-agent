@@ -1,14 +1,15 @@
 """Idempotent recording and application matching."""
 
+from datetime import timedelta
 from typing import Any
 
 import pytest
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 
 from apply_agent.domain import ApplicationStatus, MessageAssessment
-from apply_agent.storage import make_session_factory
-from apply_agent.storage.repository import Repository
-from tests.agent.helpers import assessment, message
+from apply_agent.storage import init_db, make_session_factory
+from apply_agent.storage.repository import ApplicationNotFoundError, Repository
+from tests.agent.helpers import T0, assessment, message
 
 
 @pytest.fixture
@@ -91,3 +92,76 @@ def test_latest_event_time(repo: Repository) -> None:
     assert repo.latest_event_time() is None
     repo.record(message("m1", days=3), _assess())
     assert repo.latest_event_time() == message("x", days=3).sent_at
+
+
+def _only(repo: Repository) -> Any:
+    [app] = repo.list_applications()
+    return app
+
+
+def test_a_manual_status_replaces_what_earlier_emails_said(repo: Repository) -> None:
+    """The false positive from a real inbox: a survey read as an information request."""
+    recorded = repo.record(message("m1"), _assess(category="information_request"))
+    assert recorded.application_id is not None
+
+    fixed = repo.set_status_override(
+        recorded.application_id, ApplicationStatus.APPLIED, T0 + timedelta(days=1)
+    )
+
+    assert fixed.status is ApplicationStatus.APPLIED
+    assert fixed.status_overridden
+    assert repo.count_by_status() == {"applied": 1}
+
+
+def test_an_email_after_the_correction_still_moves_the_status(repo: Repository) -> None:
+    app_id = repo.record(message("m1"), _assess(category="information_request")).application_id
+    assert app_id is not None
+    repo.set_status_override(app_id, ApplicationStatus.APPLIED, T0 + timedelta(days=1))
+
+    repo.record(message("m2", days=3), _assess(category="interview_invitation"))
+
+    assert _only(repo).status is ApplicationStatus.INTERVIEWING
+    assert _only(repo).status_overridden
+
+
+def test_an_older_email_processed_later_does_not_undo_the_correction(repo: Repository) -> None:
+    app_id = repo.record(message("m2", days=2), _assess(category="other")).application_id
+    assert app_id is not None
+    repo.set_status_override(app_id, ApplicationStatus.REJECTED, T0 + timedelta(days=5))
+
+    repo.record(message("m1", days=1), _assess(category="interview_invitation"))
+
+    assert _only(repo).status is ApplicationStatus.REJECTED
+
+
+def test_a_correction_can_be_changed_and_cleared(repo: Repository) -> None:
+    app_id = repo.record(message("m1"), _assess(category="interview_invitation")).application_id
+    assert app_id is not None
+    repo.set_status_override(app_id, ApplicationStatus.APPLIED, T0 + timedelta(days=1))
+    repo.set_status_override(app_id, ApplicationStatus.REJECTED, T0 + timedelta(days=2))
+    assert _only(repo).status is ApplicationStatus.REJECTED
+
+    cleared = repo.clear_status_override(app_id)
+
+    assert cleared.status is ApplicationStatus.INTERVIEWING
+    assert not cleared.status_overridden
+    assert repo.clear_status_override(app_id).status is ApplicationStatus.INTERVIEWING
+
+
+def test_correcting_an_unknown_application_fails(repo: Repository) -> None:
+    with pytest.raises(ApplicationNotFoundError):
+        repo.set_status_override(999, ApplicationStatus.APPLIED, T0)
+    with pytest.raises(ApplicationNotFoundError):
+        repo.clear_status_override(999)
+
+
+def test_a_database_from_before_overrides_gains_the_table(engine: Engine, repo: Repository) -> None:
+    """No migrations (D9): the new table must appear on an existing database."""
+    app_id = repo.record(message("m1"), _assess(category="information_request")).application_id
+    assert app_id is not None
+    with engine.begin() as connection:
+        connection.execute(text("DROP TABLE status_overrides"))
+
+    init_db(engine)
+
+    assert repo.set_status_override(app_id, ApplicationStatus.APPLIED, T0).status_overridden

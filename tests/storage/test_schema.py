@@ -41,6 +41,7 @@ def test_expected_tables_exist(engine: Engine) -> None:
         "application_threads",
         "events",
         "follow_up_drafts",
+        "status_overrides",
     }
 
 

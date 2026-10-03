@@ -9,7 +9,7 @@ from collections.abc import Iterable, Mapping
 from typing import Final
 
 from apply_agent.domain.enums import ApplicationStage, ApplicationStatus, MessageCategory
-from apply_agent.domain.models import Event
+from apply_agent.domain.models import Event, StatusOverride
 
 _STATUS_BY_CATEGORY: Final[Mapping[MessageCategory, ApplicationStatus]] = {
     MessageCategory.REJECTION: ApplicationStatus.REJECTED,
@@ -23,22 +23,32 @@ _STATUS_BY_CATEGORY: Final[Mapping[MessageCategory, ApplicationStatus]] = {
 _REOPENS_REJECTION: Final = frozenset({MessageCategory.INTERVIEW_INVITATION, MessageCategory.OFFER})
 
 
-def derive_status(events: Iterable[Event]) -> ApplicationStatus:
+def derive_status(
+    events: Iterable[Event], override: StatusOverride | None = None
+) -> ApplicationStatus:
     """Return the status implied by the most recent status-bearing event.
 
     A rejection is only undone by an interview invitation or an offer: an
     information request after it is almost always a feedback survey or
     housekeeping that the classifier mistook for a request.
 
+    With an ``override``, the status starts from what the user set, and only
+    events dated after it count.
+
     ``OTHER`` events (acknowledgements, "still reviewing") never change the
     status. Events with identical timestamps are ordered by message id so the
     result is deterministic.
     """
     bearing = sorted(
-        (e for e in events if e.category in _STATUS_BY_CATEGORY),
+        (
+            e
+            for e in events
+            if e.category in _STATUS_BY_CATEGORY
+            and (override is None or e.occurred_at > override.set_at)
+        ),
         key=lambda e: (e.occurred_at, e.message_id),
     )
-    status = ApplicationStatus.APPLIED
+    status = ApplicationStatus.APPLIED if override is None else override.status
     for event in bearing:
         if status is ApplicationStatus.REJECTED and event.category not in _REOPENS_REJECTION:
             continue

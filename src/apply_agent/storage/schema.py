@@ -60,6 +60,9 @@ class ApplicationRow(Base):
         back_populates="application", cascade="all, delete-orphan"
     )
     events: Mapped[list["EventRow"]] = relationship(back_populates="application")
+    override: Mapped["StatusOverrideRow | None"] = relationship(
+        back_populates="application", cascade="all, delete-orphan"
+    )
 
 
 class ApplicationThreadRow(Base):
@@ -91,6 +94,24 @@ class EventRow(Base):
     processed_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
     application: Mapped[ApplicationRow | None] = relationship(back_populates="events")
+
+
+class StatusOverrideRow(Base):
+    """A status the user set by hand (see D51). At most one per application.
+
+    A separate table rather than a column, so databases created before it
+    existed pick it up from ``create_all`` with no migration (D9).
+    """
+
+    __tablename__ = "status_overrides"
+
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applications.id", ondelete="CASCADE"), primary_key=True
+    )
+    status: Mapped[ApplicationStatus] = mapped_column(_str_enum(ApplicationStatus))
+    set_at: Mapped[datetime]
+
+    application: Mapped[ApplicationRow] = relationship(back_populates="override")
 
 
 class FollowUpDraftRow(Base):

@@ -78,7 +78,9 @@ docker compose up --build
   advancing (information requested, interviewing, offer), sent and waiting for
   a reply, and rejected (folded away). Each shows how long ago the last news
   arrived; an open application with no news for 14 days (set
-  `APPLY_AGENT_QUIET_AFTER_DAYS` to change it) is flagged. Log in with any
+  `APPLY_AGENT_QUIET_AFTER_DAYS` to change it) is flagged. When the classifier
+  gets a status wrong, the *Change...* menu on the row sets it by hand, and
+  *Export to Excel* downloads the table as `.xlsx`. Log in with any
   username and the token printed in the app logs (`docker compose logs app`),
   or set `APPLY_AGENT_API_TOKEN` in a `.env` file. Press *Sync now*.
 * <http://localhost:3000>: the Grafana dashboard. <http://localhost:9090>: Prometheus.
@@ -88,6 +90,9 @@ API (the token also works as `Authorization: Bearer <token>`):
 | Endpoint | |
 |---|---|
 | `GET /applications` | HTML page grouped by stage; JSON (with `stage` and `days_since_last_news`) via `?format=json` or `Accept: application/json` |
+| `GET /applications?format=xlsx` | The same table as an Excel workbook |
+| `PUT /applications/{id}/status` | Correct a status by hand: `{"status": "applied"}`. Later emails still move it |
+| `DELETE /applications/{id}/status` | Undo the correction and return to the status the emails imply |
 | `POST /sync` | Starts a background sync: `202` with a job id, or `409` if one is running |
 | `GET /sync/{job_id}` | Job status and report |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |

@@ -17,13 +17,23 @@ from apply_agent.domain import (
     Event,
     Message,
     MessageAssessment,
+    StatusOverride,
     company_key,
     derive_status,
     role_key,
 )
 from apply_agent.domain.enums import ApplicationStatus
 from apply_agent.storage.matching import resolve_application
-from apply_agent.storage.schema import ApplicationRow, ApplicationThreadRow, EventRow
+from apply_agent.storage.schema import (
+    ApplicationRow,
+    ApplicationThreadRow,
+    EventRow,
+    StatusOverrideRow,
+)
+
+
+class ApplicationNotFoundError(LookupError):
+    """No application has this id."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +125,27 @@ class Repository:
             )
             return [_to_domain(row) for row in rows]
 
+    def set_status_override(
+        self, application_id: int, status: ApplicationStatus, at: datetime
+    ) -> Application:
+        """Correct an application's status by hand. Emails dated after ``at`` still move it."""
+        with self._sessions.begin() as session:
+            app = _get(session, application_id)
+            if app.override is None:
+                app.override = StatusOverrideRow(status=status, set_at=at)
+            else:
+                app.override.status, app.override.set_at = status, at
+            _refresh(app)
+            return _to_domain(app)
+
+    def clear_status_override(self, application_id: int) -> Application:
+        """Go back to the status the emails imply."""
+        with self._sessions.begin() as session:
+            app = _get(session, application_id)
+            app.override = None
+            _refresh(app)
+            return _to_domain(app)
+
     def _application_for(
         self, session: Session, message: Message, assessment: MessageAssessment
     ) -> tuple[ApplicationRow, bool]:
@@ -140,6 +171,13 @@ class Repository:
         return app, created
 
 
+def _get(session: Session, application_id: int) -> ApplicationRow:
+    app = session.get(ApplicationRow, application_id)
+    if app is None:
+        raise ApplicationNotFoundError(application_id)
+    return app
+
+
 def _fill_role(session: Session, app: ApplicationRow, role: str) -> None:
     """Learn the role later (e.g. a role-less acknowledgement, then a detailed reply)."""
     clash = session.scalar(
@@ -155,7 +193,12 @@ def _fill_role(session: Session, app: ApplicationRow, role: str) -> None:
 def _refresh(app: ApplicationRow) -> None:
     """Recompute the derived fields from the full event history (see D3)."""
     events = [_event(e) for e in app.events]
-    app.status = derive_status(events)
+    override = (
+        None
+        if app.override is None
+        else StatusOverride(status=app.override.status, set_at=app.override.set_at)
+    )
+    app.status = derive_status(events, override)
     app.first_seen_at = min(e.occurred_at for e in events)
     app.last_activity_at = max(e.occurred_at for e in events)
 
@@ -176,6 +219,7 @@ def _to_domain(row: ApplicationRow) -> Application:
         company=row.company,
         role=row.role,
         status=row.status,
+        status_overridden=row.override is not None,
         first_seen_at=row.first_seen_at,
         last_activity_at=row.last_activity_at,
         thread_ids=frozenset(t.thread_id for t in row.threads),

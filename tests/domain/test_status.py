@@ -8,6 +8,7 @@ from apply_agent.domain import (
     ApplicationStatus,
     Event,
     MessageCategory,
+    StatusOverride,
     derive_status,
     stage_of,
 )
@@ -103,3 +104,19 @@ def test_an_information_request_after_a_rejection_does_not_reopen_it() -> None:
 )
 def test_an_interview_or_offer_after_a_rejection_reopens_it(category: C, status: S) -> None:
     assert derive_status(_events(C.REJECTION, category)) == status
+
+
+def test_an_override_is_the_starting_point_and_only_later_events_count() -> None:
+    events = _events(C.INFORMATION_REQUEST, C.OTHER, C.INTERVIEW_INVITATION)  # days 0, 1, 2
+    at_day_1 = StatusOverride(status=S.APPLIED, set_at=T0 + timedelta(days=1, hours=1))
+    at_day_3 = StatusOverride(status=S.APPLIED, set_at=T0 + timedelta(days=3))
+
+    assert derive_status(events, at_day_1) == S.INTERVIEWING
+    assert derive_status(events, at_day_3) == S.APPLIED
+    assert derive_status([], at_day_3) == S.APPLIED
+
+
+def test_a_manual_rejection_is_as_sticky_as_a_real_one() -> None:
+    override = StatusOverride(status=S.REJECTED, set_at=T0 - timedelta(days=1))
+    assert derive_status(_events(C.INFORMATION_REQUEST), override) == S.REJECTED
+    assert derive_status(_events(C.OFFER), override) == S.OFFER_RECEIVED

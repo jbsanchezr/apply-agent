@@ -5,16 +5,19 @@ import re
 import threading
 import time
 from collections.abc import Iterator
-from datetime import timedelta
+from datetime import date, timedelta
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from openpyxl import load_workbook
 from sqlalchemy import Engine
 
 from apply_agent.agent.outcomes import SyncReport
 from apply_agent.api.app import create_app
+from apply_agent.api.export import HEADERS, XLSX_MEDIA_TYPE
 from apply_agent.config import Settings
 from apply_agent.domain import MessageAssessment
 from apply_agent.storage import make_session_factory
@@ -242,3 +245,132 @@ def test_an_empty_table_asks_for_a_sync(tmp_path: Path, repository: Repository) 
         page = client.get("/applications", headers=AUTH).text
     assert "No applications yet. Run a sync." in page
     assert "<section" not in page
+
+
+@pytest.fixture
+def seeded(tmp_path: Path, repository: Repository) -> Iterator[TestClient]:
+    """One application wrongly marked as advancing, seen 10 days later."""
+    wrong = assessment("information_request", company="Halcyon Health", role="MLOps Engineer")
+    repository.record(message("m1"), MessageAssessment.model_validate(wrong))
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        clock=lambda: T0 + timedelta(days=10),
+    )
+    with TestClient(app) as client:
+        yield client
+
+
+def _first(client: TestClient) -> dict[str, Any]:
+    row: dict[str, Any] = client.get("/applications?format=json", headers=AUTH).json()[0]
+    return row
+
+
+def test_a_false_positive_can_be_corrected_and_the_correction_undone(seeded: TestClient) -> None:
+    app_id = _first(seeded)["id"]
+    assert "Halcyon Health" in _section(seeded.get("/applications", headers=AUTH).text, "advancing")
+
+    fixed = seeded.put(f"/applications/{app_id}/status", headers=AUTH, json={"status": "applied"})
+
+    assert fixed.status_code == 200
+    assert fixed.json()["status"] == "applied"
+    assert fixed.json()["stage"] == "sent"
+    assert _first(seeded)["status_overridden"] is True
+    page = seeded.get("/applications", headers=AUTH).text
+    assert "Halcyon Health" in _section(page, "sent")
+    assert "set by hand" in _section(page, "sent")
+    assert '<option value="auto">' in _section(page, "sent")
+
+    undone = seeded.delete(f"/applications/{app_id}/status", headers=AUTH)
+
+    assert undone.json()["status"] == "information_requested"
+    assert _first(seeded)["status_overridden"] is False
+    assert "set by hand" not in seeded.get("/applications", headers=AUTH).text
+
+
+def test_the_correction_menu_offers_every_other_status(seeded: TestClient) -> None:
+    page = seeded.get("/applications", headers=AUTH).text
+    menu = re.search(r"<select.*?</select>", page, re.S)
+    assert menu
+    values = re.findall(r'<option value="([^"]*)"', menu.group(0))
+    assert values == ["", "applied", "interviewing", "offer_received", "rejected"]
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "body", "expected"),
+    [
+        ("put", "/applications/999/status", {"status": "applied"}, 404),
+        ("delete", "/applications/999/status", None, 404),
+        ("put", "/applications/1/status", {"status": "hired"}, 422),
+        ("put", "/applications/1/status", {"status": "applied", "extra": 1}, 422),
+    ],
+)
+def test_bad_corrections_are_rejected(
+    seeded: TestClient, method: str, path: str, body: dict[str, Any] | None, expected: int
+) -> None:
+    response = seeded.request(method, path, headers=AUTH, json=body)
+    assert response.status_code == expected
+    assert _first(seeded)["status"] == "information_requested"
+
+
+@pytest.mark.parametrize("method", ["put", "delete"])
+def test_corrections_need_the_token(seeded: TestClient, method: str) -> None:
+    response = seeded.request(method, "/applications/1/status", json={"status": "applied"})
+    assert response.status_code == 401
+
+
+def _sheet(client: TestClient) -> Any:
+    response = client.get("/applications?format=xlsx", headers=AUTH)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == XLSX_MEDIA_TYPE
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="applications-2026-07-11.xlsx"'
+    )
+    return load_workbook(BytesIO(response.content))["Applications"]
+
+
+def test_excel_export_has_one_row_per_application(seeded: TestClient) -> None:
+    seeded.put("/applications/1/status", headers=AUTH, json={"status": "rejected"})
+
+    rows = list(_sheet(seeded).iter_rows(values_only=True))
+
+    assert rows[0] == HEADERS
+    *texts, first_seen, last_news, days = rows[1]
+    assert texts == [
+        "Halcyon Health",
+        "MLOps Engineer",
+        "rejected",
+        "rejected",
+        "yes",
+        "Something happened",
+    ]
+    assert first_seen.date() == last_news.date() == date(2026, 7, 1)
+    assert days == 10
+    assert len(rows) == 2
+
+
+def test_excel_export_never_writes_email_text_as_a_formula(
+    tmp_path: Path, repository: Repository
+) -> None:
+    """An email can put anything in a company name; Excel must not run it."""
+    hostile = assessment(
+        "offer", company='=HYPERLINK("http://evil.example","x")', role="+1+1", summary="@SUM(A1)"
+    )
+    repository.record(message("m1"), MessageAssessment.model_validate(hostile))
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        clock=lambda: T0 + timedelta(days=10),
+    )
+    with TestClient(app) as client:
+        sheet = _sheet(client)
+
+    company, role, *_, latest = (sheet.cell(row=2, column=c) for c in (1, 2, 6))
+    assert company.data_type == role.data_type == latest.data_type == "s"
+    assert company.value == '=HYPERLINK("http://evil.example","x")'
+
+
+def test_the_page_links_to_the_excel_export(seeded: TestClient) -> None:
+    assert 'href="applications?format=xlsx"' in seeded.get("/applications", headers=AUTH).text
