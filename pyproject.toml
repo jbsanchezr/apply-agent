@@ -1,6 +1,6 @@
 [project]
 name = "apply-agent"
-version = "0.1.1"
+version = "0.1.2"
 description = "An LLM agent that tracks job applications by reading an email inbox (read-only)."
 readme = "README.md"
 license = "MIT"

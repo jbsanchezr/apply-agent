@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 2026-10-05
+
+* Screenshots retaken to show the per-application email list. No code changes.
+
 ## 0.1.1 - 2026-10-05
 
 * Each application on the page unfolds into the emails it was built from,
