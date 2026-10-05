@@ -196,6 +196,11 @@ mail, and refuses tokens with any broader scope.
    `uv run python -m apply_agent.providers.gmail_auth`
 3. Set `APPLY_AGENT_EMAIL_PROVIDER=gmail`.
 
+On Windows, `start.cmd` (or `.\start.ps1`) does the rest: it points the agent
+at Gmail and a local Ollama model, keeps the database and a generated API
+token under `~/.config/apply_agent/`, starts the API on `127.0.0.1` and opens
+the page. Variables already set in the environment take precedence.
+
 ## Limitations and next steps
 
 * **Small evaluation set.** 47 synthetic emails written by the same author as
