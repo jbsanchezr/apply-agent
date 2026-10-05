@@ -65,6 +65,7 @@ th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: 
   white-space: nowrap;
 }
 .muted { color: var(--muted); font-size: .85rem; }
+.date, th { white-space: nowrap; }
 h2 { font-size: 1.15rem; margin: 2rem 0 0; }
 summary h2 { display: inline; }
 summary { cursor: pointer; margin-top: 2rem; }
@@ -205,8 +206,8 @@ def _row(view: ApplicationView, page: _Page) -> str:
         f'<td><span class="status" style="background:{colour}">'
         f"{escape(app.status.value.replace('_', ' '))}</span>{edited}</td>"
         f"<td>{escape(view.latest_summary)}</td>"
-        f"<td>{_date(app.first_seen_at)}</td>"
-        f"<td>{_date(app.last_activity_at)}<br>{news}</td>"
+        f'<td class="date">{_date(app.first_seen_at)}</td>'
+        f'<td class="date">{_date(app.last_activity_at)}<br>{news}</td>'
         f"<td>{_correction(view, page.applications)}</td>"
         "</tr>"
     )

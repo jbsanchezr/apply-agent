@@ -12,6 +12,11 @@ table of applications and their current status.
 **Stack:** LangGraph · Claude or a local model via Ollama · FastAPI ·
 SQLAlchemy · Prometheus · Grafana · Langfuse · Docker · GitHub Actions
 
+![The applications page: advancing applications first, then those waiting for a reply](docs/applications.png)
+
+*The page after syncing the bundled synthetic inbox with a local `qwen3:8b`.
+Every company and email in this repository is invented.*
+
 ## Highlights
 
 * **Runs with zero credentials.** Out of the box it reads bundled synthetic
@@ -23,6 +28,15 @@ SQLAlchemy · Prometheus · Grafana · Langfuse · Docker · GitHub Actions
   precision/recall, confidence intervals and a confusion matrix. The local
   `qwen3:8b` model goes from the baseline's 70% accuracy to 96% (with an honest
   caveat, below).
+* **Tested on a real inbox, and changed by it.** The first sync of a real
+  mailbox (424 emails, 82 applications) found what 97% on synthetic fixtures
+  had not: a model that hung for half an hour, Gmail's per-minute quota, and
+  six applications marked as advancing that were all surveys, email
+  confirmations and other housekeeping. Each became a fixture, a fix and a
+  written decision (D47-D53).
+* **The user has the last word.** A status can be corrected by hand without
+  freezing the application, duplicate rows can be merged and the merge is
+  remembered, and the table exports to a colour-coded Excel workbook.
 * **Read-only by design.** The Gmail integration asks only for
   `gmail.readonly`, rejects broader tokens, and exposes a read-only interface.
   Email bodies are never stored or logged.
@@ -34,7 +48,7 @@ SQLAlchemy · Prometheus · Grafana · Langfuse · Docker · GitHub Actions
   Langfuse traces.
 * **Reproducible CI for free.** LLM responses are recorded once and replayed,
   so CI re-runs the LLM evaluation on every push without a GPU or API key.
-* **Documented trade-offs.** 45 design decisions, with their reasons, in
+* **Documented trade-offs.** 54 design decisions, with their reasons, in
   [DECISIONS.md](DECISIONS.md).
 
 ## How it works
@@ -82,7 +96,11 @@ docker compose up --build
   gets a status wrong, the *Change...* menu on the row sets it by hand. When
   one application shows up as two rows because the company or role was
   written two ways, the same menu merges them, and the merge is remembered
-  for later emails. *Export to Excel* downloads the table as `.xlsx`. Log in with any
+  for later emails. *Export to Excel* downloads the table as `.xlsx`:
+
+  ![The Excel export, colour-coded like the page](docs/excel-export.png)
+
+  Log in with any
   username and the token printed in the app logs (`docker compose logs app`),
   or set `APPLY_AGENT_API_TOKEN` in a `.env` file. Press *Sync now*.
 * <http://localhost:3000>: the Grafana dashboard. <http://localhost:9090>: Prometheus.
@@ -211,8 +229,19 @@ the page. Variables already set in the environment take precedence.
   comparison of cheaper Claude models against the local one.
 * **Local latency.** `qwen3:8b` takes 7-30 s per email depending on the GPU.
   Fine for a background sync, too slow for anything interactive.
-* **No dead-letter queue.** An email that always fails is retried on every
-  sync. Moving it aside after N attempts is the planned fix.
+* **A small local model has a ceiling.** `qwen3:8b` still reads some
+  housekeeping emails ("finish your application", verification codes) as
+  information requests, however the rule is worded (D50). Manual correction
+  covers it; a larger or hosted model is the real fix.
+* **One application can appear twice** when the model writes the company or
+  role two ways. Merging is manual on purpose (D54): it cannot be told apart
+  from two roles at one company, and it cannot be undone.
+* **Failed emails are retried only for a few days.** An email the model could
+  not process is fetched again while it is inside the sync overlap window
+  (about four days); after that it is silently left out. A dead-letter table
+  that keeps and surfaces such emails is the planned fix.
+* **A sync never looks further back.** It starts from the newest processed
+  email, so raising the lookback later does not fetch older mail.
 * **Single user.** One API token and SQLite with `create_all`. Multi-user use
   would need real auth, Postgres and migrations (Alembic).
 * **Dates mentioned in an email** (interview time, deadline) are not extracted

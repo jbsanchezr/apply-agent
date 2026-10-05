@@ -499,3 +499,11 @@ def test_bad_merges_are_rejected(
 def test_merging_needs_the_token(duplicated: TestClient) -> None:
     assert duplicated.post("/applications/1/merge", json={"into": 2}).status_code == 401
     assert len(_ids(duplicated)) == 4
+
+
+def test_excel_export_fits_one_page_width_when_printed(seeded: TestClient) -> None:
+    """Without this, printing or exporting to PDF drops the right-hand columns."""
+    sheet = _sheet(seeded)
+    assert sheet.page_setup.orientation == "landscape"
+    assert sheet.sheet_properties.pageSetUpPr.fitToPage
+    assert (sheet.page_setup.fitToWidth, sheet.page_setup.fitToHeight) == (1, 0)

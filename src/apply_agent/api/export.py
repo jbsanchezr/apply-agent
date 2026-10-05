@@ -18,6 +18,7 @@ from openpyxl import Workbook
 from openpyxl.cell import Cell
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.properties import PageSetupProperties
 from openpyxl.worksheet.worksheet import Worksheet
 
 from apply_agent.api.page import QUIET_COLOUR, STATUS_COLOURS
@@ -47,6 +48,11 @@ _WHITE: Final = "FFFFFFFF"
 _DARK: Final = "FF1F2937"
 
 
+def _font(*, color: str | None = None, bold: bool = False) -> Font:
+    # Name the font, or styled cells fall back to the viewer's default face.
+    return Font(name="Calibri", size=11, color=color, bold=bold)
+
+
 def _argb(colour: str) -> str:
     return "FF" + colour.lstrip("#").upper()
 
@@ -69,7 +75,7 @@ def applications_workbook(
     sheet = workbook.create_sheet("Applications")
     sheet.append(HEADERS)
     for cell in sheet[1]:
-        cell.font = Font(bold=True)
+        cell.font = _font(bold=True)
 
     for row, view in enumerate(views, start=2):
         app = view.application
@@ -84,20 +90,27 @@ def applications_workbook(
         )
         cells = [_text(sheet, row, column, value) for column, value in enumerate(texts, start=1)]
         cells[2].fill = _fill(_STAGE_TINTS[stage])
-        cells[2].font = Font(color=_DARK)
+        cells[2].font = _font(color=_DARK)
         cells[3].fill = _fill(STATUS_COLOURS[app.status.value])
-        cells[3].font = Font(color=_WHITE, bold=True)
+        cells[3].font = _font(color=_WHITE, bold=True)
         for column, when in ((7, app.first_seen_at), (8, app.last_activity_at)):
             cell = sheet.cell(row=row, column=column, value=when.date())
             cell.number_format = _DATE_FORMAT
         days = max((now - app.last_activity_at).days, 0)
         waiting = sheet.cell(row=row, column=9, value=days)
         if stage is not ApplicationStage.REJECTED and days >= quiet_after_days:
-            waiting.font = Font(color=_argb(QUIET_COLOUR), bold=True)
+            waiting.font = _font(color=_argb(QUIET_COLOUR), bold=True)
 
     for column, width in enumerate(_WIDTHS, start=1):
         sheet.column_dimensions[get_column_letter(column)].width = width
     sheet.freeze_panes = "A2"
+    # Printed or exported to PDF, the table fits the page width instead of
+    # losing its right-hand columns to a second page.
+    sheet.page_setup.orientation = "landscape"
+    sheet.page_setup.fitToWidth = 1
+    sheet.page_setup.fitToHeight = 0
+    sheet.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    sheet.print_title_rows = "1:1"
     sheet.auto_filter.ref = sheet.dimensions
 
     buffer = BytesIO()
