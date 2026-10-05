@@ -374,3 +374,38 @@ def test_excel_export_never_writes_email_text_as_a_formula(
 
 def test_the_page_links_to_the_excel_export(seeded: TestClient) -> None:
     assert 'href="applications?format=xlsx"' in seeded.get("/applications", headers=AUTH).text
+
+
+def test_excel_export_is_colour_coded_like_the_page(tmp_path: Path, repository: Repository) -> None:
+    """Sent 30 days ago (quiet), interviewing 2 days ago, rejected 25 days ago."""
+    rows = [
+        (assessment("other", company="Lumora Energy", role="Data Analyst"), 0),
+        (assessment("interview_invitation", company="Nubaria", role="ML Engineer"), 28),
+        (assessment("rejection", company="Arcwell Systems", role="Data Engineer"), 5),
+    ]
+    for i, (raw, days) in enumerate(rows):
+        repository.record(
+            message(f"m{i}", f"t{i}", days=days), MessageAssessment.model_validate(raw)
+        )
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        clock=lambda: T0 + timedelta(days=30),
+    )
+    with TestClient(app) as client:
+        response = client.get("/applications?format=xlsx", headers=AUTH)
+    sheet = load_workbook(BytesIO(response.content))["Applications"]
+    by_company = {row[0].value: row for row in sheet.iter_rows(min_row=2)}
+
+    def colours(company: str) -> tuple[str, str, str | None]:
+        _, _, stage, status, *_, days = by_company[company]
+        font = days.font.color
+        return stage.fill.start_color.rgb, status.fill.start_color.rgb, font and font.rgb
+
+    assert colours("Lumora Energy") == ("FFF1F5F9", "FF64748B", "FFB45309")  # sent, quiet
+    assert colours("Nubaria")[:2] == ("FFDCFCE7", "FF1D4ED8")  # advancing, interviewing
+    assert colours("Nubaria")[2] != "FFB45309", "2 days without news is not quiet"
+    assert colours("Arcwell Systems")[:2] == ("FFFEE2E2", "FFB91C1C")  # rejected
+    assert colours("Arcwell Systems")[2] != "FFB45309", "a rejection is never flagged as quiet"
+    assert by_company["Nubaria"][3].font.color.rgb == "FFFFFFFF"

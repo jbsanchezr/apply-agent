@@ -112,7 +112,7 @@ def create_app(
         if format == "xlsx":
             filename = f"applications-{now:%Y-%m-%d}.xlsx"
             return Response(
-                applications_workbook(views, now),
+                applications_workbook(views, now, quiet_after_days=settings.quiet_after_days),
                 media_type=XLSX_MEDIA_TYPE,
                 headers={"Content-Disposition": f'attachment; filename="{filename}"'},
             )

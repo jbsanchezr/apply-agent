@@ -18,7 +18,8 @@ from apply_agent.api.jobs import SyncJob
 from apply_agent.domain import ApplicationStage, ApplicationStatus, stage_of
 from apply_agent.storage.repository import ApplicationView
 
-_STATUS_COLOURS: Final = {
+QUIET_COLOUR: Final = "#b45309"
+STATUS_COLOURS: Final = {
     "applied": "#64748b",
     "information_requested": "#b45309",
     "interviewing": "#1d4ed8",
@@ -152,7 +153,7 @@ def _correction(view: ApplicationView) -> str:
 
 def _row(view: ApplicationView, now: datetime, quiet_after_days: int) -> str:
     app = view.application
-    colour = _STATUS_COLOURS.get(app.status.value, "#64748b")
+    colour = STATUS_COLOURS.get(app.status.value, "#64748b")
     days = days_since(app.last_activity_at, now)
     quiet = stage_of(app.status) is not ApplicationStage.REJECTED and days >= quiet_after_days
     news = f'<span class="{"quiet" if quiet else "muted"}">{_ago(days)}</span>'
