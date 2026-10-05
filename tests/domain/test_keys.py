@@ -1,6 +1,6 @@
 import pytest
 
-from apply_agent.domain import company_key, role_key
+from apply_agent.domain import company_key, role_key, similar_company
 
 
 @pytest.mark.parametrize(
@@ -31,3 +31,18 @@ def test_role_key_normalises_punctuation_and_case() -> None:
 
 def test_unknown_role_has_empty_key() -> None:
     assert role_key(None) == ""
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "similar"),
+    [
+        ("Cinderpeak", "Cinderpeak Games", True),
+        ("Cinderpeak Games", "Cinderpeak", True),
+        ("Cinderpeak Games Ltd", "cinderpeak games", True),
+        ("Cinder", "Cinderpeak", False),
+        ("Halcyon Health", "Halcyon Robotics", False),
+        ("Nubaria", "Arcwell Systems", False),
+    ],
+)
+def test_similar_company_means_one_name_extends_the_other(a: str, b: str, similar: bool) -> None:
+    assert similar_company(company_key(a), company_key(b)) is similar

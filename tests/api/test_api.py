@@ -409,3 +409,93 @@ def test_excel_export_is_colour_coded_like_the_page(tmp_path: Path, repository: 
     assert colours("Arcwell Systems")[:2] == ("FFFEE2E2", "FFB91C1C")  # rejected
     assert colours("Arcwell Systems")[2] != "FFB45309", "a rejection is never flagged as quiet"
     assert by_company["Nubaria"][3].font.color.rgb == "FFFFFFFF"
+
+
+@pytest.fixture
+def duplicated(tmp_path: Path, repository: Repository) -> Iterator[TestClient]:
+    """One application under two spellings, another role there, and an unrelated company."""
+    rows = [
+        assessment("interview_invitation", company="Cinderpeak Games", role="Backend Engineer"),
+        assessment("offer", company="Cinderpeak", role="Backend Engineer - Offer"),
+        assessment("other", company="Cinderpeak Games", role="Data Engineer"),
+        assessment("other", company="Nubaria", role="ML Engineer"),
+    ]
+    for i, raw in enumerate(rows):
+        repository.record(message(f"m{i}", f"t{i}", days=i), MessageAssessment.model_validate(raw))
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        clock=lambda: T0 + timedelta(days=10),
+    )
+    with TestClient(app) as client:
+        yield client
+
+
+def _ids(client: TestClient) -> dict[tuple[str, str], int]:
+    rows = client.get("/applications?format=json", headers=AUTH).json()
+    return {(r["company"], r["role"]): r["id"] for r in rows}
+
+
+def _menu(page: str, application_id: int) -> str:
+    match = re.search(
+        rf'<select[^>]*onchange="correct\({application_id}, this\)">.*?</select>', page, re.S
+    )
+    assert match, f"no menu for application {application_id}"
+    return match.group(0)
+
+
+def test_the_menu_offers_merging_only_with_similar_companies(duplicated: TestClient) -> None:
+    ids = _ids(duplicated)
+    page = duplicated.get("/applications", headers=AUTH).text
+    duplicate = ids["Cinderpeak", "Backend Engineer - Offer"]
+    original = ids["Cinderpeak Games", "Backend Engineer"]
+    other_role = ids["Cinderpeak Games", "Data Engineer"]
+
+    offered = re.findall(r'value="merge:(\d+)"', _menu(page, duplicate))
+
+    assert sorted(map(int, offered)) == sorted([original, other_role])
+    assert "Backend Engineer (Cinderpeak Games)" in _menu(page, duplicate)
+    assert "merge:" not in _menu(page, ids["Nubaria", "ML Engineer"])
+
+
+def test_a_duplicate_can_be_merged_into_the_real_application(duplicated: TestClient) -> None:
+    ids = _ids(duplicated)
+    duplicate = ids["Cinderpeak", "Backend Engineer - Offer"]
+    original = ids["Cinderpeak Games", "Backend Engineer"]
+
+    merged = duplicated.post(
+        f"/applications/{duplicate}/merge", headers=AUTH, json={"into": original}
+    )
+
+    assert merged.status_code == 200
+    assert merged.json()["id"] == original
+    assert merged.json()["status"] == "offer_received"
+    assert set(_ids(duplicated)) == {
+        ("Cinderpeak Games", "Backend Engineer"),
+        ("Cinderpeak Games", "Data Engineer"),
+        ("Nubaria", "ML Engineer"),
+    }
+
+
+@pytest.mark.parametrize(
+    ("source", "body", "expected"),
+    [
+        (1, {"into": 1}, 422),
+        (1, {"into": 999}, 404),
+        (999, {"into": 1}, 404),
+        (1, {}, 422),
+        (1, {"into": 2, "force": True}, 422),
+    ],
+)
+def test_bad_merges_are_rejected(
+    duplicated: TestClient, source: int, body: dict[str, Any], expected: int
+) -> None:
+    response = duplicated.post(f"/applications/{source}/merge", headers=AUTH, json=body)
+    assert response.status_code == expected
+    assert len(_ids(duplicated)) == 4
+
+
+def test_merging_needs_the_token(duplicated: TestClient) -> None:
+    assert duplicated.post("/applications/1/merge", json={"into": 2}).status_code == 401
+    assert len(_ids(duplicated)) == 4

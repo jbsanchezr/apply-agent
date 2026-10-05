@@ -96,6 +96,23 @@ class EventRow(Base):
     application: Mapped[ApplicationRow | None] = relationship(back_populates="events")
 
 
+class ApplicationAliasRow(Base):
+    """Another (company, role) spelling the user said is this application (D54).
+
+    Written when two applications are merged, so the next email that uses the
+    merged-away spelling joins the surviving application instead of creating
+    the duplicate again.
+    """
+
+    __tablename__ = "application_aliases"
+
+    company_key: Mapped[str] = mapped_column(String(200), primary_key=True)
+    role_key: Mapped[str] = mapped_column(String(200), primary_key=True)
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applications.id", ondelete="CASCADE"), index=True
+    )
+
+
 class StatusOverrideRow(Base):
     """A status the user set by hand (see D51). At most one per application.
 

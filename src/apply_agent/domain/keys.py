@@ -34,6 +34,16 @@ def company_key(company: str) -> str:
     return " ".join(tokens)
 
 
+def similar_company(key: str, other: str) -> bool:
+    """Whether two company keys could be the same company written two ways.
+
+    True for equal keys and when one is the other plus trailing words
+    ("cinderpeak" and "cinderpeak games"). It only narrows down what to offer
+    the user as a possible duplicate; nothing is merged on its strength.
+    """
+    return key == other or key.startswith(other + " ") or other.startswith(key + " ")
+
+
 def role_key(role: str | None) -> str:
     """Empty string when the role is unknown, so it still takes part in uniqueness."""
     return "" if role is None else " ".join(_tokens(role))

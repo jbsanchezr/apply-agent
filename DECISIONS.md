@@ -506,3 +506,31 @@ routine sync went from 85 downloads to 26.
 The callback is a hint, not a contract: a provider may ignore it, so the
 toolbox still filters the result. Messages that failed are not recorded
 (D25), so they are still fetched and retried.
+
+## D54 - Duplicates are merged by the user, never automatically (M8)
+A model sometimes writes one application two ways: "Cinderpeak" with role
+"Backend Engineer" in one email, "Cinderpeak Games" with "Backend Engineer -
+Technical Interview" in another. The two differ in both halves of the
+identity (D4), so they become two rows.
+
+Merging similar names automatically was rejected. Fixing the company alone
+would not have joined that pair, and fuzzy role matching cannot tell a noisy
+copy of one role from a second role at the same company. The second case is
+the common one: in a real inbox, 9 of 68 companies had several applications
+for different roles, against 2 possible name variants. A wrong merge also
+hides an application silently, whereas a duplicate is at least visible.
+
+So the user decides. `POST /applications/{id}/merge` folds one application
+into another: its events, threads and drafts move, the status is derived
+again from the combined history (D3), and the more recent manual correction
+is kept (D51). The merged-away (company, role) is stored in
+`application_aliases`, and matching consults it right after the exact match,
+so the next email with that spelling joins the surviving application instead
+of recreating the duplicate. Aliases follow the application through later
+merges.
+
+The page offers the merge only between applications whose company keys are
+equal or where one extends the other (`similar_company`), which keeps the
+menu short. That function only decides what to offer; it never merges. A
+merge cannot be undone, because afterwards nothing records which event
+came from which row, so the page asks for confirmation.

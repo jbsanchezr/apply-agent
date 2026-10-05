@@ -9,7 +9,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from apply_agent.domain import (
@@ -25,9 +25,11 @@ from apply_agent.domain import (
 from apply_agent.domain.enums import ApplicationStatus
 from apply_agent.storage.matching import resolve_application
 from apply_agent.storage.schema import (
+    ApplicationAliasRow,
     ApplicationRow,
     ApplicationThreadRow,
     EventRow,
+    FollowUpDraftRow,
     StatusOverrideRow,
 )
 
@@ -145,6 +147,41 @@ class Repository:
             app.override = None
             _refresh(app)
             return _to_domain(app)
+
+    def merge_applications(self, source_id: int, into_id: int) -> Application:
+        """Fold ``source_id`` into ``into_id``: the user says they are one application.
+
+        The target keeps its company and role. The source's emails, threads and
+        drafts move to it, and its spelling becomes an alias so later emails
+        follow. Of two manual corrections, the more recent one is kept.
+        """
+        if source_id == into_id:
+            raise ValueError("an application cannot be merged into itself")
+        with self._sessions.begin() as session:
+            source, target = _get(session, source_id), _get(session, into_id)
+            alias_key = (source.company_key, source.role_key)
+            mine, theirs = source.override, target.override
+            if mine is not None and theirs is None:
+                target.override = StatusOverrideRow(status=mine.status, set_at=mine.set_at)
+            elif mine is not None and theirs is not None and mine.set_at > theirs.set_at:
+                theirs.status, theirs.set_at = mine.status, mine.set_at
+            session.flush()
+            for table in (EventRow, ApplicationThreadRow, FollowUpDraftRow, ApplicationAliasRow):
+                session.execute(
+                    update(table)
+                    .where(table.application_id == source_id)
+                    .values(application_id=into_id)
+                )
+            session.execute(delete(ApplicationRow).where(ApplicationRow.id == source_id))
+            session.expire_all()
+            session.merge(
+                ApplicationAliasRow(
+                    company_key=alias_key[0], role_key=alias_key[1], application_id=into_id
+                )
+            )
+            target = _get(session, into_id)
+            _refresh(target)
+            return _to_domain(target)
 
     def _application_for(
         self, session: Session, message: Message, assessment: MessageAssessment

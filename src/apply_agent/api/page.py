@@ -15,7 +15,14 @@ from html import escape
 from typing import Final
 
 from apply_agent.api.jobs import SyncJob
-from apply_agent.domain import ApplicationStage, ApplicationStatus, stage_of
+from apply_agent.domain import (
+    Application,
+    ApplicationStage,
+    ApplicationStatus,
+    company_key,
+    similar_company,
+    stage_of,
+)
 from apply_agent.storage.repository import ApplicationView
 
 QUIET_COLOUR: Final = "#b45309"
@@ -91,18 +98,26 @@ async function sync(button) {
 async function correct(id, select) {
   const value = select.value;
   if (!value) return;
+  const json = {"Content-Type": "application/json"};
+  let request;
+  if (value === "auto") {
+    request = ["applications/" + id + "/status", {method: "DELETE"}];
+  } else if (value.startsWith("merge:")) {
+    const label = select.selectedOptions[0].textContent;
+    if (!confirm("Merge this row into: " + label + "? This cannot be undone.")) {
+      select.value = ""; return;
+    }
+    const body = JSON.stringify({into: Number(value.slice(6))});
+    request = ["applications/" + id + "/merge", {method: "POST", headers: json, body}];
+  } else {
+    const body = JSON.stringify({status: value});
+    request = ["applications/" + id + "/status", {method: "PUT", headers: json, body}];
+  }
   select.disabled = true;
-  const url = "applications/" + id + "/status";
-  const response = value === "auto"
-    ? await fetch(url, {method: "DELETE"})
-    : await fetch(url, {
-        method: "PUT",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({status: value}),
-      });
+  const response = await fetch(...request);
   if (response.ok) { location.reload(); return; }
   select.disabled = false; select.value = "";
-  alert("Could not change the status.");
+  alert("Could not change this application.");
 }
 """
 
@@ -134,8 +149,14 @@ def _ago(days: int) -> str:
     return "today" if days == 0 else "1 day ago" if days == 1 else f"{days} days ago"
 
 
-def _correction(view: ApplicationView) -> str:
-    """A menu to set the status by hand, for when the classifier got it wrong."""
+def _possible_duplicates(app: Application, others: Sequence[Application]) -> list[Application]:
+    """Other applications at a company with the same or a longer or shorter name."""
+    key = company_key(app.company)
+    return [o for o in others if o.id != app.id and similar_company(key, company_key(o.company))]
+
+
+def _correction(view: ApplicationView, others: Sequence[Application]) -> str:
+    """A menu to fix what the classifier got wrong: the status, or a duplicate row."""
     app = view.application
     options = "".join(
         f'<option value="{s.value}">{s.value.replace("_", " ")}</option>'
@@ -144,18 +165,37 @@ def _correction(view: ApplicationView) -> str:
     )
     if app.status_overridden:
         options += '<option value="auto">automatic (undo)</option>'
+    duplicates = "".join(
+        f'<option value="merge:{o.id}">{escape(o.role or "no role")} ({escape(o.company)})</option>'
+        for o in _possible_duplicates(app, others)
+    )
+    if duplicates:
+        options = (
+            f'<optgroup label="Status">{options}</optgroup>'
+            f'<optgroup label="Same application as">{duplicates}</optgroup>'
+        )
     return (
-        f'<select aria-label="Correct the status of {escape(app.company, quote=True)}" '
+        f'<select aria-label="Correct {escape(app.company, quote=True)}" '
         f'onchange="correct({app.id}, this)">'
         f'<option value="">Change&hellip;</option>{options}</select>'
     )
 
 
-def _row(view: ApplicationView, now: datetime, quiet_after_days: int) -> str:
+@dataclass(frozen=True, slots=True)
+class _Page:
+    """What every row needs to know about the page it is on."""
+
+    now: datetime
+    quiet_after_days: int
+    applications: Sequence[Application]
+
+
+def _row(view: ApplicationView, page: _Page) -> str:
     app = view.application
     colour = STATUS_COLOURS.get(app.status.value, "#64748b")
-    days = days_since(app.last_activity_at, now)
-    quiet = stage_of(app.status) is not ApplicationStage.REJECTED and days >= quiet_after_days
+    days = days_since(app.last_activity_at, page.now)
+    open_ = stage_of(app.status) is not ApplicationStage.REJECTED
+    quiet = open_ and days >= page.quiet_after_days
     news = f'<span class="{"quiet" if quiet else "muted"}">{_ago(days)}</span>'
     edited = '<br><span class="edited">set by hand</span>' if app.status_overridden else ""
     return (
@@ -167,7 +207,7 @@ def _row(view: ApplicationView, now: datetime, quiet_after_days: int) -> str:
         f"<td>{escape(view.latest_summary)}</td>"
         f"<td>{_date(app.first_seen_at)}</td>"
         f"<td>{_date(app.last_activity_at)}<br>{news}</td>"
-        f"<td>{_correction(view)}</td>"
+        f"<td>{_correction(view, page.applications)}</td>"
         "</tr>"
     )
 
@@ -178,10 +218,8 @@ _HEAD: Final = (
 )
 
 
-def _section(
-    section: _Section, views: Sequence[ApplicationView], now: datetime, quiet_after_days: int
-) -> str:
-    rows = "\n".join(_row(v, now, quiet_after_days) for v in views) or (
+def _section(section: _Section, views: Sequence[ApplicationView], page: _Page) -> str:
+    rows = "\n".join(_row(v, page) for v in views) or (
         f'<tr><td colspan="7" class="muted">{section.empty}</td></tr>'
     )
     heading = f'<h2>{section.title} <span class="count">({len(views)})</span></h2>'
@@ -226,8 +264,9 @@ def render_applications(
         for v in groups[stage]
         if days_since(v.application.last_activity_at, now) >= quiet_after_days
     )
+    page = _Page(now, quiet_after_days, [v.application for v in views])
     if views:
-        sections = "\n".join(_section(s, groups[s.stage], now, quiet_after_days) for s in _SECTIONS)
+        sections = "\n".join(_section(s, groups[s.stage], page) for s in _SECTIONS)
     else:
         sections = '<p class="muted">No applications yet. Run a sync.</p>'
     return f"""<!doctype html>

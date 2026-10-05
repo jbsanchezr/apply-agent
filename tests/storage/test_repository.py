@@ -165,3 +165,116 @@ def test_a_database_from_before_overrides_gains_the_table(engine: Engine, repo: 
     init_db(engine)
 
     assert repo.set_status_override(app_id, ApplicationStatus.APPLIED, T0).status_overridden
+
+
+def _two_spellings(repo: Repository) -> tuple[int, int]:
+    """The duplicate seen with a real model: one application under two spellings."""
+    short = repo.record(
+        message("m1", "t1"),
+        _assess(
+            category="interview_invitation", company="Cinderpeak Games", role="Backend Engineer"
+        ),
+    )
+    long = repo.record(
+        message("m2", "t2", days=3),
+        _assess(category="offer", company="Cinderpeak", role="Backend Engineer - Offer"),
+    )
+    assert short.application_id is not None
+    assert long.application_id is not None
+    assert short.application_id != long.application_id
+    return long.application_id, short.application_id
+
+
+def test_merging_moves_the_emails_and_recomputes_the_status(repo: Repository) -> None:
+    duplicate, original = _two_spellings(repo)
+
+    merged = repo.merge_applications(duplicate, into_id=original)
+
+    assert _only(repo) == merged
+    assert (merged.company, merged.role) == ("Cinderpeak Games", "Backend Engineer")
+    assert merged.status is ApplicationStatus.OFFER_RECEIVED
+    assert merged.thread_ids == {"t1", "t2"}
+    assert (merged.first_seen_at, merged.last_activity_at) == (T0, T0 + timedelta(days=3))
+    [view] = repo.list_application_views()
+    assert view.latest_category == "offer"
+
+
+def test_a_merge_is_remembered_for_later_emails(repo: Repository) -> None:
+    """Without this the next email from the same sender recreates the duplicate."""
+    duplicate, original = _two_spellings(repo)
+    repo.merge_applications(duplicate, into_id=original)
+
+    later = repo.record(
+        message("m3", "t3", days=5),
+        _assess(category="rejection", company="Cinderpeak", role="Backend Engineer - Offer"),
+    )
+
+    assert later.application_id == original
+    assert not later.created_application
+    assert _only(repo).status is ApplicationStatus.REJECTED
+
+
+def test_merging_twice_keeps_every_earlier_spelling(repo: Repository) -> None:
+    duplicate, original = _two_spellings(repo)
+    third = repo.record(
+        message("m4", "t4"), _assess(company="Cinderpeak Games Ltd", role="Backend Developer")
+    ).application_id
+    assert third is not None
+    repo.merge_applications(duplicate, into_id=original)
+
+    repo.merge_applications(original, into_id=third)
+
+    for company, role in [
+        ("Cinderpeak", "Backend Engineer - Offer"),
+        ("Cinderpeak Games", "Backend Engineer"),
+    ]:
+        again = repo.record(
+            message(f"again-{company}", f"thread-{company}", days=9),
+            _assess(company=company, role=role),
+        )
+        assert again.application_id == third
+    assert len(repo.list_applications()) == 1
+
+
+def test_other_roles_at_the_same_company_are_left_alone(repo: Repository) -> None:
+    """Two positions at one company are two applications; a merge must not touch the other."""
+    duplicate, original = _two_spellings(repo)
+    other_role = repo.record(
+        message("m5", "t5"), _assess(company="Cinderpeak Games", role="Data Engineer")
+    ).application_id
+    repo.merge_applications(duplicate, into_id=original)
+
+    assert {a.id for a in repo.list_applications()} == {original, other_role}
+    again = repo.record(
+        message("m6", "t6", days=2), _assess(company="Cinderpeak Games", role="Data Engineer")
+    )
+    assert again.application_id == other_role
+
+
+def test_the_more_recent_manual_correction_survives_a_merge(repo: Repository) -> None:
+    duplicate, original = _two_spellings(repo)
+    repo.set_status_override(original, ApplicationStatus.APPLIED, T0 + timedelta(days=10))
+    repo.set_status_override(duplicate, ApplicationStatus.REJECTED, T0 + timedelta(days=11))
+
+    merged = repo.merge_applications(duplicate, into_id=original)
+
+    assert merged.status is ApplicationStatus.REJECTED
+    assert merged.status_overridden
+
+
+def test_a_correction_on_the_duplicate_moves_with_it(repo: Repository) -> None:
+    duplicate, original = _two_spellings(repo)
+    repo.set_status_override(duplicate, ApplicationStatus.REJECTED, T0 + timedelta(days=11))
+
+    assert repo.merge_applications(duplicate, into_id=original).status is ApplicationStatus.REJECTED
+
+
+def test_impossible_merges_fail_and_change_nothing(repo: Repository) -> None:
+    duplicate, original = _two_spellings(repo)
+    with pytest.raises(ValueError, match="itself"):
+        repo.merge_applications(original, into_id=original)
+    with pytest.raises(ApplicationNotFoundError):
+        repo.merge_applications(999, into_id=original)
+    with pytest.raises(ApplicationNotFoundError):
+        repo.merge_applications(duplicate, into_id=999)
+    assert len(repo.list_applications()) == 2

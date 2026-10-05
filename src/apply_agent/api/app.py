@@ -56,6 +56,14 @@ class StatusCorrection(BaseModel):
     status: ApplicationStatus
 
 
+class MergeRequest(BaseModel):
+    """Body of ``POST /applications/{id}/merge``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    into: int
+
+
 def _application_json(application: Application) -> dict[str, Any]:
     return {
         **application.model_dump(mode="json"),
@@ -154,6 +162,19 @@ def create_app(
         except ApplicationNotFoundError as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown application") from err
         return _application_json(restored)
+
+    @app.post("/applications/{application_id}/merge", dependencies=protected)
+    def merge_application(application_id: int, request: MergeRequest) -> dict[str, Any]:
+        """Fold a duplicate into the application it really is. This cannot be undone."""
+        if application_id == request.into:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, "an application cannot merge into itself"
+            )
+        try:
+            merged = repo.merge_applications(application_id, into_id=request.into)
+        except ApplicationNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown application") from err
+        return _application_json(merged)
 
     @app.post("/sync", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
     def start_sync() -> Any:

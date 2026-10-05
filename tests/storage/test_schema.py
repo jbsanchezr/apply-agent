@@ -38,6 +38,7 @@ def _event(message_id: str = "m1", application_id: int | None = None) -> EventRo
 def test_expected_tables_exist(engine: Engine) -> None:
     assert set(inspect(engine).get_table_names()) == {
         "applications",
+        "application_aliases",
         "application_threads",
         "events",
         "follow_up_drafts",
