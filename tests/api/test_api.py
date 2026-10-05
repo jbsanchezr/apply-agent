@@ -18,6 +18,7 @@ from sqlalchemy import Engine
 from apply_agent.agent.outcomes import SyncReport
 from apply_agent.api.app import create_app
 from apply_agent.api.export import HEADERS, XLSX_MEDIA_TYPE
+from apply_agent.api.page import gmail_url
 from apply_agent.config import Settings
 from apply_agent.domain import MessageAssessment
 from apply_agent.storage import make_session_factory
@@ -507,3 +508,63 @@ def test_excel_export_fits_one_page_width_when_printed(seeded: TestClient) -> No
     assert sheet.page_setup.orientation == "landscape"
     assert sheet.sheet_properties.pageSetUpPr.fitToPage
     assert (sheet.page_setup.fitToWidth, sheet.page_setup.fitToHeight) == (1, 0)
+
+
+def _history(tmp_path: Path, repository: Repository, **env: str) -> TestClient:
+    """One application built from three emails: acknowledged, interviewed, rejected."""
+    steps = [("other", "ack-1"), ("interview_invitation", "invite-2"), ("rejection", "no-3")]
+    for days, (category, message_id) in enumerate(steps):
+        raw = assessment(category, company="Nubaria", summary=f"{category} <b>summary</b>")
+        repository.record(message(message_id, days=days), MessageAssessment.model_validate(raw))
+    app = create_app(
+        _settings(tmp_path, **env),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        clock=lambda: T0 + timedelta(days=10),
+    )
+    return TestClient(app)
+
+
+def test_each_application_lists_the_emails_behind_it(
+    tmp_path: Path, repository: Repository
+) -> None:
+    with _history(tmp_path, repository) as client:
+        page = client.get("/applications", headers=AUTH).text
+        [row] = client.get("/applications?format=json", headers=AUTH).json()
+
+    emails = re.search(r'<details class="emails">.*?</details>', page, re.S)
+    assert emails
+    assert "<summary>3 emails</summary>" in emails.group(0)
+    listed = re.findall(r'<span class="category">([^<]*)</span>', emails.group(0))
+    assert listed == ["rejection", "interview invitation", "other"], "newest first"
+    assert "2026-07-03" in emails.group(0)
+    assert "&lt;b&gt;summary&lt;/b&gt;" in emails.group(0)
+    assert "<b>summary</b>" not in page
+
+    assert [e["message_id"] for e in row["emails"]] == ["no-3", "invite-2", "ack-1"]
+    assert row["emails"][0]["category"] == "rejection"
+
+
+def test_fixture_emails_get_no_gmail_link(tmp_path: Path, repository: Repository) -> None:
+    """Fixture ids are RFC Message-IDs; a Gmail link built from one would lead nowhere."""
+    with _history(tmp_path, repository) as client:
+        page = client.get("/applications", headers=AUTH).text
+        [row] = client.get("/applications?format=json", headers=AUTH).json()
+    assert "mail.google.com" not in page
+    assert [e["url"] for e in row["emails"]] == [None, None, None]
+
+
+def test_gmail_emails_link_to_the_original_message(tmp_path: Path, repository: Repository) -> None:
+    with _history(tmp_path, repository, APPLY_AGENT_EMAIL_PROVIDER="gmail") as client:
+        page = client.get("/applications", headers=AUTH).text
+        [row] = client.get("/applications?format=json", headers=AUTH).json()
+
+    assert row["emails"][0]["url"] == "https://mail.google.com/mail/u/0/#all/no-3"
+    links = re.findall(r'<a href="([^"]*)" target="_blank" rel="noopener noreferrer">', page)
+    assert links == [e["url"] for e in row["emails"]]
+
+
+def test_a_message_id_cannot_break_out_of_the_link() -> None:
+    assert (
+        gmail_url('x"/><script>') == "https://mail.google.com/mail/u/0/#all/x%22%2F%3E%3Cscript%3E"
+    )

@@ -40,11 +40,12 @@ class ApplicationNotFoundError(LookupError):
 
 @dataclass(frozen=True, slots=True)
 class ApplicationView:
-    """An application plus its latest event, for display."""
+    """An application plus the emails behind it, newest first, for display."""
 
     application: Application
     latest_summary: str
     latest_category: str
+    events: tuple[Event, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,9 +115,16 @@ class Repository:
             )
             views = []
             for row in rows:
-                latest = max(row.events, key=lambda e: (e.occurred_at, e.message_id))
+                events = sorted(
+                    (_event(e) for e in row.events),
+                    key=lambda e: (e.occurred_at, e.message_id),
+                    reverse=True,
+                )
+                latest = events[0]
                 views.append(
-                    ApplicationView(_to_domain(row), latest.summary, latest.category.value)
+                    ApplicationView(
+                        _to_domain(row), latest.summary, latest.category.value, tuple(events)
+                    )
                 )
             return views
 

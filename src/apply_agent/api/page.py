@@ -13,12 +13,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from html import escape
 from typing import Final
+from urllib.parse import quote
 
 from apply_agent.api.jobs import SyncJob
 from apply_agent.domain import (
     Application,
     ApplicationStage,
     ApplicationStatus,
+    Event,
     company_key,
     similar_company,
     stage_of,
@@ -66,6 +68,11 @@ th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: 
 }
 .muted { color: var(--muted); font-size: .85rem; }
 .date, th { white-space: nowrap; }
+.emails { margin-top: .3rem; font-size: .85rem; }
+.emails summary { margin: 0; color: var(--muted); }
+.emails ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+.emails li { margin-bottom: .3rem; }
+.category { color: var(--muted); white-space: nowrap; }
 h2 { font-size: 1.15rem; margin: 2rem 0 0; }
 summary h2 { display: inline; }
 summary { cursor: pointer; margin-top: 2rem; }
@@ -189,6 +196,40 @@ class _Page:
     now: datetime
     quiet_after_days: int
     applications: Sequence[Application]
+    gmail_links: bool
+
+
+def gmail_url(message_id: str) -> str:
+    """Where Gmail shows a message, given the id its API returned for it.
+
+    It opens in the first signed-in account; with several accounts the user
+    may have to switch. Only an id is put in the link, never email content.
+    """
+    return f"https://mail.google.com/mail/u/0/#all/{quote(message_id, safe='')}"
+
+
+def _email(event: Event, *, gmail_links: bool) -> str:
+    link = (
+        f' <a href="{escape(gmail_url(event.message_id), quote=True)}" target="_blank" '
+        'rel="noopener noreferrer">Open in Gmail</a>'
+        if gmail_links
+        else ""
+    )
+    return (
+        f'<li><span class="date">{_date(event.occurred_at)}</span> '
+        f'<span class="category">{escape(event.category.value.replace("_", " "))}</span>: '
+        f"{escape(event.summary)}{link}</li>"
+    )
+
+
+def _emails(view: ApplicationView, *, gmail_links: bool) -> str:
+    """The emails an application was built from, so its status can be checked."""
+    count = len(view.events)
+    if not count:
+        return ""
+    label = "1 email" if count == 1 else f"{count} emails"
+    items = "".join(_email(e, gmail_links=gmail_links) for e in view.events)
+    return f'<details class="emails"><summary>{label}</summary><ul>{items}</ul></details>'
 
 
 def _row(view: ApplicationView, page: _Page) -> str:
@@ -205,7 +246,7 @@ def _row(view: ApplicationView, page: _Page) -> str:
         f"<td>{escape(app.role or '-')}</td>"
         f'<td><span class="status" style="background:{colour}">'
         f"{escape(app.status.value.replace('_', ' '))}</span>{edited}</td>"
-        f"<td>{escape(view.latest_summary)}</td>"
+        f"<td>{escape(view.latest_summary)}{_emails(view, gmail_links=page.gmail_links)}</td>"
         f'<td class="date">{_date(app.first_seen_at)}</td>'
         f'<td class="date">{_date(app.last_activity_at)}<br>{news}</td>'
         f"<td>{_correction(view, page.applications)}</td>"
@@ -255,6 +296,7 @@ def render_applications(
     *,
     now: datetime,
     quiet_after_days: int,
+    gmail_links: bool = False,
 ) -> str:
     groups: dict[ApplicationStage, list[ApplicationView]] = {s: [] for s in ApplicationStage}
     for view in views:
@@ -265,7 +307,7 @@ def render_applications(
         for v in groups[stage]
         if days_since(v.application.last_activity_at, now) >= quiet_after_days
     )
-    page = _Page(now, quiet_after_days, [v.application for v in views])
+    page = _Page(now, quiet_after_days, [v.application for v in views], gmail_links)
     if views:
         sections = "\n".join(_section(s, groups[s.stage], page) for s in _SECTIONS)
     else:

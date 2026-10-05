@@ -48,7 +48,7 @@ Every company and email in this repository is invented.*
   Langfuse traces.
 * **Reproducible CI for free.** LLM responses are recorded once and replayed,
   so CI re-runs the LLM evaluation on every push without a GPU or API key.
-* **Documented trade-offs.** 54 design decisions, with their reasons, in
+* **Documented trade-offs.** 55 design decisions, with their reasons, in
   [DECISIONS.md](DECISIONS.md).
 
 ## How it works
@@ -92,7 +92,9 @@ docker compose up --build
   advancing (information requested, interviewing, offer), sent and waiting for
   a reply, and rejected (folded away). Each shows how long ago the last news
   arrived; an open application with no news for 14 days (set
-  `APPLY_AGENT_QUIET_AFTER_DAYS` to change it) is flagged. When the classifier
+  `APPLY_AGENT_QUIET_AFTER_DAYS` to change it) is flagged. Each row unfolds
+  into the emails it was built from (date, what the classifier decided, its
+  summary), with a link that opens the original in Gmail. When the classifier
   gets a status wrong, the *Change...* menu on the row sets it by hand. When
   one application shows up as two rows because the company or role was
   written two ways, the same menu merges them, and the merge is remembered

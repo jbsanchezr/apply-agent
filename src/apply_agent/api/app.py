@@ -26,8 +26,8 @@ from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
 from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
-from apply_agent.api.page import days_since, render_applications
-from apply_agent.config import Settings
+from apply_agent.api.page import days_since, gmail_url, render_applications
+from apply_agent.config import ProviderKind, Settings
 from apply_agent.domain import Application, ApplicationStatus, stage_of
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
@@ -113,6 +113,8 @@ def create_app(
     @app.get("/applications", dependencies=protected, response_model=None)
     def applications_view(request: Request, format: str | None = None) -> Response:
         views = repo.list_application_views()
+        # Message ids are Gmail's only when the mail came from Gmail.
+        gmail_links = settings.email_provider is ProviderKind.GMAIL
         now = clock()
         wants_json = format == "json" or (
             format is None and "application/json" in request.headers.get("accept", "")
@@ -131,6 +133,16 @@ def create_app(
                         **_application_json(view.application),
                         "latest_summary": view.latest_summary,
                         "latest_category": view.latest_category,
+                        "emails": [
+                            {
+                                "message_id": event.message_id,
+                                "date": event.occurred_at.isoformat(),
+                                "category": event.category.value,
+                                "summary": event.summary,
+                                "url": gmail_url(event.message_id) if gmail_links else None,
+                            }
+                            for event in view.events
+                        ],
                         "days_since_last_news": days_since(view.application.last_activity_at, now),
                     }
                     for view in views
@@ -142,6 +154,7 @@ def create_app(
                 sync_service.latest(),
                 now=now,
                 quiet_after_days=settings.quiet_after_days,
+                gmail_links=gmail_links,
             )
         )
 

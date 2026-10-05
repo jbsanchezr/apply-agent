@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 - 2026-10-05
+
+* Each application on the page unfolds into the emails it was built from,
+  with a link to the original message when the mail comes from Gmail. The
+  JSON gains an `emails` list.
+
 ## 0.1.0 - 2026-10-05
 
 First release. An LLM agent that reads an email inbox, read-only, and keeps a

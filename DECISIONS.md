@@ -534,3 +534,19 @@ equal or where one extends the other (`similar_company`), which keeps the
 menu short. That function only decides what to offer; it never merges. A
 merge cannot be undone, because afterwards nothing records which event
 came from which row, so the page asks for confirmation.
+
+## D55 - Every application shows the emails behind it
+A status the user cannot trace is a status the user cannot trust, and the
+classifier is wrong often enough (D50) that tracing has to be one click.
+Each row unfolds into its events, newest first: date, the category the
+classifier chose and its summary. That alone usually explains a wrong
+status ("information request: confirm your email").
+
+To read the original, each event links to the message in Gmail. No schema
+change was needed and nothing new is stored: the link is built from the
+message id already kept for idempotency (D5), so subjects and bodies stay out
+of the database (D6). Links appear only when the provider is Gmail, since a
+fixture's id is an RFC Message-ID that Gmail would not resolve. The link
+opens the first signed-in Google account, which is a known rough edge for
+people with several. It is opened with `noreferrer`, and the id is
+percent-encoded, as it is text that originated outside the application.
