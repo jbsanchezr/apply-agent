@@ -4,7 +4,7 @@ The interface is read-only by construction: it has no method that could send,
 delete, label or otherwise modify mail, so no implementation can be asked to.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
 from typing import Protocol
 
@@ -19,13 +19,23 @@ class ThreadNotFoundError(LookupError):
         self.thread_id = thread_id
 
 
+# Given message ids, returns the ones the caller has already processed.
+AlreadyHave = Callable[[Collection[str]], Collection[str]]
+
+
 class EmailProvider(Protocol):
-    def list_messages(self, since: datetime | None = None) -> Sequence[Message]:
+    def list_messages(
+        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+    ) -> Sequence[Message]:
         """Inbound messages, oldest first.
 
         Every inbound message sent at or after ``since`` is included. A provider
         may also return some older ones (its server-side filter can be coarser),
         so callers deduplicate by ``Message.id``. Outbound messages are excluded.
+
+        ``already_have`` lets the provider skip messages the caller has
+        processed before it downloads them: listing ids is cheap, fetching
+        bodies is not. Messages it reports are left out of the result.
         """
         ...
 

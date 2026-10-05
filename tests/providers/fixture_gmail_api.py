@@ -33,6 +33,7 @@ def _owner_message(subject: str, sent_at: datetime, message_id: str) -> bytes:
 class FixtureGmailApi:
     def __init__(self, emails_dir: Path, *, page_size: int = 10) -> None:
         self.page_size = page_size
+        self.fetched: list[str] = []
         self.vanished: set[str] = set()
         self.queries: list[str] = []
         self._messages: dict[str, RawGmailMessage] = {}
@@ -83,6 +84,7 @@ class FixtureGmailApi:
         return matching[start:end], (str(end) if end < len(matching) else None)
 
     def get_raw_message(self, message_id: str) -> RawGmailMessage:
+        self.fetched.append(message_id)
         if message_id in self.vanished or message_id not in self._messages:
             raise MessageNotFoundError(message_id)
         return self._messages[message_id]

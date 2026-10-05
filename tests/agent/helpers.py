@@ -13,6 +13,7 @@ from pydantic import Field, SkipValidation
 from apply_agent.agent.schemas import GET_THREAD, UPSERT_APPLICATION
 from apply_agent.domain import Message
 from apply_agent.providers import ThreadNotFoundError
+from apply_agent.providers.base import AlreadyHave
 
 T0 = datetime(2026, 7, 1, 9, 0, tzinfo=UTC)
 
@@ -111,7 +112,10 @@ class ListProvider:
         self.messages = list(messages)
         self.since_calls: list[datetime | None] = []
 
-    def list_messages(self, since: datetime | None = None) -> Sequence[Message]:
+    def list_messages(
+        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+    ) -> Sequence[Message]:
+        # Ignores the hint on purpose: callers must not rely on it.
         self.since_calls.append(since)
         return sorted(
             (m for m in self.messages if not m.outbound and (since is None or m.sent_at >= since)),

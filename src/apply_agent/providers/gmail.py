@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Final
 
 from apply_agent.domain import Message
+from apply_agent.providers.base import AlreadyHave
 from apply_agent.providers.gmail_api import GmailApi, MessageNotFoundError
 from apply_agent.providers.parsing import parse_message
 
@@ -25,11 +26,19 @@ class GmailProvider:
         self._api = api
         self._max_messages = max_messages
 
-    def list_messages(self, since: datetime | None = None) -> Sequence[Message]:
+    def list_messages(
+        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+    ) -> Sequence[Message]:
         query = BASE_QUERY
         if since is not None:
             query += f" after:{int((since - SINCE_MARGIN).timestamp())}"
-        messages = [m for m in self._fetch_all(self._list_ids(query)) if not m.outbound]
+        ids = self._list_ids(query)
+        if already_have is not None:
+            # Each fetch is a request against Gmail's per-minute quota (D49);
+            # a sync re-lists several days of mail it has already processed.
+            known = set(already_have(ids))
+            ids = [i for i in ids if i not in known]
+        messages = [m for m in self._fetch_all(ids) if not m.outbound]
         return sorted(messages, key=lambda m: (m.sent_at, m.id))
 
     def get_thread(self, thread_id: str) -> Sequence[Message]:

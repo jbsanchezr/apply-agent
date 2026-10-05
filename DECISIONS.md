@@ -492,3 +492,17 @@ with `=` as a formula, so a hostile email could have a formula run when the
 user opens the export. Every text cell is therefore forced to the string
 type, and a test exports `=HYPERLINK(...)` as a company name and checks the
 cell type. This is the spreadsheet counterpart of escaping on the HTML page.
+
+## D53 - A sync downloads only the messages it has not processed (M8)
+A later sync re-lists a few days before the newest recorded message
+(`SYNC_OVERLAP`, plus Gmail's one-day margin, D20) so late mail is not
+missed. It used to download every listed message in full and only then drop
+the ones already processed. `list_messages` now takes an optional
+`already_have` callback: the provider lists ids, asks which ones the caller
+has, and fetches only the rest. Listing ids is one cheap request per page;
+each body is a request against the per-minute quota (D49). On a real inbox a
+routine sync went from 85 downloads to 26.
+
+The callback is a hint, not a contract: a provider may ignore it, so the
+toolbox still filters the result. Messages that failed are not recorded
+(D25), so they are still fetched and retried.

@@ -3,6 +3,7 @@
 Subclass ``EmailProviderContract`` and override the ``provider`` fixture.
 """
 
+from collections.abc import Collection
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -43,6 +44,20 @@ class EmailProviderContract:
         cutoff = everything[len(everything) // 2].sent_at
         expected = {m.id for m in everything if m.sent_at >= cutoff}
         assert expected <= {m.id for m in provider.list_messages(since=cutoff)}
+
+    def test_messages_the_caller_already_has_are_left_out(self, provider: EmailProvider) -> None:
+        everything = [m.id for m in provider.list_messages()]
+        seen = set(everything[::2])
+        asked: list[str] = []
+
+        def already_have(ids: Collection[str]) -> Collection[str]:
+            asked.extend(ids)
+            return seen & set(ids)
+
+        listed = provider.list_messages(already_have=already_have)
+
+        assert [m.id for m in listed] == [i for i in everything if i not in seen]
+        assert set(asked) >= set(everything)
 
     def test_since_far_in_the_future_returns_nothing(self, provider: EmailProvider) -> None:
         future = datetime.now(UTC) + timedelta(days=365)

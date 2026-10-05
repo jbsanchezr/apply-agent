@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from apply_agent.domain import Message
-from apply_agent.providers.base import ThreadNotFoundError
+from apply_agent.providers.base import AlreadyHave, ThreadNotFoundError
 from apply_agent.providers.parsing import MalformedEmailError, header_ids, parse_message, read_email
 
 
@@ -24,9 +24,13 @@ class FakeEmailProvider:
             key=lambda m: (m.sent_at, m.id),
         )
 
-    def list_messages(self, since: datetime | None = None) -> Sequence[Message]:
+    def list_messages(
+        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+    ) -> Sequence[Message]:
         # Fixtures are all inbound, so there is nothing outbound to exclude.
-        return [m for m in self._messages if since is None or m.sent_at >= since]
+        listed = [m for m in self._messages if since is None or m.sent_at >= since]
+        known = set(already_have([m.id for m in listed])) if already_have else set()
+        return [m for m in listed if m.id not in known]
 
     def get_thread(self, thread_id: str) -> Sequence[Message]:
         thread = [m for m in self._messages if m.thread_id == thread_id]

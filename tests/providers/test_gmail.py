@@ -63,3 +63,21 @@ def test_listing_is_capped(api: FixtureGmailApi) -> None:
 def test_message_deleted_mid_sync_is_skipped(api: FixtureGmailApi) -> None:
     api.vanished.add("msg-000")
     assert len(GmailProvider(api).list_messages()) == FIXTURE_COUNT - 1
+
+
+def test_messages_the_caller_already_has_are_not_downloaded(api: FixtureGmailApi) -> None:
+    """A later sync re-lists days of processed mail; only the ids should cross the wire."""
+    provider = GmailProvider(api)
+    everything = [m.id for m in provider.list_messages()]
+    seen, new = set(everything[:-2]), everything[-2:]
+    api.fetched.clear()
+
+    listed = provider.list_messages(already_have=lambda ids: [i for i in ids if i in seen])
+
+    assert sorted(m.id for m in listed) == sorted(new)
+    assert sorted(api.fetched) == sorted(new)
+
+
+def test_nothing_is_downloaded_when_everything_is_known(api: FixtureGmailApi) -> None:
+    assert GmailProvider(api).list_messages(already_have=lambda ids: ids) == []
+    assert api.fetched == []

@@ -40,8 +40,10 @@ class Toolbox:
         """Inbound messages not processed yet, oldest first."""
         latest = self._repository.latest_event_time()
         since = self._clock() - self._initial_lookback if latest is None else latest - SYNC_OVERLAP
-        listed = self._provider.list_messages(since=since)
-        done = self._repository.processed_message_ids([m.id for m in listed])
+        processed = self._repository.processed_message_ids
+        listed = self._provider.list_messages(since=since, already_have=processed)
+        # A provider may ignore the hint, so the result is filtered again.
+        done = processed([m.id for m in listed])
         return [m for m in listed if m.id not in done]
 
     def get_thread(self, current: Message) -> str:
