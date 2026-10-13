@@ -1973,6 +1973,50 @@
    }
   }
  ],
+ "dc18ae969543488c76833d9a7bed602aaee7f65f954e50bcee74d5c32dc87d3a": [
+  {
+   "additional_kwargs": {},
+   "content": "",
+   "id": "lc_run--01a13527-16ad-75f1-b95b-3812dcccd513-0",
+   "invalid_tool_calls": [],
+   "name": null,
+   "response_metadata": {
+    "created_at": "2026-10-13T12:05:35.6237282Z",
+    "done": true,
+    "done_reason": "stop",
+    "eval_count": 643,
+    "eval_duration": 10077116000,
+    "load_duration": 6253795800,
+    "logprobs": null,
+    "model": "qwen3:8b",
+    "model_name": "qwen3:8b",
+    "model_provider": "ollama",
+    "prompt_eval_count": 1154,
+    "prompt_eval_duration": 658294000,
+    "total_duration": 16996924900
+   },
+   "tool_calls": [
+    {
+     "args": {
+      "category": "other",
+      "company": null,
+      "is_job_application": true,
+      "role": "Gen AI Junior",
+      "summary": "Application received for Gen AI Junior role."
+     },
+     "id": "9f80fa37-093f-4728-8a1a-e3de6fb00dec",
+     "name": "upsert_application",
+     "type": "tool_call"
+    }
+   ],
+   "type": "ai",
+   "usage_metadata": {
+    "input_tokens": 1154,
+    "output_tokens": 643,
+    "total_tokens": 1797
+   }
+  }
+ ],
  "dd1b4805c7f2f22d33ccbe55f30defa291daaa75de5718343b540277e97d37dd": [
   {
    "additional_kwargs": {},

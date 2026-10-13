@@ -33,17 +33,17 @@
       {
         "label": "other",
         "precision": 1.0,
-        "recall": 0.9047619047619048,
-        "f1": 0.9500000000000001,
-        "support": 21
+        "recall": 0.9090909090909091,
+        "f1": 0.9523809523809523,
+        "support": 22
       }
     ],
-    "accuracy": 0.9574468085106383,
+    "accuracy": 0.9583333333333334,
     "accuracy_ci": [
-      0.8575121280614056,
-      0.9882519706294303
+      0.8602408885222853,
+      0.9884983479210344
     ],
-    "macro_f1": 0.9566666666666667,
+    "macro_f1": 0.9571428571428571,
     "confusion": {
       "rejection": {
         "rejection": 10,
@@ -78,10 +78,10 @@
         "interview_invitation": 0,
         "information_request": 2,
         "offer": 0,
-        "other": 19
+        "other": 20
       }
     },
-    "n": 47
+    "n": 48
   },
   "is_job_application": {
     "per_class": [
@@ -90,7 +90,7 @@
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0,
-        "support": 41
+        "support": 42
       },
       {
         "label": "false",
@@ -102,13 +102,13 @@
     ],
     "accuracy": 1.0,
     "accuracy_ci": [
-      0.9244398288016114,
-      1.0
+      0.9258973488472576,
+      0.9999999999999999
     ],
     "macro_f1": 1.0,
     "confusion": {
       "true": {
-        "true": 41,
+        "true": 42,
         "false": 0
       },
       "false": {
@@ -116,10 +116,10 @@
         "false": 6
       }
     },
-    "n": 47
+    "n": 48
   },
-  "company_accuracy": 0.9024390243902439,
-  "role_accuracy": 0.8717948717948718,
+  "company_accuracy": 0.9047619047619048,
+  "role_accuracy": 0.875,
   "failures": [],
   "messages": [
     {
@@ -591,15 +591,25 @@
       "gold_role": "Data Platform Engineer",
       "predicted_role": "Data Platform Engineer (Req. 7406)",
       "notes": "Tricky: one-time verification code to continue an application; administrative."
+    },
+    {
+      "file": "48-workday-peoplehub.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Peoplehub",
+      "predicted_company": "Peoplehub",
+      "gold_role": "Gen AI Junior",
+      "predicted_role": "Gen AI Junior",
+      "notes": "Tricky: bilingual Workday acknowledgement that never names the company; it only appears before the @ of the sender's address, and does not look like a company name."
     }
   ],
   "usage": {
-    "calls": 50,
-    "input_tokens": 57723,
-    "output_tokens": 19394,
+    "calls": 51,
+    "input_tokens": 58877,
+    "output_tokens": 20037,
     "cost_usd": 0.0,
-    "latency_p50_seconds": 6.93045025,
-    "latency_p95_seconds": 13.194755749999999
+    "latency_p50_seconds": 7.0539597,
+    "latency_p95_seconds": 16.10721825
   },
   "latency_source": "server-reported"
 }

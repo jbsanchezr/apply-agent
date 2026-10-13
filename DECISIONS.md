@@ -550,3 +550,30 @@ fixture's id is an RFC Message-ID that Gmail would not resolve. The link
 opens the first signed-in Google account, which is a known rough edge for
 people with several. It is opened with `noreferrer`, and the id is
 percent-encoded, as it is text that originated outside the application.
+
+## D56 - The company of a Workday email is corrected in code, not in the prompt
+A real acknowledgement sent from `teamsystem@myworkday.com` never named the
+company in its text. `qwen3:8b` first answered with no company and, after the
+validation error, with "MyWorkday", so the application was filed under the
+platform. The model does not read a mailbox-like word before the @ as a
+company name; with a sender that looks like one it gets it right.
+
+A prompt rule was tried first, in eight wordings. Only one kind fixed the
+real email: listing the platforms' domains and giving an example. On the full
+corpus each of the four wordings measured cost category accuracy (95.8% down to 91.7-93.8%), on the
+emails D50 is about: housekeeping read as an information request, and an
+"application viewed" notice read as an interview. That would trade one wrong
+company name for applications wrongly shown as advancing.
+
+So the prompt is unchanged and `with_tenant_company` corrects the tool
+arguments before they are validated. It applies only when the sender is on a
+platform that sends as `<company>@<domain>` (today: Workday), the email is
+about an application, and the model gave no company or the platform's. A
+company the model found in the text is kept. An application to Workday itself
+arrives from `workday@...`, so it still reads "Workday". The name is the
+address's first part capitalised ("Teamsystem"); its key matches the proper
+spelling (D4), and the platform list is one dictionary to extend.
+
+One fixture was added (corpus 47 -> 48): the same email with a fictional
+sender. The recording gained only that email's responses, since the prompt
+did not change (D35).

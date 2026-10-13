@@ -374,5 +374,13 @@
     "role": "Data Platform Engineer",
     "is_job_application": true,
     "notes": "Tricky: one-time verification code to continue an application; administrative."
+  },
+  {
+    "file": "48-workday-peoplehub.eml",
+    "category": "other",
+    "company": "Peoplehub",
+    "role": "Gen AI Junior",
+    "is_job_application": true,
+    "notes": "Tricky: bilingual Workday acknowledgement that never names the company; it only appears before the @ of the sender's address, and does not look like a company name."
   }
 ]

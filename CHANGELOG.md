@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+* A search box on the page filters the applications by company or role as
+  you type, ignoring case and accents.
+* A Workday email that never names the company (sent from
+  `company@myworkday.com`) is filed under that company instead of under
+  "Workday". The agent corrects this in code, not in the prompt. One fixture
+  added (48 in total). See D56 in [DECISIONS.md](DECISIONS.md).
+* A Gmail token that Google has expired or revoked now fails with a message
+  that says how to renew it.
+
 ## 0.1.2 - 2026-10-05
 
 * Screenshots retaken to show the per-application email list. No code changes.

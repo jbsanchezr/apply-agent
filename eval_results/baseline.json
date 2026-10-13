@@ -32,18 +32,18 @@
       },
       {
         "label": "other",
-        "precision": 0.6666666666666666,
-        "recall": 0.7619047619047619,
-        "f1": 0.7111111111111111,
-        "support": 21
+        "precision": 0.68,
+        "recall": 0.7727272727272727,
+        "f1": 0.7234042553191491,
+        "support": 22
       }
     ],
-    "accuracy": 0.7021276595744681,
+    "accuracy": 0.7083333333333334,
     "accuracy_ci": [
-      0.5602205595363459,
-      0.8134891584898374
+      0.5682047226383246,
+      0.8175858393813663
     ],
-    "macro_f1": 0.7343790849673202,
+    "macro_f1": 0.7368377138089278,
     "confusion": {
       "rejection": {
         "rejection": 6,
@@ -78,19 +78,19 @@
         "interview_invitation": 4,
         "information_request": 0,
         "offer": 0,
-        "other": 16
+        "other": 17
       }
     },
-    "n": 47
+    "n": 48
   },
   "is_job_application": {
     "per_class": [
       {
         "label": "true",
-        "precision": 0.918918918918919,
-        "recall": 0.8292682926829268,
-        "f1": 0.8717948717948718,
-        "support": 41
+        "precision": 0.9210526315789473,
+        "recall": 0.8333333333333334,
+        "f1": 0.875,
+        "support": 42
       },
       {
         "label": "false",
@@ -100,15 +100,15 @@
         "support": 6
       }
     ],
-    "accuracy": 0.7872340425531915,
+    "accuracy": 0.7916666666666666,
     "accuracy_ci": [
-      0.6509569794902073,
-      0.8801041987575269
+      0.6574082647864651,
+      0.8826985220411018
     ],
-    "macro_f1": 0.6233974358974359,
+    "macro_f1": 0.625,
     "confusion": {
       "true": {
-        "true": 34,
+        "true": 35,
         "false": 7
       },
       "false": {
@@ -116,10 +116,10 @@
         "false": 3
       }
     },
-    "n": 47
+    "n": 48
   },
-  "company_accuracy": 0.17073170731707318,
-  "role_accuracy": 0.1794871794871795,
+  "company_accuracy": 0.19047619047619047,
+  "role_accuracy": 0.175,
   "failures": [],
   "messages": [
     {
@@ -467,7 +467,7 @@
       "gold_category": "other",
       "predicted_category": "other",
       "gold_company": "Lumora Energy",
-      "predicted_company": "Myworkday",
+      "predicted_company": "Lumoraenergy",
       "gold_role": "Senior Data Analyst",
       "predicted_role": null,
       "notes": "Workday acknowledgement; the sender domain is the ATS, not the company."
@@ -477,7 +477,7 @@
       "gold_category": "rejection",
       "predicted_category": "other",
       "gold_company": "Lumora Energy",
-      "predicted_company": "Myworkday",
+      "predicted_company": "Lumoraenergy",
       "gold_role": "Senior Data Analyst",
       "predicted_role": "Senior Data Analyst (R-0041877)",
       "notes": "Tricky: 'the position has now been filled' with no explicit rejection wording."
@@ -591,15 +591,25 @@
       "gold_role": "Data Platform Engineer",
       "predicted_role": null,
       "notes": "Tricky: one-time verification code to continue an application; administrative."
+    },
+    {
+      "file": "48-workday-peoplehub.eml",
+      "gold_category": "other",
+      "predicted_category": "other",
+      "gold_company": "Peoplehub",
+      "predicted_company": "Peoplehub",
+      "gold_role": "Gen AI Junior",
+      "predicted_role": null,
+      "notes": "Tricky: bilingual Workday acknowledgement that never names the company; it only appears before the @ of the sender's address, and does not look like a company name."
     }
   ],
   "usage": {
-    "calls": 47,
+    "calls": 48,
     "input_tokens": 0,
     "output_tokens": 0,
     "cost_usd": 0.0,
-    "latency_p50_seconds": 0.0002466000150889158,
-    "latency_p95_seconds": 0.0003210200695320964
+    "latency_p50_seconds": 0.000199249989236705,
+    "latency_p95_seconds": 0.00026798999606398867
   },
   "latency_source": "measured"
 }
