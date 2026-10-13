@@ -373,6 +373,12 @@ def test_excel_export_never_writes_email_text_as_a_formula(
     assert company.value == '=HYPERLINK("http://evil.example","x")'
 
 
+def test_the_page_has_a_search_box_over_company_and_role(seeded: TestClient) -> None:
+    page = seeded.get("/applications", headers=AUTH).text
+    assert '<input type="search" id="search"' in page
+    assert '<tr data-search="Halcyon Health MLOps Engineer">' in page
+
+
 def test_the_page_links_to_the_excel_export(seeded: TestClient) -> None:
     assert 'href="applications?format=xlsx"' in seeded.get("/applications", headers=AUTH).text
 

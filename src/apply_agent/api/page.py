@@ -86,6 +86,8 @@ button, .button, select { font: inherit; padding: .4rem .9rem; cursor: pointer; 
   color: inherit;
 }
 select { padding: .2rem .3rem; font-size: .85rem; width: 8.5rem; }
+input[type=search] { font: inherit; padding: .4rem .6rem; width: 15rem; max-width: 100%; }
+.actions { flex-wrap: wrap; }
 .actions { display: flex; gap: .5rem; align-items: center; }
 .edited { font-size: .8rem; color: var(--muted); white-space: nowrap; }
 .wrap { overflow-x: auto; }
@@ -127,6 +129,30 @@ async function correct(id, select) {
   select.disabled = false; select.value = "";
   alert("Could not change this application.");
 }
+function plain(text) {
+  return text.normalize("NFD").replace(/\\p{M}/gu, "").toLowerCase();
+}
+function filterRows(input) {
+  const words = plain(input.value).split(/\\s+/).filter(Boolean);
+  let total = 0;
+  for (const section of document.querySelectorAll("section")) {
+    const rows = section.querySelectorAll("tr[data-search]");
+    let shown = 0;
+    for (const row of rows) {
+      const text = plain(row.dataset.search);
+      row.hidden = !words.every(w => text.includes(w));
+      if (!row.hidden) shown++;
+    }
+    total += shown;
+    section.hidden = words.length > 0 && shown === 0;
+    section.querySelector(".count").textContent =
+      words.length ? "(" + shown + " of " + rows.length + ")" : "(" + rows.length + ")";
+    const fold = section.querySelector(":scope > details");
+    if (fold && words.length && shown) fold.open = true;
+  }
+  document.getElementById("no-match").hidden = !words.length || total > 0;
+}
+filterRows(document.getElementById("search"));
 """
 
 
@@ -240,8 +266,9 @@ def _row(view: ApplicationView, page: _Page) -> str:
     quiet = open_ and days >= page.quiet_after_days
     news = f'<span class="{"quiet" if quiet else "muted"}">{_ago(days)}</span>'
     edited = '<br><span class="edited">set by hand</span>' if app.status_overridden else ""
+    search = escape(f"{app.company} {app.role or ''}", quote=True)
     return (
-        "<tr>"
+        f'<tr data-search="{search}">'
         f"<td>{escape(app.company)}</td>"
         f"<td>{escape(app.role or '-')}</td>"
         f'<td><span class="status" style="background:{colour}">'
@@ -328,11 +355,14 @@ def render_applications(
     <div class="muted">{len(views)} tracked. {_last_sync(last_job)}</div>
   </div>
   <div class="actions">
+    <input type="search" id="search" placeholder="Search company or role"
+           aria-label="Search applications" oninput="filterRows(this)">
     <a class="button" href="applications?format=xlsx">Export to Excel</a>
     <button type="button" onclick="sync(this)">Sync now</button>
   </div>
 </header>
 {sections}
+<p id="no-match" class="muted" hidden>No applications match the search.</p>
 <script>{_SCRIPT}</script>
 </body>
 </html>
