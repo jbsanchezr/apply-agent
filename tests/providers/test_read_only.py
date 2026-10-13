@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 
 import pytest
+from google.auth.exceptions import RefreshError
+from google.oauth2.credentials import Credentials
 
 from apply_agent.providers import EmailProvider
 from apply_agent.providers.gmail_api import GMAIL_READONLY_SCOPE, GmailApi
@@ -69,6 +71,34 @@ def test_stored_token_with_broader_scope_is_refused(tmp_path: Path) -> None:
 def test_missing_token_explains_how_to_create_one(tmp_path: Path) -> None:
     with pytest.raises(GmailAuthError, match="gmail_auth"):
         load_credentials(tmp_path / "token.json")
+
+
+def test_revoked_token_explains_how_to_renew_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    token = tmp_path / "token.json"
+    token.write_text(
+        json.dumps(
+            {
+                "token": "fake-access-token",
+                "refresh_token": "fake-refresh-token",
+                "client_id": "fake-client.apps.googleusercontent.test",
+                "client_secret": "fake-secret",
+                "scopes": [GMAIL_READONLY_SCOPE],
+                "expiry": "2020-01-01T00:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def refuse(self: Credentials, request: object) -> None:
+        raise RefreshError(  # type: ignore[no-untyped-call]
+            "invalid_grant: Token has been expired or revoked."
+        )
+
+    monkeypatch.setattr(Credentials, "refresh", refuse)
+    with pytest.raises(GmailAuthError, match="gmail_auth"):
+        load_credentials(token)
 
 
 @pytest.mark.parametrize("protocol", [EmailProvider, GmailApi])

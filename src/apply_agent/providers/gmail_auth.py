@@ -11,6 +11,7 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -46,7 +47,14 @@ def load_credentials(token_path: Path) -> Credentials:
     creds: Credentials = Credentials.from_authorized_user_file(str(token_path))
     ensure_readonly(creds.scopes)
     if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
+        try:
+            creds.refresh(Request())
+        except RefreshError as exc:
+            # Google expired or revoked the refresh token; only a new consent fixes it.
+            raise GmailAuthError(
+                f"Gmail token at {token_path} can no longer be refreshed ({exc.args[0]}); "
+                "run `uv run python -m apply_agent.providers.gmail_auth` again"
+            ) from exc
         _save(creds, token_path)
     if not creds.valid:
         raise GmailAuthError(f"Gmail token at {token_path} is invalid; re-run the consent flow")
