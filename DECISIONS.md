@@ -619,3 +619,8 @@ equal or extends the other ("Senior ML Engineer, Recommendations" against
 "Senior ML Engineer"). An application at the same company with another role,
 or with no role, is shown as a hint, never as proof: one company often has
 several openings.
+
+One *Sync now* serves both pages. It is one job (D41): mail first, then
+offers, so an application sent today already counts when new offers are
+checked against it. A failed offer scan is reported in the job's report and
+on the offers page, but the job still succeeds, since the mail part did.

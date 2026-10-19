@@ -13,7 +13,7 @@ from typing import Final
 from urllib.parse import quote_plus
 
 from apply_agent.api.jobs import SyncJob
-from apply_agent.api.page import SEARCH_SCRIPT, STATUS_COLOURS, STYLE, nav
+from apply_agent.api.page import SEARCH_SCRIPT, STATUS_COLOURS, STYLE, SYNC_SCRIPT, nav
 from apply_agent.domain.offers import (
     OfferApplicationMatch,
     OfferMatch,
@@ -23,17 +23,6 @@ from apply_agent.domain.offers import (
 )
 
 _SCRIPT: Final = """
-async function scan(button) {
-  button.disabled = true; button.textContent = "Searching...";
-  const started = await fetch("offers/scan", {method: "POST"});
-  const job = await started.json();
-  const id = started.status === 409 ? job.running.id : job.id;
-  while (true) {
-    await new Promise(r => setTimeout(r, 2000));
-    const state = await (await fetch("offers/scan/" + id)).json();
-    if (state.status !== "running") { location.reload(); return; }
-  }
-}
 async function decide(id, select) {
   if (!select.value) return;
   select.disabled = true;
@@ -167,12 +156,16 @@ def _section(section: _Section, views: Sequence[OfferView]) -> str:
     return f"{body}{heading}{table}</section>"
 
 
-def _last_scan(job: SyncJob | None) -> str:
+def _last_sync(job: SyncJob | None) -> str:
+    """The shared sync, and what went wrong with its offers part, if anything."""
     if job is None:
-        return "No search since the server started."
+        return "No sync since the server started."
     when = job.started_at.strftime("%Y-%m-%d %H:%M UTC")
-    text = f"Last search: {escape(job.status.value)}, started {when}."
-    errors = (job.report or {}).get("search_errors") or []
+    text = f"Last sync: {escape(job.status.value)}, started {when}."
+    offers = (job.report or {}).get("offers") or {}
+    if offers.get("error"):
+        text += ' <span class="quiet">Looking for offers failed.</span>'
+    errors = offers.get("search_errors") or []
     if errors:
         text += f' <span class="quiet">{len(errors)} LinkedIn search(es) failed.</span>'
     return text
@@ -204,7 +197,7 @@ def render_offers(
     else:
         sections = (
             '<p class="muted">No offers yet. Create job alerts on LinkedIn, then press '
-            "<em>Find offers</em>.</p>"
+            "<em>Sync now</em>.</p>"
         )
     return f"""<!doctype html>
 <html lang="en">
@@ -220,17 +213,17 @@ def render_offers(
     {nav("offers")}
     <h1>Job offers</h1>
     <div>{overview}</div>
-    <div class="muted">{source} {_last_scan(last_job)}</div>
+    <div class="muted">{source} {_last_sync(last_job)}</div>
   </div>
   <div class="actions">
     <input type="search" id="search" placeholder="Search role, company or place"
            aria-label="Search offers" oninput="filterRows(this)">
-    <button type="button" onclick="scan(this)">Find offers</button>
+    <button type="button" onclick="sync(this)">Sync now</button>
   </div>
 </header>
 {sections}
 <p id="no-match" class="muted" hidden>No offers match the search.</p>
-<script>{_SCRIPT}{SEARCH_SCRIPT}
+<script>{SYNC_SCRIPT}{_SCRIPT}{SEARCH_SCRIPT}
 filterRows(document.getElementById("search"));</script>
 </body>
 </html>

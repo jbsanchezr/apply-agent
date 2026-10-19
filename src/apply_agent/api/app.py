@@ -1,22 +1,22 @@
 """The HTTP API: a thin layer over the agent and the repository.
 
     GET  /applications     HTML table, or JSON with ?format=json / Accept: application/json
-    POST /sync             start a background sync (202), or 409 if one is running
+    POST /sync             sync mail, then look for offers, in the background (202), or 409
     GET  /sync/{job_id}    job status and report
     GET  /offers           job offers found on LinkedIn, and whether you applied (D57)
     PUT  /offers/{id}/state  mark an offer as interesting, dismissed or new
-    POST /offers/scan      start a background search for offers (202), or 409
-    GET  /offers/scan/{job_id}  search status and report
     GET  /metrics          Prometheus exposition (unauthenticated, no personal data)
     GET  /healthz          liveness (unauthenticated)
 
 Run with ``uvicorn --factory apply_agent.api.app:create_app``.
 """
 
+import logging
 import secrets
 import sys
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
 
@@ -40,6 +40,8 @@ from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
 from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from apply_agent.storage.repository import ApplicationNotFoundError, Repository
+
+logger = logging.getLogger(__name__)
 
 
 def _api_token(settings: Settings) -> str:
@@ -108,8 +110,19 @@ def create_app(
     if run_offer_scan is None:
         scanner, _ = build_offer_scanner(settings, offer_store)
         run_offer_scan = scanner.scan
-    sync_service = SyncService(run_sync)
-    scan_service = SyncService(run_offer_scan)
+    sync_mail, scan_offers = run_sync, run_offer_scan
+
+    def sync_both_pages() -> dict[str, Any]:
+        """Mail first, so an application sent today already counts against new offers."""
+        report: dict[str, Any] = asdict(sync_mail())
+        try:
+            report["offers"] = asdict(scan_offers())
+        except Exception as err:  # the mail is synced; a failed scan must not hide that
+            logger.exception("offer scan failed")
+            report["offers"] = {"error": f"{type(err).__name__}: {err}"}
+        return report
+
+    sync_service = SyncService(sync_both_pages)
     applications = ApplicationsCollector(repo.count_by_status)
 
     @asynccontextmanager
@@ -121,7 +134,6 @@ def create_app(
         finally:
             REGISTRY.unregister(applications)
             sync_service.shutdown()
-            scan_service.shutdown()
 
     app = FastAPI(title="apply-agent", version="0.1.0", lifespan=lifespan)
     protected = [Depends(TokenAuth(_api_token(settings)))]
@@ -263,7 +275,7 @@ def create_app(
             )
         return HTMLResponse(
             render_offers(
-                views, scan_service.latest(), search_enabled=settings.linkedin_search_enabled
+                views, sync_service.latest(), search_enabled=settings.linkedin_search_enabled
             )
         )
 
@@ -274,22 +286,5 @@ def create_app(
         except OfferNotFoundError as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown offer") from err
         return {"id": stored.id, "state": stored.state.value}
-
-    @app.post("/offers/scan", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
-    def start_offer_scan() -> Any:
-        try:
-            return scan_service.start().to_dict()
-        except SyncAlreadyRunningError as err:
-            return JSONResponse(
-                {"detail": "a search is already running", "running": err.job.to_dict()},
-                status_code=status.HTTP_409_CONFLICT,
-            )
-
-    @app.get("/offers/scan/{job_id}", dependencies=protected)
-    def offer_scan_status(job_id: str) -> dict[str, Any]:
-        job = scan_service.get(job_id)
-        if job is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown search job")
-        return job.to_dict()
 
     return app

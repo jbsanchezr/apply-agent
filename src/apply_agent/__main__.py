@@ -1,4 +1,7 @@
-"""Command line entry point: ``python -m apply_agent sync`` or ``offers``."""
+"""Command line entry point: ``python -m apply_agent sync`` or ``offers``.
+
+``sync`` does what the page's *Sync now* does: mail first, then offers.
+"""
 
 import argparse
 import json
@@ -9,12 +12,13 @@ from apply_agent.agent.runner import build_agent
 from apply_agent.config import Settings
 from apply_agent.logs import configure_logging
 from apply_agent.offers.scanner import build_offer_scanner
+from apply_agent.storage.offers import OfferRepository
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="apply_agent")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("sync", help="Process new mail and update the applications table.")
+    commands.add_parser("sync", help="Process new mail, then look for job offers.")
     commands.add_parser("offers", help="Find job offers in LinkedIn alerts (and search, if on).")
     args = parser.parse_args(argv)
 
@@ -25,10 +29,13 @@ def main(argv: list[str] | None = None) -> int:
         scan = scanner.scan()
         sys.stdout.write(json.dumps(asdict(scan), indent=2) + "\n")
         return 1 if scan.search_errors else 0
-    agent, _ = build_agent(settings)
+    agent, repository = build_agent(settings)
     report = agent.sync()
-    sys.stdout.write(json.dumps(asdict(report), indent=2) + "\n")
-    return 1 if report.failed else 0
+    scanner, _ = build_offer_scanner(settings, OfferRepository(repository.session_factory))
+    scan = scanner.scan()
+    output = asdict(report) | {"offers": asdict(scan)}
+    sys.stdout.write(json.dumps(output, indent=2) + "\n")
+    return 1 if report.failed or scan.search_errors else 0
 
 
 if __name__ == "__main__":

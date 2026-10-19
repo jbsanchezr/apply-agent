@@ -5,8 +5,8 @@
 * A job offers page (`/offers`) lists the postings in your LinkedIn job alert
   emails and checks each one against your applications: already applied,
   applied to the same company for another role, or new. Offers can be marked
-  as interesting or dismissed. `python -m apply_agent offers` runs the same
-  scan. A search of LinkedIn's public listings is included but off by default.
+  as interesting or dismissed. *Sync now*, on either page, syncs mail and
+  then looks for offers; `python -m apply_agent offers` looks for offers only. A search of LinkedIn's public listings is included but off by default.
   See D57 in [DECISIONS.md](DECISIONS.md).
 * A search box on the page filters the applications by company or role as
   you type, ignoring case and accents.

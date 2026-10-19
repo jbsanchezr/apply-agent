@@ -93,6 +93,8 @@ def test_cli_sync_runs_on_fixtures_and_is_idempotent(
 
     assert first["processed"] == len(FIXTURES) == first["recorded"]
     assert second["processed"] == 0
+    assert first["offers"]["new_offers"] == 3
+    assert second["offers"]["offers_found"] == 0
 
 
 def test_ollama_model_is_local_deterministic_and_has_room_for_the_prompt() -> None:

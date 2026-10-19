@@ -21,6 +21,7 @@ from apply_agent.api.export import HEADERS, XLSX_MEDIA_TYPE
 from apply_agent.api.page import gmail_url
 from apply_agent.config import Settings
 from apply_agent.domain import MessageAssessment
+from apply_agent.offers.scanner import OfferScanReport
 from apply_agent.storage import make_session_factory
 from apply_agent.storage.repository import Repository
 from tests.agent.helpers import T0, assessment, message
@@ -581,16 +582,6 @@ def _offer_ids(client: TestClient) -> dict[str, dict[str, Any]]:
     return {row["company"]: row for row in rows}
 
 
-def _wait_for_scan(client: TestClient, job_id: str) -> dict[str, Any]:
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline:
-        job: dict[str, Any] = client.get(f"/offers/scan/{job_id}", headers=AUTH).json()
-        if job["status"] != "running":
-            return job
-        time.sleep(0.05)
-    raise AssertionError(f"offer scan {job_id} did not finish")
-
-
 def test_offers_from_alerts_are_checked_against_applications(
     tmp_path: Path, repository: Repository
 ) -> None:
@@ -607,9 +598,9 @@ def test_offers_from_alerts_are_checked_against_applications(
     app = create_app(_settings(tmp_path), run_sync=lambda: EMPTY_REPORT, repository=repository)
     with TestClient(app) as client:
         assert "No offers yet" in client.get("/offers", headers=AUTH).text
-        job = _wait_for_scan(client, client.post("/offers/scan", headers=AUTH).json()["id"])
+        job = _wait_for(client, client.post("/sync", headers=AUTH).json()["id"])
         assert job["status"] == "succeeded"
-        assert job["report"]["new_offers"] == 3
+        assert job["report"]["offers"]["new_offers"] == 3
 
         offers = _offer_ids(client)
         assert offers["Corvina Retail"]["section"] == "applied"
@@ -629,7 +620,7 @@ def test_offers_from_alerts_are_checked_against_applications(
 def test_an_offer_can_be_marked_and_dismissed(tmp_path: Path, repository: Repository) -> None:
     app = create_app(_settings(tmp_path), run_sync=lambda: EMPTY_REPORT, repository=repository)
     with TestClient(app) as client:
-        _wait_for_scan(client, client.post("/offers/scan", headers=AUTH).json()["id"])
+        _wait_for(client, client.post("/sync", headers=AUTH).json()["id"])
         offer_id = _offer_ids(client)["Pendulum Health"]["id"]
 
         for state, section in (("interested", "interested"), ("dismissed", "dismissed")):
@@ -645,5 +636,26 @@ def test_an_offer_can_be_marked_and_dismissed(tmp_path: Path, repository: Reposi
 
 def test_offer_pages_need_the_token(client: TestClient) -> None:
     assert client.get("/offers").status_code == 401
-    assert client.post("/offers/scan").status_code == 401
-    assert client.get("/offers/scan/nope", headers=AUTH).status_code == 404
+    assert client.put("/offers/1/state", json={"state": "new"}).status_code == 401
+
+
+def test_a_failed_offer_scan_does_not_fail_the_mail_sync(
+    tmp_path: Path, repository: Repository
+) -> None:
+    def broken_scan() -> OfferScanReport:
+        raise RuntimeError("inbox unreachable")
+
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        run_offer_scan=broken_scan,
+    )
+    with TestClient(app) as client:
+        job = _wait_for(client, client.post("/sync", headers=AUTH).json()["id"])
+        assert job["status"] == "succeeded"
+        assert job["report"]["processed"] == 0
+        assert job["report"]["offers"] == {"error": "RuntimeError: inbox unreachable"}
+        page = client.get("/offers", headers=AUTH).text
+        assert "Looking for offers failed" in page
+        assert 'onclick="sync(this)"' in page

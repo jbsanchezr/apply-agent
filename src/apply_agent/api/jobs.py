@@ -11,15 +11,12 @@ import logging
 import threading
 import uuid
 from collections import OrderedDict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Final
-
-if TYPE_CHECKING:
-    from _typeshed import DataclassInstance
+from typing import Any, Final
 
 logger = logging.getLogger(__name__)
 _KEEP_JOBS: Final = 20
@@ -53,10 +50,10 @@ class SyncAlreadyRunningError(RuntimeError):
         self.job = job
 
 
-class SyncService[R: DataclassInstance]:
-    """Runs one kind of job (a mail sync, an offer scan) whose result is a dataclass."""
+class SyncService:
+    """Runs the sync job. Its report is whatever JSON-ready mapping the job returns."""
 
-    def __init__(self, run_sync: Callable[[], R]) -> None:
+    def __init__(self, run_sync: Callable[[], Mapping[str, Any]]) -> None:
         self._run_sync = run_sync
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sync")
         self._lock = threading.Lock()
@@ -91,7 +88,7 @@ class SyncService[R: DataclassInstance]:
             logger.exception("background sync failed", extra={"job_id": job_id})
             self._finish(job_id, status=JobStatus.FAILED, error=f"{type(err).__name__}: {err}")
         else:
-            self._finish(job_id, status=JobStatus.SUCCEEDED, report=asdict(report))
+            self._finish(job_id, status=JobStatus.SUCCEEDED, report=dict(report))
 
     def _finish(self, job_id: str, **changes: Any) -> None:
         with self._lock:

@@ -109,8 +109,8 @@ docker compose up --build
   emails, each checked against your applications. Offers you already applied
   to (same company, same or longer role) are folded away with the
   application's status; another application at the same company is shown as
-  a hint. Mark an offer as *Interested* or *Dismiss* it; *Find offers* reads
-  new alert emails. See [Job offers](#job-offers-from-linkedin).
+  a hint. Mark an offer as *Interested* or *Dismiss* it. *Sync now*, on
+  either page, reads new mail and then new alert emails. See [Job offers](#job-offers-from-linkedin).
 * <http://localhost:3000>: the Grafana dashboard. <http://localhost:9090>: Prometheus.
 
 API (the token also works as `Authorization: Bearer <token>`):
@@ -122,12 +122,10 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `PUT /applications/{id}/status` | Correct a status by hand: `{"status": "applied"}`. Later emails still move it |
 | `POST /applications/{id}/merge` | Fold a duplicate into another application: `{"into": 12}`. Not undoable |
 | `DELETE /applications/{id}/status` | Undo the correction and return to the status the emails imply |
-| `POST /sync` | Starts a background sync: `202` with a job id, or `409` if one is running |
+| `POST /sync` | Starts a background sync of mail, then offers: `202` with a job id, or `409` if one is running |
 | `GET /sync/{job_id}` | Job status and report |
 | `GET /offers` | Job offers and whether you applied; JSON via `?format=json` |
 | `PUT /offers/{id}/state` | `{"state": "interested"}`, `"dismissed"` or `"new"` |
-| `POST /offers/scan` | Starts a background search for offers: `202`, or `409` if one is running |
-| `GET /offers/scan/{job_id}` | Search status and report |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
 | `GET /healthz` | Liveness |
 
@@ -141,7 +139,8 @@ uv sync
 uv run python -m apply_agent sync
 ```
 
-`uv run python -m apply_agent offers` finds job offers the same way.
+`sync` also looks for job offers; `uv run python -m apply_agent offers` looks
+for offers only.
 
 To classify with a free local LLM, install [Ollama](https://ollama.com), run
 `ollama pull qwen3:8b`, and set `APPLY_AGENT_LLM=ollama`. Email content never

@@ -97,7 +97,7 @@ nav a[aria-current] { font-weight: 600; color: inherit; text-decoration: none; }
 .applied { color: #15803d; font-weight: 600; }
 """
 
-_SCRIPT: Final = """
+SYNC_SCRIPT: Final = """
 async function sync(button) {
   button.disabled = true; button.textContent = "Syncing...";
   const started = await fetch("sync", {method: "POST"});
@@ -109,6 +109,9 @@ async function sync(button) {
     if (state.status !== "running") { location.reload(); return; }
   }
 }
+"""
+
+_SCRIPT: Final = """
 async function correct(id, select) {
   const value = select.value;
   if (!value) return;
@@ -370,7 +373,7 @@ def render_applications(
 </header>
 {sections}
 <p id="no-match" class="muted" hidden>No applications match the search.</p>
-<script>{_SCRIPT}{SEARCH_SCRIPT}
+<script>{SYNC_SCRIPT}{_SCRIPT}{SEARCH_SCRIPT}
 filterRows(document.getElementById("search"));</script>
 </body>
 </html>
