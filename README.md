@@ -105,6 +105,12 @@ docker compose up --build
   Log in with any
   username and the token printed in the app logs (`docker compose logs app`),
   or set `APPLY_AGENT_API_TOKEN` in a `.env` file. Press *Sync now*.
+* <http://localhost:8000/offers>: job offers found in your LinkedIn job alert
+  emails, each checked against your applications. Offers you already applied
+  to (same company, same or longer role) are folded away with the
+  application's status; another application at the same company is shown as
+  a hint. Mark an offer as *Interested* or *Dismiss* it; *Find offers* reads
+  new alert emails. See [Job offers](#job-offers-from-linkedin).
 * <http://localhost:3000>: the Grafana dashboard. <http://localhost:9090>: Prometheus.
 
 API (the token also works as `Authorization: Bearer <token>`):
@@ -118,6 +124,10 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `DELETE /applications/{id}/status` | Undo the correction and return to the status the emails imply |
 | `POST /sync` | Starts a background sync: `202` with a job id, or `409` if one is running |
 | `GET /sync/{job_id}` | Job status and report |
+| `GET /offers` | Job offers and whether you applied; JSON via `?format=json` |
+| `PUT /offers/{id}/state` | `{"state": "interested"}`, `"dismissed"` or `"new"` |
+| `POST /offers/scan` | Starts a background search for offers: `202`, or `409` if one is running |
+| `GET /offers/scan/{job_id}` | Search status and report |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
 | `GET /healthz` | Liveness |
 
@@ -130,6 +140,8 @@ keyword baseline instead of an LLM, so no credentials are needed:
 uv sync
 uv run python -m apply_agent sync
 ```
+
+`uv run python -m apply_agent offers` finds job offers the same way.
 
 To classify with a free local LLM, install [Ollama](https://ollama.com), run
 `ollama pull qwen3:8b`, and set `APPLY_AGENT_LLM=ollama`. Email content never
@@ -224,6 +236,25 @@ at Gmail and a local Ollama model, keeps the database and a generated API
 token under `~/.config/apply_agent/`, starts the API on `127.0.0.1` and opens
 the page. Variables already set in the environment take precedence.
 
+## Job offers from LinkedIn
+
+LinkedIn has no job search API for individuals, so offers come from the job
+alert emails LinkedIn already sends you (D57). Create alerts on LinkedIn
+(*Jobs* > search > *Set alert*) for the roles and places you want; each scan
+reads the new ones, with rules and no model, so it costs nothing. A scan never
+creates or changes an application.
+
+Searching LinkedIn's public listings directly is also built in, and **off by
+default**: it is scraping, which LinkedIn's terms forbid. It uses no account,
+sends few requests and identifies itself honestly, and LinkedIn may refuse it
+(when tested, it answered 429 with a bot check). A refusal is shown on the
+page, never retried or worked around. To try it:
+
+```bash
+APPLY_AGENT_LINKEDIN_SEARCH_ENABLED=true
+APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer @ Spain"
+```
+
 ## Limitations and next steps
 
 * **Small evaluation set.** 48 synthetic emails written by the same author as
@@ -246,6 +277,9 @@ the page. Variables already set in the environment take precedence.
   email, so raising the lookback later does not fetch older mail.
 * **Single user.** One API token and SQLite with `create_all`. Multi-user use
   would need real auth, Postgres and migrations (Alembic).
+* **Offers depend on LinkedIn's alert emails.** Only postings your alerts
+  send are seen, and an HTML-only alert loses its links (the page then links
+  to a LinkedIn search for the role). The public search is usually refused.
 * **Dates mentioned in an email** (interview time, deadline) are not extracted
   yet. The event date is the email's `Date` header.
 

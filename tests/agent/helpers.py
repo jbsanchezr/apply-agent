@@ -113,12 +113,22 @@ class ListProvider:
         self.since_calls: list[datetime | None] = []
 
     def list_messages(
-        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+        self,
+        since: datetime | None = None,
+        *,
+        already_have: AlreadyHave | None = None,
+        sender: str | None = None,
     ) -> Sequence[Message]:
         # Ignores the hint on purpose: callers must not rely on it.
         self.since_calls.append(since)
         return sorted(
-            (m for m in self.messages if not m.outbound and (since is None or m.sent_at >= since)),
+            (
+                m
+                for m in self.messages
+                if not m.outbound
+                and (since is None or m.sent_at >= since)
+                and (sender is None or sender in m.sender)
+            ),
             key=lambda m: m.sent_at,
         )
 

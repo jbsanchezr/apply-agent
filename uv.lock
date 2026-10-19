@@ -60,6 +60,7 @@ dependencies = [
     { name = "google-api-python-client" },
     { name = "google-auth" },
     { name = "google-auth-oauthlib" },
+    { name = "httpx" },
     { name = "langchain-anthropic" },
     { name = "langchain-ollama" },
     { name = "langfuse" },
@@ -73,7 +74,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
@@ -86,6 +86,7 @@ requires-dist = [
     { name = "google-api-python-client", specifier = ">=2.200.0" },
     { name = "google-auth", specifier = ">=2.58.0" },
     { name = "google-auth-oauthlib", specifier = ">=1.4.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-anthropic", specifier = ">=1.7.4" },
     { name = "langchain-ollama", specifier = ">=1.1.0" },
     { name = "langfuse", specifier = ">=4.15.6" },
@@ -99,7 +100,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "mypy", specifier = ">=1.13" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.8" },

@@ -1,6 +1,7 @@
 """``EmailProvider`` backed by Gmail, read-only."""
 
 import logging
+import re
 from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta
 from typing import Final
@@ -17,6 +18,8 @@ BASE_QUERY: Final = "-in:sent -in:drafts -in:spam -in:trash -in:chats"
 # Gmail filters on receipt time; the contract is about the Date header. A day of
 # overlap covers clock skew and delivery delays. Callers deduplicate by id.
 SINCE_MARGIN: Final = timedelta(days=1)
+# A sender filter goes into a search query, so it may not carry search syntax.
+_SENDER_FRAGMENT: Final = re.compile(r"[\w.@+-]+")
 _SENT: Final = "SENT"
 _DRAFT: Final = "DRAFT"
 
@@ -27,9 +30,17 @@ class GmailProvider:
         self._max_messages = max_messages
 
     def list_messages(
-        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+        self,
+        since: datetime | None = None,
+        *,
+        already_have: AlreadyHave | None = None,
+        sender: str | None = None,
     ) -> Sequence[Message]:
         query = BASE_QUERY
+        if sender is not None:
+            if not _SENDER_FRAGMENT.fullmatch(sender):
+                raise ValueError(f"not a sender address fragment: {sender!r}")
+            query += f" from:{sender}"
         if since is not None:
             query += f" after:{int((since - SINCE_MARGIN).timestamp())}"
         ids = self._list_ids(query)

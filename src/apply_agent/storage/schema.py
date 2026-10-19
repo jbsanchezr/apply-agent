@@ -11,13 +11,14 @@ Idempotency lives in the schema, not in application code:
   still resolves to the existing application.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, ClassVar
 
 from sqlalchemy import Enum, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from apply_agent.domain.enums import ApplicationStatus, MessageCategory
+from apply_agent.domain.offers import OfferSource, OfferState
 from apply_agent.storage.types import UtcDateTime
 
 
@@ -25,7 +26,9 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-def _str_enum[E: (ApplicationStatus, MessageCategory)](enum_cls: type[E]) -> Enum:
+def _str_enum[E: (ApplicationStatus, MessageCategory, OfferSource, OfferState)](
+    enum_cls: type[E],
+) -> Enum:
     """Store enum *values* as VARCHAR with a CHECK constraint (portable, readable)."""
     return Enum(
         enum_cls,
@@ -142,3 +145,41 @@ class FollowUpDraftRow(Base):
     )
     body: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
+
+
+class JobOfferRow(Base):
+    """A posting found on a job board (see D57). Never linked to an application.
+
+    Whether the user applied is worked out when offers are read, from the
+    applications table, so it cannot go stale.
+    """
+
+    __tablename__ = "job_offers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # LinkedIn's posting id, or a hash of company, role and location (JobOffer.key).
+    offer_key: Mapped[str] = mapped_column(String(64), unique=True)
+    source: Mapped[OfferSource] = mapped_column(_str_enum(OfferSource))
+    linkedin_id: Mapped[str | None] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(200))
+    company: Mapped[str] = mapped_column(String(200))
+    location: Mapped[str | None] = mapped_column(String(200))
+    url: Mapped[str | None] = mapped_column(String(500))
+    posted_on: Mapped[date | None]
+    state: Mapped[OfferState] = mapped_column(_str_enum(OfferState), default=OfferState.NEW)
+    first_seen_at: Mapped[datetime]
+    last_seen_at: Mapped[datetime]
+
+
+class ScannedAlertRow(Base):
+    """An email the offer scanner has read, so it is not downloaded again.
+
+    Separate from ``events``: the agent and the scanner read the inbox for
+    different purposes, and either may run without the other.
+    """
+
+    __tablename__ = "scanned_alert_messages"
+
+    message_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    sent_at: Mapped[datetime]
+    offers_found: Mapped[int] = mapped_column(default=0)

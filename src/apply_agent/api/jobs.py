@@ -16,9 +16,10 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
-from apply_agent.agent.outcomes import SyncReport
+if TYPE_CHECKING:
+    from _typeshed import DataclassInstance
 
 logger = logging.getLogger(__name__)
 _KEEP_JOBS: Final = 20
@@ -52,8 +53,10 @@ class SyncAlreadyRunningError(RuntimeError):
         self.job = job
 
 
-class SyncService:
-    def __init__(self, run_sync: Callable[[], SyncReport]) -> None:
+class SyncService[R: DataclassInstance]:
+    """Runs one kind of job (a mail sync, an offer scan) whose result is a dataclass."""
+
+    def __init__(self, run_sync: Callable[[], R]) -> None:
         self._run_sync = run_sync
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sync")
         self._lock = threading.Lock()

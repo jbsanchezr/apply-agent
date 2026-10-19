@@ -577,3 +577,45 @@ spelling (D4), and the platform list is one dictionary to extend.
 One fixture was added (corpus 47 -> 48): the same email with a fictional
 sender. The recording gained only that email's responses, since the prompt
 did not change (D35).
+
+## D57 - Job offers come from LinkedIn's alert emails; searching LinkedIn is opt-in
+The user wanted to see which offers are open and whether they have already
+applied to them. LinkedIn has no job search API for individuals, so the
+offers had to come from somewhere else. There were three options:
+
+1. **Job alert emails.** LinkedIn emails the postings that match the alerts
+   the user sets up. The inbox is already read, read-only (D18), so this adds
+   no credential, breaks no terms and puts no account at risk. It only sees
+   what the alerts send, a handful of postings per alert per day.
+2. **LinkedIn's public listings** (`/jobs-guest/...`, the pages shown when
+   signed out). It needs no account, but it is scraping, which LinkedIn's
+   terms forbid, and its HTML can change at any time.
+3. **Automating a signed-in browser.** Rejected: LinkedIn restricts accounts
+   it catches doing this, and that is the account the user applies with.
+
+Alerts are the default. The public search is built but off
+(`APPLY_AGENT_LINKEDIN_SEARCH_ENABLED`). It sends few requests (two pages per
+search by default, three seconds apart), says what it is in its User-Agent
+instead of posing as a browser, and stops at the first 403, 429 or 999
+without retrying. The first real request, on 2026-10-19, got a 429 with a
+JavaScript bot challenge. It will not be worked around: getting past bot
+detection is exactly what the terms forbid. So the page reports the refusal,
+and alerts remain the source that works.
+
+Offers are kept apart from applications. A scan never calls a model and never
+writes an event or an application. It has its own table of scanned emails, so
+it neither re-downloads mail nor depends on the agent's sync, and it asks the
+provider only for LinkedIn mail (a new `sender` filter, Gmail's `from:`).
+Alerts are parsed with rules, not a model: their layout is fixed, rules cost
+nothing per email, and a model would only be one more thing for a hostile email
+to steer (D23). A posting is identified by LinkedIn's id when the email links to
+it, otherwise by company + role + location keys (D4). A posting seen again
+keeps the user's decision (interested / dismissed).
+
+"Already applied" is worked out on every read, never stored, so an
+application recorded after the offer was found counts at once. It needs the
+same company (D4, including longer and shorter spellings) and a role that is
+equal or extends the other ("Senior ML Engineer, Recommendations" against
+"Senior ML Engineer"). An application at the same company with another role,
+or with no role, is shown as a hint, never as proof: one company often has
+several openings.

@@ -25,7 +25,11 @@ AlreadyHave = Callable[[Collection[str]], Collection[str]]
 
 class EmailProvider(Protocol):
     def list_messages(
-        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+        self,
+        since: datetime | None = None,
+        *,
+        already_have: AlreadyHave | None = None,
+        sender: str | None = None,
     ) -> Sequence[Message]:
         """Inbound messages, oldest first.
 
@@ -36,6 +40,10 @@ class EmailProvider(Protocol):
         ``already_have`` lets the provider skip messages the caller has
         processed before it downloads them: listing ids is cheap, fetching
         bodies is not. Messages it reports are left out of the result.
+
+        ``sender`` keeps only messages whose sender address contains it (like
+        Gmail's ``from:``). Like ``since`` it may be coarser on the server, so
+        callers still check the sender of what they get.
         """
         ...
 

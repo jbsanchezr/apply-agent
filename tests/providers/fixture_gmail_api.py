@@ -17,6 +17,7 @@ from apply_agent.providers.parsing import header_ids, read_email
 
 DELIVERY_DELAY = timedelta(minutes=3)
 _AFTER = re.compile(r"after:(\d+)")
+_FROM = re.compile(r"from:(\S+)")
 
 
 def _owner_message(subject: str, sent_at: datetime, message_id: str) -> bytes:
@@ -72,12 +73,14 @@ class FixtureGmailApi:
     def list_message_ids(self, query: str, page_token: str | None) -> tuple[list[str], str | None]:
         self.queries.append(query)
         after = _AFTER.search(query)
+        sender = _FROM.search(query)
         matching = [
             m.id
             for m in self._messages.values()
             if not ("-in:sent" in query and "SENT" in m.label_ids)
             and not ("-in:drafts" in query and "DRAFT" in m.label_ids)
             and (after is None or m.internal_date.timestamp() > int(after.group(1)))
+            and (sender is None or sender.group(1) in _from_header(m.raw))
         ]
         start = int(page_token or 0)
         end = start + self.page_size
@@ -94,3 +97,7 @@ class FixtureGmailApi:
         if not ids:
             raise ThreadNotFoundError(thread_id)
         return ids
+
+
+def _from_header(raw: bytes) -> str:
+    return str(read_email(raw)["From"] or "").casefold()

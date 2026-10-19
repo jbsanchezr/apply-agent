@@ -3,6 +3,10 @@
     GET  /applications     HTML table, or JSON with ?format=json / Accept: application/json
     POST /sync             start a background sync (202), or 409 if one is running
     GET  /sync/{job_id}    job status and report
+    GET  /offers           job offers found on LinkedIn, and whether you applied (D57)
+    PUT  /offers/{id}/state  mark an offer as interesting, dismissed or new
+    POST /offers/scan      start a background search for offers (202), or 409
+    GET  /offers/scan/{job_id}  search status and report
     GET  /metrics          Prometheus exposition (unauthenticated, no personal data)
     GET  /healthz          liveness (unauthenticated)
 
@@ -26,11 +30,15 @@ from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
 from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
+from apply_agent.api.offers_page import OfferView, render_offers, section_of
 from apply_agent.api.page import days_since, gmail_url, render_applications
 from apply_agent.config import ProviderKind, Settings
 from apply_agent.domain import Application, ApplicationStatus, stage_of
+from apply_agent.domain.offers import OfferState, match_offer
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
+from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
+from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from apply_agent.storage.repository import ApplicationNotFoundError, Repository
 
 
@@ -56,6 +64,14 @@ class StatusCorrection(BaseModel):
     status: ApplicationStatus
 
 
+class OfferDecision(BaseModel):
+    """Body of ``PUT /offers/{id}/state``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: OfferState
+
+
 class MergeRequest(BaseModel):
     """Body of ``POST /applications/{id}/merge``."""
 
@@ -77,16 +93,23 @@ def create_app(
     *,
     run_sync: Callable[[], SyncReport] | None = None,
     repository: Repository | None = None,
+    run_offer_scan: Callable[[], OfferScanReport] | None = None,
+    offers: OfferRepository | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> FastAPI:
-    """Build the app. ``run_sync``, ``repository`` and ``clock`` can be injected for tests."""
+    """Build the app. Its collaborators and ``clock`` can be injected for tests."""
     settings = settings or Settings.from_env()
     if run_sync is None or repository is None:
         agent, built_repository = build_agent(settings)
         run_sync = run_sync or agent.sync
         repository = repository or built_repository
     repo = repository
+    offer_store = offers or OfferRepository(repo.session_factory)
+    if run_offer_scan is None:
+        scanner, _ = build_offer_scanner(settings, offer_store)
+        run_offer_scan = scanner.scan
     sync_service = SyncService(run_sync)
+    scan_service = SyncService(run_offer_scan)
     applications = ApplicationsCollector(repo.count_by_status)
 
     @asynccontextmanager
@@ -98,6 +121,7 @@ def create_app(
         finally:
             REGISTRY.unregister(applications)
             sync_service.shutdown()
+            scan_service.shutdown()
 
     app = FastAPI(title="apply-agent", version="0.1.0", lifespan=lifespan)
     protected = [Depends(TokenAuth(_api_token(settings)))]
@@ -204,6 +228,68 @@ def create_app(
         job = sync_service.get(job_id)
         if job is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown sync job")
+        return job.to_dict()
+
+    def offer_views() -> list[OfferView]:
+        applications = repo.list_applications()
+        return [OfferView(s, match_offer(s.offer, applications)) for s in offer_store.list_offers()]
+
+    @app.get("/offers", dependencies=protected, response_model=None)
+    def offers_view(request: Request, format: str | None = None) -> Response:
+        views = offer_views()
+        wants_json = format == "json" or (
+            format is None and "application/json" in request.headers.get("accept", "")
+        )
+        if wants_json:
+            return JSONResponse(
+                [
+                    {
+                        "id": view.stored.id,
+                        **view.stored.offer.model_dump(mode="json", exclude={"seen_at"}),
+                        "state": view.stored.state.value,
+                        "first_seen_at": view.stored.first_seen_at.isoformat(),
+                        "last_seen_at": view.stored.last_seen_at.isoformat(),
+                        "section": section_of(view),
+                        "match": view.match.kind.value,
+                        "application_id": view.match.application_id,
+                        "application_status": (
+                            view.match.application_status.value
+                            if view.match.application_status
+                            else None
+                        ),
+                    }
+                    for view in views
+                ]
+            )
+        return HTMLResponse(
+            render_offers(
+                views, scan_service.latest(), search_enabled=settings.linkedin_search_enabled
+            )
+        )
+
+    @app.put("/offers/{offer_id}/state", dependencies=protected)
+    def decide_offer(offer_id: int, decision: OfferDecision) -> dict[str, Any]:
+        try:
+            stored = offer_store.set_state(offer_id, decision.state)
+        except OfferNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown offer") from err
+        return {"id": stored.id, "state": stored.state.value}
+
+    @app.post("/offers/scan", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
+    def start_offer_scan() -> Any:
+        try:
+            return scan_service.start().to_dict()
+        except SyncAlreadyRunningError as err:
+            return JSONResponse(
+                {"detail": "a search is already running", "running": err.job.to_dict()},
+                status_code=status.HTTP_409_CONFLICT,
+            )
+
+    @app.get("/offers/scan/{job_id}", dependencies=protected)
+    def offer_scan_status(job_id: str) -> dict[str, Any]:
+        job = scan_service.get(job_id)
+        if job is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown search job")
         return job.to_dict()
 
     return app

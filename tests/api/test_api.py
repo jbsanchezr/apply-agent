@@ -574,3 +574,76 @@ def test_a_message_id_cannot_break_out_of_the_link() -> None:
     assert (
         gmail_url('x"/><script>') == "https://mail.google.com/mail/u/0/#all/x%22%2F%3E%3Cscript%3E"
     )
+
+
+def _offer_ids(client: TestClient) -> dict[str, dict[str, Any]]:
+    rows = client.get("/offers?format=json", headers=AUTH).json()
+    return {row["company"]: row for row in rows}
+
+
+def _wait_for_scan(client: TestClient, job_id: str) -> dict[str, Any]:
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        job: dict[str, Any] = client.get(f"/offers/scan/{job_id}", headers=AUTH).json()
+        if job["status"] != "running":
+            return job
+        time.sleep(0.05)
+    raise AssertionError(f"offer scan {job_id} did not finish")
+
+
+def test_offers_from_alerts_are_checked_against_applications(
+    tmp_path: Path, repository: Repository
+) -> None:
+    repository.record(
+        message("m1", "t1", days=1),
+        MessageAssessment.model_validate(
+            assessment(company="Corvina Retail", role="Senior ML Engineer")
+        ),
+    )
+    repository.record(
+        message("m2", "t2", days=1),
+        MessageAssessment.model_validate(assessment(company="Brisa Mobility", role="Data Analyst")),
+    )
+    app = create_app(_settings(tmp_path), run_sync=lambda: EMPTY_REPORT, repository=repository)
+    with TestClient(app) as client:
+        assert "No offers yet" in client.get("/offers", headers=AUTH).text
+        job = _wait_for_scan(client, client.post("/offers/scan", headers=AUTH).json()["id"])
+        assert job["status"] == "succeeded"
+        assert job["report"]["new_offers"] == 3
+
+        offers = _offer_ids(client)
+        assert offers["Corvina Retail"]["section"] == "applied"
+        assert offers["Corvina Retail"]["application_status"] == "applied"
+        assert offers["Brisa Mobility"]["match"] == "same_company"
+        assert offers["Brisa Mobility"]["section"] == "new"
+        assert offers["Pendulum Health"]["match"] == "none"
+
+        page = client.get("/offers", headers=AUTH).text
+        assert "2 new" in page
+        assert "You applied here for Data Analyst" in page
+        assert "LinkedIn search is off" in page
+        # The alert gave no link, so the page searches LinkedIn for the posting.
+        assert "jobs/search/?keywords=AI+Engineer+Pendulum+Health" in page
+
+
+def test_an_offer_can_be_marked_and_dismissed(tmp_path: Path, repository: Repository) -> None:
+    app = create_app(_settings(tmp_path), run_sync=lambda: EMPTY_REPORT, repository=repository)
+    with TestClient(app) as client:
+        _wait_for_scan(client, client.post("/offers/scan", headers=AUTH).json()["id"])
+        offer_id = _offer_ids(client)["Pendulum Health"]["id"]
+
+        for state, section in (("interested", "interested"), ("dismissed", "dismissed")):
+            response = client.put(f"/offers/{offer_id}/state", headers=AUTH, json={"state": state})
+            assert response.json() == {"id": offer_id, "state": state}
+            assert _offer_ids(client)["Pendulum Health"]["section"] == section
+
+        bad = client.put(f"/offers/{offer_id}/state", headers=AUTH, json={"state": "applied"})
+        assert bad.status_code == 422
+        missing = client.put("/offers/999/state", headers=AUTH, json={"state": "new"})
+        assert missing.status_code == 404
+
+
+def test_offer_pages_need_the_token(client: TestClient) -> None:
+    assert client.get("/offers").status_code == 401
+    assert client.post("/offers/scan").status_code == 401
+    assert client.get("/offers/scan/nope", headers=AUTH).status_code == 404

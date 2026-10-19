@@ -36,7 +36,7 @@ STATUS_COLOURS: Final = {
     "rejected": "#b91c1c",
 }
 
-_STYLE: Final = """
+STYLE: Final = """
 :root { color-scheme: light dark; --muted: #6b7280; --line: #d1d5db; }
 body {
   font: 15px/1.5 system-ui, sans-serif;
@@ -91,6 +91,10 @@ input[type=search] { font: inherit; padding: .4rem .6rem; width: 15rem; max-widt
 .actions { display: flex; gap: .5rem; align-items: center; }
 .edited { font-size: .8rem; color: var(--muted); white-space: nowrap; }
 .wrap { overflow-x: auto; }
+nav { margin-bottom: .5rem; display: flex; gap: 1rem; }
+nav a[aria-current] { font-weight: 600; color: inherit; text-decoration: none; }
+.match { font-size: .85rem; }
+.applied { color: #15803d; font-weight: 600; }
 """
 
 _SCRIPT: Final = """
@@ -129,6 +133,9 @@ async function correct(id, select) {
   select.disabled = false; select.value = "";
   alert("Could not change this application.");
 }
+"""
+
+SEARCH_SCRIPT: Final = """
 function plain(text) {
   return text.normalize("NFD").replace(/\\p{M}/gu, "").toLowerCase();
 }
@@ -152,7 +159,6 @@ function filterRows(input) {
   }
   document.getElementById("no-match").hidden = !words.length || total > 0;
 }
-filterRows(document.getElementById("search"));
 """
 
 
@@ -345,11 +351,12 @@ def render_applications(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Job applications</title>
-<style>{_STYLE}</style>
+<style>{STYLE}</style>
 </head>
 <body>
 <header>
   <div>
+    {nav("applications")}
     <h1>Job applications</h1>
     <div>{_overview(groups, quiet)}</div>
     <div class="muted">{len(views)} tracked. {_last_sync(last_job)}</div>
@@ -363,7 +370,17 @@ def render_applications(
 </header>
 {sections}
 <p id="no-match" class="muted" hidden>No applications match the search.</p>
-<script>{_SCRIPT}</script>
+<script>{_SCRIPT}{SEARCH_SCRIPT}
+filterRows(document.getElementById("search"));</script>
 </body>
 </html>
 """
+
+
+def nav(current: str) -> str:
+    """Links between the two pages, applications and offers."""
+    links = []
+    for href, label in (("applications", "Applications"), ("offers", "Job offers")):
+        marker = ' aria-current="page"' if href == current else ""
+        links.append(f'<a href="{href}"{marker}>{label}</a>')
+    return f"<nav>{''.join(links)}</nav>"

@@ -25,10 +25,19 @@ class FakeEmailProvider:
         )
 
     def list_messages(
-        self, since: datetime | None = None, *, already_have: AlreadyHave | None = None
+        self,
+        since: datetime | None = None,
+        *,
+        already_have: AlreadyHave | None = None,
+        sender: str | None = None,
     ) -> Sequence[Message]:
         # Fixtures are all inbound, so there is nothing outbound to exclude.
-        listed = [m for m in self._messages if since is None or m.sent_at >= since]
+        listed = [
+            m
+            for m in self._messages
+            if (since is None or m.sent_at >= since)
+            and (sender is None or sender.casefold() in m.sender.casefold())
+        ]
         known = set(already_have([m.id for m in listed])) if already_have else set()
         return [m for m in listed if m.id not in known]
 

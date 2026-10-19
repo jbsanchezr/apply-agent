@@ -45,6 +45,12 @@ class EmailProviderContract:
         expected = {m.id for m in everything if m.sent_at >= cutoff}
         assert expected <= {m.id for m in provider.list_messages(since=cutoff)}
 
+    def test_sender_keeps_only_messages_from_that_address(self, provider: EmailProvider) -> None:
+        listed = provider.list_messages(sender="jobalerts-noreply@linkedin")
+        assert [m.subject for m in listed] == [
+            "«machine learning engineer»: 30+ nuevos empleos en Madrid"
+        ]
+
     def test_messages_the_caller_already_has_are_left_out(self, provider: EmailProvider) -> None:
         everything = [m.id for m in provider.list_messages()]
         seen = set(everything[::2])

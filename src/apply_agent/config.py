@@ -10,7 +10,16 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final, Self
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 
 ENV_PREFIX: Final = "APPLY_AGENT_"
 # Credentials live outside the repository by default, so they cannot be committed.
@@ -34,6 +43,27 @@ class Effort(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+
+class LinkedInSearch(BaseModel):
+    """One search on LinkedIn's public job listings (D57)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
+
+    keywords: str = Field(min_length=1, max_length=100)
+    location: str = Field(default="", max_length=100)
+
+
+def _parse_searches(value: object) -> object:
+    """'data engineer @ Madrid; ml engineer' -> two searches, the second anywhere."""
+    if not isinstance(value, str):
+        return value
+    searches = []
+    for item in value.split(";"):
+        if item.strip():
+            keywords, _, location = item.partition("@")
+            searches.append({"keywords": keywords, "location": location})
+    return searches
 
 
 class Settings(BaseModel):
@@ -73,11 +103,26 @@ class Settings(BaseModel):
     # An open application with no news for this long is flagged as quiet.
     quiet_after_days: int = Field(default=14, ge=1)
 
+    # Offers are read from LinkedIn job alert emails. Searching LinkedIn's
+    # public listings is off by default: it is scraping, which LinkedIn's terms
+    # forbid and which LinkedIn may block at any time (see D57).
+    linkedin_search_enabled: bool = False
+    # "data engineer @ Madrid; machine learning engineer @ Spain"
+    linkedin_searches: Annotated[tuple[LinkedInSearch, ...], BeforeValidator(_parse_searches)] = ()
+    linkedin_search_pages: int = Field(default=2, ge=1, le=5)
+    linkedin_search_days: int = Field(default=7, ge=1, le=30)
+
     @field_validator("api_token", mode="before")
     @classmethod
     def _blank_token_means_unset(cls, value: object) -> object:
         # docker-compose passes an unset variable through as an empty string.
         return None if isinstance(value, str) and not value.strip() else value
+
+    @model_validator(mode="after")
+    def _search_needs_queries(self) -> Self:
+        if self.linkedin_search_enabled and not self.linkedin_searches:
+            raise ValueError("linkedin_search_enabled needs at least one linkedin_searches entry")
+        return self
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Self:

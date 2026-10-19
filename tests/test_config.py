@@ -60,3 +60,24 @@ def test_blank_api_token_means_unset() -> None:
     assert token is not None
     assert token.get_secret_value() == "abc"
     assert "abc" not in repr(Settings.from_env({"APPLY_AGENT_API_TOKEN": "abc"}))
+
+
+def test_linkedin_search_is_off_by_default() -> None:
+    settings = Settings.from_env({})
+    assert not settings.linkedin_search_enabled
+    assert settings.linkedin_searches == ()
+
+
+def test_linkedin_searches_are_read_from_one_variable() -> None:
+    settings = Settings.from_env(
+        {"APPLY_AGENT_LINKEDIN_SEARCHES": " data engineer @ Madrid ;; ml engineer ;"}
+    )
+    assert [(s.keywords, s.location) for s in settings.linkedin_searches] == [
+        ("data engineer", "Madrid"),
+        ("ml engineer", ""),
+    ]
+
+
+def test_turning_search_on_without_searches_fails_fast() -> None:
+    with pytest.raises(ValidationError, match="linkedin_searches"):
+        Settings.from_env({"APPLY_AGENT_LINKEDIN_SEARCH_ENABLED": "true"})

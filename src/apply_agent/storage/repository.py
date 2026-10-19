@@ -60,6 +60,10 @@ class Repository:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._sessions = session_factory
 
+    @property
+    def session_factory(self) -> sessionmaker[Session]:
+        return self._sessions
+
     def processed_message_ids(self, candidates: Collection[str]) -> set[str]:
         if not candidates:
             return set()
