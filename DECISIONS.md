@@ -624,3 +624,39 @@ One *Sync now* serves both pages. It is one job (D41): mail first, then
 offers, so an application sent today already counts when new offers are
 checked against it. A failed offer scan is reported in the job's report and
 on the offers page, but the job still succeeds, since the mail part did.
+
+## D58 - Real alerts are read link by link; offers are ranked by title fit and age
+The first reader (D57) was written from an assumed layout. On the user's real
+inbox it misread 103 of 344 offers: LinkedIn puts a blank line between a
+posting's place and its hints ("This company is actively hiring", "1 school
+alum", "Apply with resume & profile"), and the reader split postings on
+blank lines, so a hint became the title and another the company. City-only
+places ("Stockholm") were also dropped. Three real alerts were read, with the
+user's permission, to learn the layout.
+
+A posting is now the lines before each "View job" link since the previous
+link or rule of dashes, without URLs and known hints; the last three are
+title, company and place. Read against 151 real alerts, every one of the 927
+links gave exactly one posting, with no hint as a title and no missing place.
+`offers --rescan` deletes offers whose title or company is a hint, forgets
+which alerts were read and reads them again. On the real database it
+replaced all 103, lost no offer and kept every decision.
+
+The user, just out of a master's, wanted offers asking for years they do not
+have to sink, and old offers out of the way. Requirements are not in the
+alerts, and reading each posting's page would mean the scraping LinkedIn
+refuses (D57). So fit is judged from the title: seniority words map to the
+years they usually mean (entry 0, mid 2, senior 5, lead or architect 7),
+compared with `APPLY_AGENT_PROFILE_YEARS_EXPERIENCE`; words from
+`APPLY_AGENT_PROFILE_KEYWORDS` in the title add points. A title with no
+seniority word is "possible", never "good" by itself. The reasons are shown
+on hover, so a ranking can be checked. It only orders offers: it hides none.
+
+The honest limit is coverage: 85% of the real titles state no seniority, so
+for most offers only the keywords separate them. "Member of Technical Staff"
+is not a staff role.
+
+Age is when an alert last mentioned the offer, since the alerts give no
+posting date and a re-sent offer is likely still open. Offers older than
+`APPLY_AGENT_OFFERS_OLD_AFTER_DAYS` (14) fold into "Older offers". Within each
+section offers are ranked by score, then by that date.

@@ -17,7 +17,7 @@ import sys
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -30,10 +30,11 @@ from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
 from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
-from apply_agent.api.offers_page import OfferView, render_offers, section_of
+from apply_agent.api.offers_page import OfferView, rank, render_offers, section_of
 from apply_agent.api.page import days_since, gmail_url, render_applications
 from apply_agent.config import ProviderKind, Settings
 from apply_agent.domain import Application, ApplicationStatus, stage_of
+from apply_agent.domain.fit import assess_fit
 from apply_agent.domain.offers import OfferState, match_offer
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
@@ -242,13 +243,27 @@ def create_app(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown sync job")
         return job.to_dict()
 
-    def offer_views() -> list[OfferView]:
+    def offer_views(now: datetime) -> list[OfferView]:
         applications = repo.list_applications()
-        return [OfferView(s, match_offer(s.offer, applications)) for s in offer_store.list_offers()]
+        old_before = now - timedelta(days=settings.offers_old_after_days)
+        return [
+            OfferView(
+                stored,
+                match_offer(stored.offer, applications),
+                assess_fit(
+                    stored.offer.title,
+                    years=settings.profile_years_experience,
+                    keywords=settings.profile_keywords,
+                ),
+                old=stored.last_seen_at < old_before,
+            )
+            for stored in offer_store.list_offers()
+        ]
 
     @app.get("/offers", dependencies=protected, response_model=None)
     def offers_view(request: Request, format: str | None = None) -> Response:
-        views = offer_views()
+        now = clock()
+        views = sorted(offer_views(now), key=rank)
         wants_json = format == "json" or (
             format is None and "application/json" in request.headers.get("accept", "")
         )
@@ -262,6 +277,10 @@ def create_app(
                         "first_seen_at": view.stored.first_seen_at.isoformat(),
                         "last_seen_at": view.stored.last_seen_at.isoformat(),
                         "section": section_of(view),
+                        "fit": view.fit.level.value,
+                        "fit_score": view.fit.score,
+                        "fit_reasons": list(view.fit.reasons),
+                        "old": view.old,
                         "match": view.match.kind.value,
                         "application_id": view.match.application_id,
                         "application_status": (
@@ -275,7 +294,11 @@ def create_app(
             )
         return HTMLResponse(
             render_offers(
-                views, sync_service.latest(), search_enabled=settings.linkedin_search_enabled
+                views,
+                sync_service.latest(),
+                search_enabled=settings.linkedin_search_enabled,
+                now=now,
+                old_after_days=settings.offers_old_after_days,
             )
         )
 

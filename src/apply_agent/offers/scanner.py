@@ -16,6 +16,7 @@ import httpx
 from apply_agent.config import LinkedInSearch, Settings
 from apply_agent.offers.alerts import (
     PROVIDER_SENDER_FILTER,
+    is_hint,
     is_linkedin_alert,
     parse_linkedin_alert,
 )
@@ -72,6 +73,22 @@ class OfferScanner:
             extra={"offers": report.offers_found, "new": report.new_offers, "alerts": alerts},
         )
         return report
+
+    def rescan(self) -> tuple[int, OfferScanReport]:
+        """Read every alert in the lookback window again, after a reader fix (D58).
+
+        Offers whose title or company is one of LinkedIn's hints were misread
+        by the first reader and are deleted; the rescan adds them back
+        correctly. Every other offer, and the user's decision on it, is kept.
+        """
+        misread = [
+            stored.id
+            for stored in self._offers.list_offers()
+            if is_hint(stored.offer.title) or is_hint(stored.offer.company)
+        ]
+        removed = self._offers.delete_offers(misread)
+        self._offers.forget_scanned()
+        return removed, self.scan()
 
     def _scan_alerts(self) -> tuple[int, int, int]:
         latest = self._offers.latest_scanned_time()

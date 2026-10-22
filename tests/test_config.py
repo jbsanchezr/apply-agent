@@ -81,3 +81,15 @@ def test_linkedin_searches_are_read_from_one_variable() -> None:
 def test_turning_search_on_without_searches_fails_fast() -> None:
     with pytest.raises(ValidationError, match="linkedin_searches"):
         Settings.from_env({"APPLY_AGENT_LINKEDIN_SEARCH_ENABLED": "true"})
+
+
+def test_profile_defaults_to_a_new_graduate_with_no_keywords() -> None:
+    settings = Settings.from_env({})
+    assert settings.profile_years_experience == 0
+    assert settings.profile_keywords == ()
+    assert settings.offers_old_after_days == 14
+
+
+def test_profile_keywords_are_a_comma_list() -> None:
+    settings = Settings.from_env({"APPLY_AGENT_PROFILE_KEYWORDS": " ai, llm ,, python "})
+    assert settings.profile_keywords == ("ai", "llm", "python")

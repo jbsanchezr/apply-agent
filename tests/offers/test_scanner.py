@@ -13,7 +13,7 @@ from apply_agent.storage import make_session_factory
 from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from tests.agent.helpers import T0, ListProvider
 from tests.conftest import FIXTURES_DIR
-from tests.offers.test_alerts import ENGLISH_ALERT, alert
+from tests.offers.test_alerts import ENGLISH_ALERT, REAL_ALERT, alert
 
 LOOKBACK = timedelta(days=3650)
 
@@ -110,6 +110,31 @@ def test_a_refusal_skips_the_remaining_searches(offers: OfferRepository) -> None
     assert report.searches_run == 0
     assert report.search_errors[0] == "a @ anywhere: ConnectError"
     assert "429" in report.search_errors[1]
+
+
+def test_a_rescan_replaces_misread_offers_and_keeps_decisions(offers: OfferRepository) -> None:
+    misread = JobOffer(
+        source=OfferSource.LINKEDIN_ALERT,
+        linkedin_id="4100000012",
+        title="This company is actively hiring",
+        company="Apply with resume & profile",
+        seen_at=T0,
+    )
+    offers.save([misread])
+    provider = ListProvider([alert(REAL_ALERT)])
+    scanner = OfferScanner(provider, offers, initial_lookback=LOOKBACK)
+    scanner.scan()
+    kept = next(o for o in offers.list_offers() if o.offer.linkedin_id == "4100000011")
+    offers.set_state(kept.id, OfferState.INTERESTED)
+
+    removed, report = scanner.rescan()
+
+    assert removed == 1
+    assert report.alert_emails == 1
+    by_id = {o.offer.linkedin_id: o for o in offers.list_offers()}
+    assert by_id["4100000012"].offer.title.startswith("Desarrollador/a Python")
+    assert by_id["4100000011"].state is OfferState.INTERESTED
+    assert len(by_id) == 3
 
 
 def test_deciding_about_an_unknown_offer_fails(offers: OfferRepository) -> None:

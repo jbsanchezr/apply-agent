@@ -1,15 +1,26 @@
 """Job offers from LinkedIn job alert emails, read with rules, not a model.
 
-An alert lists postings as short blocks of lines separated by blank lines or
-rules of dashes. Two layouts are recognised:
+Real alerts (D58) list each posting as title, company and location, then
+LinkedIn's hints, then a link, with rules of dashes between postings:
 
-    Machine Learning Engineer              Data Engineer
-    Brisa Mobility · Madrid (Hybrid)       Acme Corp
-    Easy Apply                             Madrid, Community of Madrid, Spain
-                                           View job: https://www.linkedin.com/comm/jobs/view/4012345678/
+    Desarrollador/a Python - Microservicios y Agentes de IA
+    METRICA
+    Madrid
 
-A block counts as a posting only with a "company · location" second line or a
-link to a posting, so headers, "see all jobs" links and footers are skipped.
+    This company is actively hiring
+    View job: https://www.linkedin.com/comm/jobs/view/4480238305/?trackingId=...
+
+    ---------------------------------------------------------
+
+A posting is the lines before each "View job" link, since the last link or
+rule, without URLs and hints. The blank line before the hints is not a
+boundary. Alerts with no posting links fall back to the older layout of
+blank-line blocks with a "company · location" line:
+
+    Machine Learning Engineer
+    Brisa Mobility · Madrid (Hybrid)
+    Easy Apply
+
 Nothing here can change an application: offers are leads, not events.
 """
 
@@ -32,50 +43,32 @@ _POSTING_LINK: Final = re.compile(
     r"linkedin\.[a-z.]+/(?:comm/)?jobs/view/(?:[^/\s?]*?-)?(\d{6,20})"
 )
 _URL: Final = re.compile(r"https?://\S+")
-_LOCATION_HINT: Final = re.compile(
-    r",|\(|\b(remote|remoto|en remoto|hybrid|h[ií]brido|on-site|presencial|spain|espa[nñ]a)\b",
+# What LinkedIn writes under a posting about the posting, not the posting itself.
+_HINT: Final = re.compile(
+    r"actively (hiring|recruiting)|\balum(ni|nus|na|nae)?\b|apply with resume|easy apply"
+    r"|\bapplicants?\b|\bconnections?\b|early applicant|\bpromoted\b|your profile matches"
+    r"|solicitud sencilla|contratando activamente|tu perfil coincide|\bsolicitudes\b"
+    r"|antiguos alumnos|\bcontactos?\b|promocionad[ao]|proceso de solicitud",
     re.IGNORECASE,
 )
-_MAX_LOCATION: Final = 120
 
 
 def is_linkedin_alert(message: Message) -> bool:
     return ALERT_SENDER in message.sender.casefold()
 
 
+def is_hint(line: str) -> bool:
+    """'This company is actively hiring', '143 company alumni', 'Easy Apply'..."""
+    return bool(_HINT.search(line))
+
+
 def posting_url(linkedin_id: str) -> str:
     return f"https://www.linkedin.com/jobs/view/{linkedin_id}/"
 
 
-def _blocks(text: str) -> list[list[str]]:
-    blocks: list[list[str]] = [[]]
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line or _SEPARATOR.match(line):
-            blocks.append([])
-        else:
-            blocks[-1].append(line)
-    return [b for b in blocks if b]
-
-
-def _offer(block: list[str], message: Message) -> JobOffer | None:
-    link = next((m for line in block if (m := _POSTING_LINK.search(line))), None)
-    text = [line for line in block if not _URL.search(line)]
-    if len(text) < 2:
-        return None
-    title, second = text[0], text[1]
-    location: str | None
-    if " · " in second:
-        company, location = (part.strip() for part in second.split(" · ", 1))
-    elif link is not None:
-        company = second
-        third = text[2] if len(text) > 2 else ""
-        # The line after the company is a location, or a hint such as "Easy Apply".
-        looks_like_place = len(third) <= _MAX_LOCATION and _LOCATION_HINT.search(third)
-        location = third if third and looks_like_place else None
-    else:
-        return None
-    linkedin_id = link.group(1) if link else None
+def _offer(
+    title: str, company: str, location: str | None, linkedin_id: str | None, message: Message
+) -> JobOffer | None:
     try:
         return JobOffer(
             source=OfferSource.LINKEDIN_ALERT,
@@ -87,17 +80,56 @@ def _offer(block: list[str], message: Message) -> JobOffer | None:
             seen_at=message.sent_at,
         )
     except ValidationError:
-        # An odd block (a 300-character "title") is skipped, not fatal.
+        # An odd posting (a 300-character "title") is skipped, not fatal.
         return None
+
+
+def _linked_postings(lines: list[str], message: Message) -> list[JobOffer]:
+    offers: list[JobOffer] = []
+    pending: list[str] = []
+    for line in lines:
+        link = _POSTING_LINK.search(line)
+        if link is not None:
+            # A header line may come first, so the last three lines are the posting.
+            text = [p for p in pending if not is_hint(p)][-3:]
+            if len(text) >= 2:
+                location = text[2] if len(text) == 3 else None
+                offer = _offer(text[0], text[1], location, link.group(1), message)
+                if offer is not None:
+                    offers.append(offer)
+            pending = []
+        elif _SEPARATOR.match(line):
+            pending = []
+        elif line and not _URL.search(line):
+            pending.append(line)
+    return offers
+
+
+def _dotted_postings(lines: list[str], message: Message) -> list[JobOffer]:
+    blocks: list[list[str]] = [[]]
+    for line in lines:
+        if not line or _SEPARATOR.match(line):
+            blocks.append([])
+        elif not _URL.search(line):
+            blocks[-1].append(line)
+    offers = []
+    for block in blocks:
+        if len(block) >= 2 and " · " in block[1]:
+            company, location = (part.strip() for part in block[1].split(" · ", 1))
+            offer = _offer(block[0], company, location, None, message)
+            if offer is not None:
+                offers.append(offer)
+    return offers
 
 
 def parse_linkedin_alert(message: Message) -> list[JobOffer]:
     """The postings an alert email lists, in order. Empty for any other email."""
     if not is_linkedin_alert(message):
         return []
+    lines = [line.strip() for line in message.body_text.splitlines()]
+    has_links = any(_POSTING_LINK.search(line) for line in lines)
+    found = _linked_postings(lines, message) if has_links else _dotted_postings(lines, message)
     offers: dict[str, JobOffer] = {}
-    for block in _blocks(message.body_text):
-        offer = _offer(block, message)
-        if offer is not None:
-            offers.setdefault(offer.key, offer)
+    for offer in found:
+        offers.setdefault(offer.key, offer)
     return list(offers.values())

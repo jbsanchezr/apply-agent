@@ -109,8 +109,10 @@ docker compose up --build
   emails, each checked against your applications. Offers you already applied
   to (same company, same or longer role) are folded away with the
   application's status; another application at the same company is shown as
-  a hint. Mark an offer as *Interested* or *Dismiss* it. *Sync now*, on
-  either page, reads new mail and then new alert emails. See [Job offers](#job-offers-from-linkedin).
+  a hint. Offers are ranked by fit (from the title's seniority and your
+  profile, see below) and then by date; those no alert has mentioned for 14
+  days fold into *Older offers*. Mark an offer as *Interested* or *Dismiss*
+  it. *Sync now*, on either page, reads new mail and then new alert emails. See [Job offers](#job-offers-from-linkedin).
 * <http://localhost:3000>: the Grafana dashboard. <http://localhost:9090>: Prometheus.
 
 API (the token also works as `Authorization: Bearer <token>`):
@@ -243,6 +245,19 @@ alert emails LinkedIn already sends you (D57). Create alerts on LinkedIn
 reads the new ones, with rules and no model, so it costs nothing. A scan never
 creates or changes an application.
 
+Offers are ranked by fit with your profile (D58). The alerts carry no
+requirements, so fit comes from the title: "Junior" or "Graduate" rank high,
+"Senior", "Lead" or "Architect" low when you lack the years, and titles with
+your keywords rise. Hover the fit badge to see why. Set your profile with:
+
+```bash
+APPLY_AGENT_PROFILE_YEARS_EXPERIENCE=0
+APPLY_AGENT_PROFILE_KEYWORDS="ai, llm, python, backend, machine learning"
+```
+
+After upgrading from 0.1.x, `uv run python -m apply_agent offers --rescan`
+re-reads your alerts and replaces offers the first reader misread.
+
 Searching LinkedIn's public listings directly is also built in, and **off by
 default**: it is scraping, which LinkedIn's terms forbid. It uses no account,
 sends few requests and identifies itself honestly, and LinkedIn may refuse it
@@ -279,6 +294,9 @@ APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer
 * **Offers depend on LinkedIn's alert emails.** Only postings your alerts
   send are seen, and an HTML-only alert loses its links (the page then links
   to a LinkedIn search for the role). The public search is usually refused.
+* **Fit is a guess from the title.** Alerts do not include requirements, and
+  most titles (85% in one real inbox) name no seniority, so a plain "AI
+  Engineer" asking for four years ranks like one asking for none.
 * **Dates mentioned in an email** (interview time, deadline) are not extracted
   yet. The event date is the email's `Date` header.
 

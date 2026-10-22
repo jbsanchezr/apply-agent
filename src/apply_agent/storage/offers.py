@@ -2,8 +2,9 @@
 
 from collections.abc import Collection, Iterable
 from datetime import datetime
+from typing import Any, cast
 
-from sqlalchemy import func, select
+from sqlalchemy import CursorResult, Result, delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from apply_agent.domain.offers import JobOffer, OfferState, StoredOffer
@@ -83,11 +84,29 @@ class OfferRepository:
         with self._sessions() as session:
             return session.scalar(select(func.max(ScannedAlertRow.sent_at)))
 
+    def forget_scanned(self) -> int:
+        """Forget which emails were scanned, so the next scan reads them again."""
+        with self._sessions.begin() as session:
+            return _deleted(session.execute(delete(ScannedAlertRow)))
+
+    def delete_offers(self, offer_ids: Collection[int]) -> int:
+        if not offer_ids:
+            return 0
+        with self._sessions.begin() as session:
+            return _deleted(
+                session.execute(delete(JobOfferRow).where(JobOfferRow.id.in_(offer_ids)))
+            )
+
     def mark_scanned(self, message_id: str, sent_at: datetime, offers_found: int) -> None:
         with self._sessions.begin() as session:
             session.merge(
                 ScannedAlertRow(message_id=message_id, sent_at=sent_at, offers_found=offers_found)
             )
+
+
+def _deleted(result: Result[Any]) -> int:
+    """Rows a DELETE removed. Its result is always a cursor result."""
+    return cast(CursorResult[Any], result).rowcount
 
 
 def _to_domain(row: JobOfferRow) -> StoredOffer:

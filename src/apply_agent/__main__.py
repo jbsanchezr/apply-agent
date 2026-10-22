@@ -19,15 +19,28 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="apply_agent")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("sync", help="Process new mail, then look for job offers.")
-    commands.add_parser("offers", help="Find job offers in LinkedIn alerts (and search, if on).")
+    offers = commands.add_parser(
+        "offers", help="Find job offers in LinkedIn alerts (and search, if on)."
+    )
+    offers.add_argument(
+        "--rescan",
+        action="store_true",
+        help="Read every alert again and drop offers an older reader misread (D58).",
+    )
     args = parser.parse_args(argv)
 
     configure_logging()
     settings = Settings.from_env()
     if args.command == "offers":
         scanner, _ = build_offer_scanner(settings)
-        scan = scanner.scan()
-        sys.stdout.write(json.dumps(asdict(scan), indent=2) + "\n")
+        output: dict[str, object]
+        if args.rescan:
+            removed, scan = scanner.rescan()
+            output = asdict(scan) | {"misread_removed": removed}
+        else:
+            scan = scanner.scan()
+            output = asdict(scan)
+        sys.stdout.write(json.dumps(output, indent=2) + "\n")
         return 1 if scan.search_errors else 0
     agent, repository = build_agent(settings)
     report = agent.sync()

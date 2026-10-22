@@ -5,7 +5,7 @@ import re
 import threading
 import time
 from collections.abc import Iterator
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -21,8 +21,10 @@ from apply_agent.api.export import HEADERS, XLSX_MEDIA_TYPE
 from apply_agent.api.page import gmail_url
 from apply_agent.config import Settings
 from apply_agent.domain import MessageAssessment
+from apply_agent.domain.offers import JobOffer, OfferSource
 from apply_agent.offers.scanner import OfferScanReport
 from apply_agent.storage import make_session_factory
+from apply_agent.storage.offers import OfferRepository
 from apply_agent.storage.repository import Repository
 from tests.agent.helpers import T0, assessment, message
 from tests.conftest import FIXTURES_DIR
@@ -30,6 +32,8 @@ from tests.conftest import FIXTURES_DIR
 TOKEN = "test-token-not-secret"  # noqa: S105 - fake token for tests
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 EMPTY_REPORT = SyncReport(processed=0, recorded=0, failed=0, by_category={}, failures=[])
+# The day after the bundled LinkedIn alert, so its offers are not old yet.
+ALERT_DAY = datetime(2026, 9, 25, 9, 0, tzinfo=UTC)
 
 
 def _settings(tmp_path: Path, **extra: str) -> Settings:
@@ -595,7 +599,12 @@ def test_offers_from_alerts_are_checked_against_applications(
         message("m2", "t2", days=1),
         MessageAssessment.model_validate(assessment(company="Brisa Mobility", role="Data Analyst")),
     )
-    app = create_app(_settings(tmp_path), run_sync=lambda: EMPTY_REPORT, repository=repository)
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        clock=lambda: ALERT_DAY,
+    )
     with TestClient(app) as client:
         assert "No offers yet" in client.get("/offers", headers=AUTH).text
         job = _wait_for(client, client.post("/sync", headers=AUTH).json()["id"])
@@ -659,3 +668,51 @@ def test_a_failed_offer_scan_does_not_fail_the_mail_sync(
         page = client.get("/offers", headers=AUTH).text
         assert "Looking for offers failed" in page
         assert 'onclick="sync(this)"' in page
+
+
+def test_offers_are_ranked_by_fit_then_date_and_old_ones_folded(
+    tmp_path: Path, repository: Repository
+) -> None:
+    offers = OfferRepository(repository.session_factory)
+
+    def posting(title: str, linkedin_id: str, days_ago: int) -> JobOffer:
+        return JobOffer(
+            source=OfferSource.LINKEDIN_ALERT,
+            linkedin_id=linkedin_id,
+            title=title,
+            company=f"Company {linkedin_id}",
+            seen_at=ALERT_DAY - timedelta(days=days_ago),
+        )
+
+    offers.save(
+        [
+            posting("Senior AI Engineer", "4100000001", 0),
+            posting("AI Engineer", "4100000002", 3),
+            posting("Junior AI Engineer", "4100000003", 5),
+            posting("AI Engineer", "4100000004", 1),
+            posting("Junior Data Engineer", "4100000005", 30),
+        ]
+    )
+    settings = _settings(tmp_path, APPLY_AGENT_PROFILE_KEYWORDS="ai")
+    app = create_app(
+        settings,
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        offers=offers,
+        clock=lambda: ALERT_DAY,
+    )
+    with TestClient(app) as client:
+        rows = client.get("/offers?format=json", headers=AUTH).json()
+        page = client.get("/offers", headers=AUTH).text
+
+    assert [(r["linkedin_id"], r["fit"], r["section"]) for r in rows] == [
+        ("4100000003", "good", "new"),  # entry title + keyword: 90
+        ("4100000005", "good", "older"),  # entry title: 80, but no alert for 30 days
+        ("4100000004", "good", "new"),  # unstated + keyword: 70, newer
+        ("4100000002", "good", "new"),  # unstated + keyword: 70, older
+        ("4100000001", "unlikely", "new"),  # senior title for a new graduate
+    ]
+    assert rows[-1]["fit_reasons"] == ["A senior title, usually 5+ years", "Matches ai"]
+    assert "3 a good fit" in page
+    assert "1 older than 14 days" in page
+    assert page.index("Junior AI Engineer") < page.index("Senior AI Engineer")
