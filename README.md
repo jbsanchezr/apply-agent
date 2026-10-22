@@ -247,8 +247,9 @@ creates or changes an application.
 
 Offers are ranked by fit with your profile (D58, D59). The alerts carry no
 requirements, so fit comes from the title, company and place: the seniority
-words of the title against your years ("Senior" or "Lead" sink when you lack
-them), roles you want, roles you never want (an avoided word sinks any
+words of the title against your years in that area ("Senior" or "Lead"
+sink when you lack them; three years of backend do not count for an AI
+title), roles you want, roles you never want (an avoided word sinks any
 offer), places you prefer and bonus words. Offers that fit poorly fold into
 *Poor fit*; hover a fit badge to see why it scored as it did. Write your
 profile from the example, outside the repository, since it is personal:

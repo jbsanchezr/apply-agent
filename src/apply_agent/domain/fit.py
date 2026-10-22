@@ -83,18 +83,37 @@ def _found(words: tuple[str, ...], *texts: str | None) -> list[str]:
     return [w for w in words if (key := role_key(w)) and f" {key} " in padded]
 
 
-def _experience(level: Seniority, profile: CandidateProfile) -> tuple[int, str]:
-    if level is Seniority.UNSTATED:
-        return 55, "Title does not say the seniority"
-    label = _LABELS[level].capitalize()
-    if level <= profile.years_experience:
-        return 75, label
-    over = level - profile.years_ceiling
-    if over <= 0:
-        return 60, f"{label}, more years than you have but within reach"
-    if over <= 1:
-        return 40, f"{label}, a stretch"
-    return 10, f"{label}, more than you have"
+def _years_had(title: str, profile: CandidateProfile) -> tuple[int, str]:
+    """Years in the title's field, and the field's name for the reasons.
+
+    A title in several fields ("AI Backend Engineer") takes the one with the
+    fewest years: the role asks for experience in each field it names.
+    """
+    matched = [
+        (area.years, name) for name, area in profile.areas.items() if _found(area.words, title)
+    ]
+    if not matched:
+        return profile.years_experience, "total"
+    return min(matched)
+
+
+def _experience(title: str, profile: CandidateProfile) -> tuple[int, str]:
+    level = seniority(title)
+    stated = level is not Seniority.UNSTATED
+    asked = int(level) if stated else profile.unstated_years_asked
+    label = (
+        _LABELS[level].capitalize()
+        if stated
+        else f"No seniority in the title, assumed ~{asked} years"
+    )
+    if asked > profile.years_ceiling:
+        return 10, f"{label}, beyond your limit of {profile.years_ceiling}"
+    had, area = _years_had(title, profile)
+    if asked <= had:
+        return (75 if stated else 65), f"{label}; you have {had} in {area}"
+    if asked - had <= 2:
+        return 40, f"{label}; you have {had} in {area}"
+    return 10, f"{label}; you have only {had} in {area}"
 
 
 def assess_fit(offer: JobOffer, profile: CandidateProfile) -> OfferFit:
@@ -103,7 +122,7 @@ def assess_fit(offer: JobOffer, profile: CandidateProfile) -> OfferFit:
     An avoided word ("DevOps", "PhD", "freelance") caps the score low, whatever
     else matches: the candidate said they do not want those roles.
     """
-    score, reason = _experience(seniority(offer.title), profile)
+    score, reason = _experience(offer.title, profile)
     reasons = [reason]
     if target := _found(profile.target, offer.title):
         score += 10 if len(target) == 1 else 15

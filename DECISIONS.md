@@ -690,3 +690,31 @@ scored like a mid one. With the bands above: 45% good, 47% possible, 8% poor,
 and the top is mid-level AI roles in Utrecht and Madrid. A bare "frontend"
 also sank full-stack titles ("Backend, AI & Frontend"); the profile avoids
 "frontend developer" and "frontend engineer" instead.
+
+## D60 - Experience is counted per area, and an unstated seniority is a guess
+With D59 the user still saw plain "AI Engineer" offers ranked as good fits,
+and opened postings that asked for three years as an AI engineer. They have
+three years, but of backend work; their AI is a master's. The profile had one
+number of years and applied it to every title, and a title with no seniority
+word was scored as neutral. Of the 391 offers ranked good, 244 were AI titles
+with no seniority word, and 19 were senior AI titles.
+
+The requirements are still not in the alerts (D57, D58), so "asks for three
+years" cannot be read. Two changes make the guess honest instead:
+
+* **Years per area.** The profile can name areas, each with its years and
+  the words that recognise it in a title (`[areas.ai] years = 0`). A title is
+  judged against the years in its area; one that names several ("AI Backend
+  Engineer") against the weakest, since it asks for each; one that names none
+  against the total.
+* **An unstated seniority is assumed, not ignored.** A title with no
+  seniority word is taken to ask `unstated_years_asked` (2) years in its area.
+  For the user, "AI Engineer" now ranks as possible, "Backend Engineer" still
+  as good, and "Junior AI Engineer" stays at the top.
+
+Within the ceiling the base score is 75 when the candidate has the years
+asked (65 if the years were assumed), 40 when they are two or fewer short,
+and 10 beyond that or beyond the ceiling. On the user's offers: 264 good
+(was 391), 515 possible, 84 poor. The cost is the other side of the same
+guess: an AI role that is entry level but does not say so also ranks as
+possible, one step down, never hidden.

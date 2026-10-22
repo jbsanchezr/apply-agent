@@ -1,4 +1,4 @@
-"""The candidate's profile: what they have and what they want from a job (D59).
+"""The candidate's profile: what they have and what they want from a job (D59, D60).
 
 Words are matched as whole words against the role key of a title, company or
 place (lower case, no accents, no punctuation), so "back end" also matches
@@ -12,13 +12,32 @@ from pydantic import Field, model_validator
 from apply_agent.domain.models import DomainModel
 
 Words = tuple[Annotated[str, Field(min_length=1, max_length=60)], ...]
+Years = Annotated[int, Field(ge=0, le=50)]
+
+
+class Area(DomainModel):
+    """Experience in one field, recognised in a title by its words (D60).
+
+    Three years of backend work are not three years of AI: an "AI Engineer"
+    title is judged against the years in AI, not the total.
+    """
+
+    years: Years
+    words: Words = Field(min_length=1)
 
 
 class CandidateProfile(DomainModel):
-    years_experience: int = Field(default=0, ge=0, le=50)
-    # The most years a posting may ask for before it ranks low. Defaults to
-    # two more than the candidate has.
-    max_years_asked: int | None = Field(default=None, ge=0, le=50)
+    # Total professional experience: used for titles that match no area.
+    years_experience: Years = 0
+    # Experience per field, such as {"backend": 3, "ai": 0}.
+    areas: dict[Annotated[str, Field(min_length=1, max_length=40)], Area] = Field(
+        default_factory=dict
+    )
+    # What a title with no seniority word ("AI Engineer") is assumed to ask.
+    unstated_years_asked: Years = 2
+    # The most years a posting may ask for before it ranks low, whatever the
+    # area. Defaults to two more than the candidate has.
+    max_years_asked: Years | None = None
     # Roles, skills and topics wanted in a title.
     target: Words = ()
     # Words that make a title a poor fit whatever else it says (DevOps, PhD...).

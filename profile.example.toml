@@ -6,11 +6,13 @@
 # "back end" matches "Back-End", and "ia" does not match "Ingeniería".
 # Alerts carry a title, a company and a place, so that is all this can see.
 
-# Years of professional experience.
+# Years of professional experience, for titles that match no area below.
 years_experience = 2
 # The most years a posting may ask for before it ranks low. Titles are read
 # as: junior 0, mid 2, senior 5, lead / staff / architect 7.
 max_years_asked = 4
+# What a title with no seniority word ("Data Engineer") is assumed to ask.
+unstated_years_asked = 2
 
 # Roles, skills and topics you want in a title.
 target = ["data engineer", "backend", "python", "analytics engineer"]
@@ -23,3 +25,14 @@ preferred_places = ["lisbon", "porto", "portugal"]
 
 # Words in a title or company name worth a little extra.
 bonus = ["climate", "energy"]
+
+# Experience per area (D60): a title is judged against the years in its area,
+# not the total, and a title naming several areas uses the lowest. Keep these
+# tables at the end: in TOML, every key after a [table] header belongs to it.
+[areas.data]
+years = 2
+words = ["data engineer", "analytics engineer", "etl", "sql"]
+
+[areas.ml]
+years = 0
+words = ["ml", "machine learning", "ai", "data scientist"]

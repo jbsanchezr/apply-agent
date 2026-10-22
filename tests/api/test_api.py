@@ -716,7 +716,7 @@ def test_offers_are_ranked_by_fit_then_date_and_old_ones_folded(
         ("4100000001", "unlikely", "poor"),  # senior title for a new graduate
     ]
     assert rows[-1]["fit_reasons"] == [
-        "A senior title, usually 5+ years, more than you have",
+        "A senior title, usually 5+ years, beyond your limit of 2",
         "Wanted: ai",
     ]
     assert "1 poor fit" in page
