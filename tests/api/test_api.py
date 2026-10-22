@@ -723,3 +723,68 @@ def test_offers_are_ranked_by_fit_then_date_and_old_ones_folded(
     assert "1 a good fit" in page
     assert "1 older than 14 days" in page
     assert page.index("Junior AI Engineer") < page.index("Senior AI Engineer")
+
+
+def test_closed_offers_fold_away_and_teach_when_offers_go_old(
+    tmp_path: Path, repository: Repository
+) -> None:
+    offers = OfferRepository(repository.session_factory)
+    offers.save(
+        [
+            JobOffer(
+                source=OfferSource.LINKEDIN_ALERT,
+                linkedin_id=f"41000000{n:02d}",
+                title=f"Role {n}",
+                company=f"Company {n}",
+                seen_at=ALERT_DAY - timedelta(days=n),
+            )
+            for n in range(1, 9)
+        ]
+    )
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        offers=offers,
+        clock=lambda: ALERT_DAY,
+    )
+    with TestClient(app) as client:
+
+        def by_id() -> dict[str, dict[str, Any]]:
+            rows = client.get("/offers?format=json", headers=AUTH).json()
+            return {row["linkedin_id"]: row for row in rows}
+
+        page = client.get("/offers", headers=AUTH).text
+        assert "Mark 5 more as <em>No longer available</em>" in page
+        assert "No longer available</option>" in page
+        assert by_id()["4100000008"]["section"] == "new"  # 8 days < the default 14
+
+        # The user finds five offers closed, 2 to 6 days after their alert.
+        for n in range(2, 7):
+            offer_id = by_id()[f"41000000{n:02d}"]["id"]
+            response = client.put(f"/offers/{offer_id}/closed", headers=AUTH)
+            assert response.status_code == 200
+            assert response.json()["closed_at"] is not None
+
+        rows = by_id()
+        assert {rows[f"41000000{n:02d}"]["section"] for n in range(2, 7)} == {"closed"}
+        # Learned: offers close at about 4 days, so 7 and 8 days old now fold.
+        assert [rows[f"41000000{n:02d}"]["section"] for n in (1, 7, 8)] == [
+            "new",
+            "older",
+            "older",
+        ]
+        page = client.get("/offers", headers=AUTH).text
+        assert "4 days after their last alert" in page
+        assert "the typical age of the 5 offers you found closed" in page
+        assert "5 no longer available" in page
+        assert rows["4100000001"]["days_since_last_alert"] == 1
+
+        # Undo one: four closures are too few to learn from, so 14 days again.
+        three = rows["4100000003"]["id"]
+        assert client.delete(f"/offers/{three}/closed", headers=AUTH).json()["closed_at"] is None
+        rows = by_id()
+        assert [rows[f"41000000{n:02d}"]["section"] for n in (3, 7, 8)] == ["new", "new", "new"]
+
+        assert client.put("/offers/999/closed", headers=AUTH).status_code == 404
+        assert client.delete("/offers/999/closed", headers=AUTH).status_code == 404

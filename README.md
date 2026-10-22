@@ -128,6 +128,7 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `GET /sync/{job_id}` | Job status and report |
 | `GET /offers` | Job offers and whether you applied; JSON via `?format=json` |
 | `PUT /offers/{id}/state` | `{"state": "interested"}`, `"dismissed"` or `"new"` |
+| `PUT /offers/{id}/closed` | The posting is no longer open; `DELETE` undoes it |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
 | `GET /healthz` | Liveness |
 
@@ -251,7 +252,9 @@ words of the title against your years in that area ("Senior" or "Lead"
 sink when you lack them; three years of backend do not count for an AI
 title), roles you want, roles you never want (an avoided word sinks any
 offer), places you prefer and bonus words. Offers that fit poorly fold into
-*Poor fit*; hover a fit badge to see why it scored as it did. Write your
+*Poor fit*; hover a fit badge to see why it scored as it did. When an offer
+turns out to be closed, mark it *No longer available*: after five, offers
+fold into *Older offers* at the age yours were found closed (D61). Write your
 profile from the example, outside the repository, since it is personal:
 
 ```bash
@@ -299,6 +302,8 @@ APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer
 * **Offers depend on LinkedIn's alert emails.** Only postings your alerts
   send are seen, and an HTML-only alert loses its links (the page then links
   to a LinkedIn search for the role). The public search is usually refused.
+* **Closed offers are not detected.** LinkedIn blocks automated checks, so
+  you mark closed offers yourself; the app only learns how old they get.
 * **Fit is a guess from the title.** Alerts do not include requirements, and
   most titles (85% in one real inbox) name no seniority, so a plain "AI
   Engineer" asking for four years ranks like one asking for none.

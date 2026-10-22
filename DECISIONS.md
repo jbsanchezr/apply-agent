@@ -718,3 +718,32 @@ and 10 beyond that or beyond the ceiling. On the user's offers: 264 good
 (was 391), 515 possible, 84 poor. The cost is the other side of the same
 guess: an AI role that is entry level but does not say so also ranks as
 possible, one step down, never hidden.
+
+## D61 - Closed offers are reported by the user, and teach when offers go old
+The user kept opening offers LinkedIn no longer accepts applications for. On
+their database, 604 of 873 offers (69%) had had no alert for over 14 days,
+and 814 had appeared in a single alert, so the date of that email is the
+only sign of an offer's age.
+
+Whether a posting is still open is on its LinkedIn page. Reading those pages
+is the scraping LinkedIn refuses to clients it takes for bots (D57), and
+doing it through the user's signed-in session would put their account at
+risk. So the app does not check; the user tells it, and it learns from that:
+
+* **No longer available** is a choice on each offer. It moves the offer to a
+  folded section of that name and records how many days had passed since the
+  last alert that listed it. It is a table of its own (`offer_closures`), not
+  a new `state` value: the state column's CHECK constraint was fixed when the
+  table was created, and a new table needs no migration (D9). Undoing it is
+  one click, as marking it was.
+* **The fold learns.** With five closures or more, offers fold into "Older
+  offers" after the median of those ages (at least 3 days) instead of the
+  configured 14. The page says which rule applies and how many more closures
+  it needs. The age measured is when the user found the offer closed, not
+  when it closed, so it errs late: it hides fewer offers, never more.
+* **Age is visible before the click.** Each offer shows how long ago its last
+  alert was: green when two days or fewer, orange "may be closed" once past
+  half of the fold age.
+
+Age is measured from the last alert that listed an offer, the same for the
+fold and for closures, because an offer an alert repeats is likely still open.

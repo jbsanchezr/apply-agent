@@ -5,6 +5,7 @@
     GET  /sync/{job_id}    job status and report
     GET  /offers           job offers found on LinkedIn, and whether you applied (D57)
     PUT  /offers/{id}/state  mark an offer as interesting, dismissed or new
+    PUT  /offers/{id}/closed  the posting is no longer open (DELETE to undo)
     GET  /metrics          Prometheus exposition (unauthenticated, no personal data)
     GET  /healthz          liveness (unauthenticated)
 
@@ -31,12 +32,12 @@ from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
 from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
-from apply_agent.api.offers_page import OfferView, rank, render_offers, section_of
+from apply_agent.api.offers_page import OfferView, OldAfter, rank, render_offers, section_of
 from apply_agent.api.page import days_since, gmail_url, render_applications
 from apply_agent.config import ProviderKind, Settings
 from apply_agent.domain import Application, ApplicationStatus, stage_of
 from apply_agent.domain.fit import assess_fit
-from apply_agent.domain.offers import OfferState, match_offer
+from apply_agent.domain.offers import OfferState, match_offer, typical_closing_age
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
 from apply_agent.offers.profile import load_profile
@@ -253,9 +254,17 @@ def create_app(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown sync job")
         return job.to_dict()
 
-    def offer_views(now: datetime) -> list[OfferView]:
+    def old_after() -> OldAfter:
+        """Learned from offers the user found closed, else the setting (D61)."""
+        ages = offer_store.closing_ages()
+        learned = typical_closing_age(ages)
+        if learned is None:
+            return OldAfter(settings.offers_old_after_days, closures=len(ages), learned=False)
+        return OldAfter(learned, closures=len(ages), learned=True)
+
+    def offer_views(now: datetime, fold: OldAfter) -> list[OfferView]:
         applications = repo.list_applications()
-        old_before = now - timedelta(days=settings.offers_old_after_days)
+        old_before = now - timedelta(days=fold.days)
         return [
             OfferView(
                 stored,
@@ -268,8 +277,8 @@ def create_app(
 
     @app.get("/offers", dependencies=protected, response_model=None)
     def offers_view(request: Request, format: str | None = None) -> Response:
-        now = clock()
-        views = sorted(offer_views(now), key=rank)
+        now, fold = clock(), old_after()
+        views = sorted(offer_views(now, fold), key=rank)
         wants_json = format == "json" or (
             format is None and "application/json" in request.headers.get("accept", "")
         )
@@ -287,6 +296,10 @@ def create_app(
                         "fit_score": view.fit.score,
                         "fit_reasons": list(view.fit.reasons),
                         "old": view.old,
+                        "closed_at": (
+                            view.stored.closed_at.isoformat() if view.stored.closed_at else None
+                        ),
+                        "days_since_last_alert": days_since(view.stored.last_seen_at, now),
                         "match": view.match.kind.value,
                         "application_id": view.match.application_id,
                         "application_status": (
@@ -304,9 +317,30 @@ def create_app(
                 sync_service.latest(),
                 search_enabled=settings.linkedin_search_enabled,
                 now=now,
-                old_after_days=settings.offers_old_after_days,
+                old_after=fold,
             )
         )
+
+    @app.put("/offers/{offer_id}/closed", dependencies=protected)
+    def close_offer(offer_id: int) -> dict[str, Any]:
+        """The posting is no longer open. Its age teaches when to fold offers (D61)."""
+        try:
+            stored = offer_store.mark_closed(offer_id, clock())
+        except OfferNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown offer") from err
+        return {
+            "id": stored.id,
+            "closed_at": stored.closed_at.isoformat() if stored.closed_at else None,
+        }
+
+    @app.delete("/offers/{offer_id}/closed", dependencies=protected)
+    def reopen_offer(offer_id: int) -> dict[str, Any]:
+        """Undo a closure marked by mistake."""
+        try:
+            stored = offer_store.reopen(offer_id)
+        except OfferNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown offer") from err
+        return {"id": stored.id, "closed_at": None}
 
     @app.put("/offers/{offer_id}/state", dependencies=protected)
     def decide_offer(offer_id: int, decision: OfferDecision) -> dict[str, Any]:

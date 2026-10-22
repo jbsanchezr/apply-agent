@@ -170,6 +170,10 @@ class JobOfferRow(Base):
     first_seen_at: Mapped[datetime]
     last_seen_at: Mapped[datetime]
 
+    closure: Mapped["OfferClosureRow | None"] = relationship(
+        back_populates="offer", cascade="all, delete-orphan"
+    )
+
 
 class ScannedAlertRow(Base):
     """An email the offer scanner has read, so it is not downloaded again.
@@ -183,3 +187,23 @@ class ScannedAlertRow(Base):
     message_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     sent_at: Mapped[datetime]
     offers_found: Mapped[int] = mapped_column(default=0)
+
+
+class OfferClosureRow(Base):
+    """The user found this offer no longer open (D61). At most one per offer.
+
+    A table rather than a new ``state`` value: the state column's CHECK
+    constraint is fixed when the table is created, and databases created
+    before this existed pick a new table up from ``create_all`` (D9).
+    """
+
+    __tablename__ = "offer_closures"
+
+    offer_id: Mapped[int] = mapped_column(
+        ForeignKey("job_offers.id", ondelete="CASCADE"), primary_key=True
+    )
+    reported_at: Mapped[datetime]
+    # Days from the last alert that listed it to the day it was found closed.
+    age_days: Mapped[int]
+
+    offer: Mapped[JobOfferRow] = relationship(back_populates="closure")

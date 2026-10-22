@@ -15,9 +15,10 @@ from typing import Final
 from urllib.parse import quote_plus
 
 from apply_agent.api.jobs import SyncJob
-from apply_agent.api.page import SEARCH_SCRIPT, STATUS_COLOURS, STYLE, SYNC_SCRIPT, nav
+from apply_agent.api.page import SEARCH_SCRIPT, STATUS_COLOURS, STYLE, SYNC_SCRIPT, days_since, nav
 from apply_agent.domain.fit import FitLevel, OfferFit
 from apply_agent.domain.offers import (
+    MIN_CLOSURES_TO_LEARN,
     OfferApplicationMatch,
     OfferMatch,
     OfferSource,
@@ -29,11 +30,19 @@ _SCRIPT: Final = """
 async function decide(id, select) {
   if (!select.value) return;
   select.disabled = true;
-  const response = await fetch("offers/" + id + "/state", {
-    method: "PUT",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({state: select.value}),
-  });
+  let request;
+  if (select.value === "closed") {
+    request = ["offers/" + id + "/closed", {method: "PUT"}];
+  } else if (select.value === "reopen") {
+    request = ["offers/" + id + "/closed", {method: "DELETE"}];
+  } else {
+    request = ["offers/" + id + "/state", {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({state: select.value}),
+    }];
+  }
+  const response = await fetch(...request);
   if (response.ok) { location.reload(); return; }
   select.disabled = false; select.value = "";
   alert("Could not change this offer.");
@@ -61,6 +70,15 @@ class OfferView:
 
 
 @dataclass(frozen=True, slots=True)
+class OldAfter:
+    """After how many days without an alert an offer folds away, and why (D61)."""
+
+    days: int
+    closures: int = 0
+    learned: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class _Section:
     key: str
     title: str
@@ -74,6 +92,7 @@ _SECTIONS: Final = (
     _Section("poor", "Poor fit", "No offers ranked as a poor fit.", folded=True),
     _Section("older", "Older offers", "No old offers.", folded=True),
     _Section("applied", "Already applied", "None of these offers matches an application.", True),
+    _Section("closed", "No longer available", "No offer marked as closed.", folded=True),
     _Section("dismissed", "Dismissed", "Nothing dismissed.", folded=True),
 )
 
@@ -83,6 +102,8 @@ def section_of(view: OfferView) -> str:
         return "dismissed"
     if view.match.kind is OfferMatch.APPLIED:
         return "applied"
+    if view.stored.closed_at is not None:
+        return "closed"
     if view.stored.state is OfferState.INTERESTED:
         return "interested"
     if view.old:
@@ -131,6 +152,10 @@ def _actions(view: OfferView) -> str:
         for state, label in _ACTIONS.items()
         if state is not stored.state
     )
+    if stored.closed_at is None:
+        options += '<option value="closed">No longer available</option>'
+    else:
+        options += '<option value="reopen">Still open (undo)</option>'
     company = escape(stored.offer.company, quote=True)
     return (
         f'<select aria-label="Decide about {company}" onchange="decide({stored.id}, this)">'
@@ -155,21 +180,38 @@ def _fit(fit: OfferFit) -> str:
     )
 
 
-def _found(view: OfferView, now: datetime) -> str:
+FRESH_DAYS: Final = 2
+
+
+def _age(days: int, fold_days: int) -> tuple[str, str]:
+    """A label and a class: fresh in green, past half the fold in orange (D61)."""
+    ago = "today" if days == 0 else "1 day ago" if days == 1 else f"{days} days ago"
+    if days <= FRESH_DAYS:
+        return f"new, {ago}", "fresh"
+    if days * 2 > fold_days:
+        return f"{ago}, may be closed", "quiet"
+    return ago, "muted"
+
+
+def _found(view: OfferView, now: datetime, fold_days: int) -> str:
     """When an alert last mentioned it: the newer, the likelier it is still open."""
     stored = view.stored
-    days = max((now - stored.last_seen_at).days, 0)
-    ago = "today" if days == 0 else "1 day ago" if days == 1 else f"{days} days ago"
+    label, css = _age(days_since(stored.last_seen_at, now), fold_days)
     posted = stored.offer.posted_on
     extra = f"<br>posted {posted.isoformat()}" if posted else ""
+    closed = (
+        f'<br><span class="muted">closed by {stored.closed_at:%Y-%m-%d}</span>'
+        if stored.closed_at
+        else ""
+    )
     return (
-        f'<td class="date">{stored.last_seen_at:%Y-%m-%d}<br>'
-        f'<span class="{"quiet" if view.old else "muted"}">{ago}</span>'
-        f'<br><span class="muted">{_SOURCES[stored.offer.source]}{extra}</span></td>'
+        f'<td class="date"><span class="{css}">{label}</span><br>'
+        f'<span class="muted">{stored.last_seen_at:%Y-%m-%d}, '
+        f"{_SOURCES[stored.offer.source]}{extra}</span>{closed}</td>"
     )
 
 
-def _row(view: OfferView, now: datetime) -> str:
+def _row(view: OfferView, now: datetime, fold_days: int) -> str:
     offer = view.stored.offer
     search = escape(f"{offer.company} {offer.title} {offer.location or ''}", quote=True)
     link = escape(offer_link(view), quote=True)
@@ -180,7 +222,7 @@ def _row(view: OfferView, now: datetime) -> str:
         f"{escape(offer.title)}</a></td>"
         f"<td>{escape(offer.company)}</td>"
         f"<td>{escape(offer.location or '-')}</td>"
-        f"{_found(view, now)}"
+        f"{_found(view, now, fold_days)}"
         f"<td>{_match(view.match)}</td>"
         f"<td>{_actions(view)}</td>"
         "</tr>"
@@ -193,8 +235,8 @@ _HEAD: Final = (
 )
 
 
-def _section(section: _Section, views: Sequence[OfferView], now: datetime) -> str:
-    rows = "\n".join(_row(v, now) for v in sorted(views, key=rank)) or (
+def _section(section: _Section, views: Sequence[OfferView], now: datetime, fold_days: int) -> str:
+    rows = "\n".join(_row(v, now, fold_days) for v in sorted(views, key=rank)) or (
         f'<tr><td colspan="7" class="muted">{section.empty}</td></tr>'
     )
     heading = f'<h2>{section.title} <span class="count">({len(views)})</span></h2>'
@@ -220,13 +262,27 @@ def _last_sync(job: SyncJob | None) -> str:
     return text
 
 
+def _fold_note(old_after: OldAfter) -> str:
+    days = old_after.days
+    if old_after.learned:
+        return (
+            f"Offers fold into <em>Older offers</em> {days} days after their last alert: "
+            f"the typical age of the {old_after.closures} offers you found closed."
+        )
+    missing = MIN_CLOSURES_TO_LEARN - old_after.closures
+    return (
+        f"Offers fold into <em>Older offers</em> {days} days after their last alert. "
+        f"Mark {missing} more as <em>No longer available</em> to learn when they usually close."
+    )
+
+
 def render_offers(
     views: Sequence[OfferView],
     last_job: SyncJob | None,
     *,
     search_enabled: bool,
     now: datetime,
-    old_after_days: int,
+    old_after: OldAfter,
 ) -> str:
     groups: dict[str, list[OfferView]] = {s.key: [] for s in _SECTIONS}
     for view in views:
@@ -239,7 +295,8 @@ def render_offers(
             f"{len(groups['interested'])} interested",
             f"{len(groups['poor'])} poor fit",
             f"{len(groups['applied'])} already applied",
-            f"{len(groups['older'])} older than {old_after_days} days",
+            f"{len(groups['older'])} older than {old_after.days} days",
+            f"{len(groups['closed'])} no longer available",
         )
     )
     source = (
@@ -248,7 +305,7 @@ def render_offers(
         else "Offers come from LinkedIn job alert emails. LinkedIn search is off."
     )
     if views:
-        sections = "\n".join(_section(s, groups[s.key], now) for s in _SECTIONS)
+        sections = "\n".join(_section(s, groups[s.key], now, old_after.days) for s in _SECTIONS)
     else:
         sections = (
             '<p class="muted">No offers yet. Create job alerts on LinkedIn, then press '
@@ -269,6 +326,7 @@ def render_offers(
     <h1>Job offers</h1>
     <div>{overview}</div>
     <div class="muted">{source} {_last_sync(last_job)}</div>
+    <div class="muted">{_fold_note(old_after)}</div>
   </div>
   <div class="actions">
     <input type="search" id="search" placeholder="Search role, company or place"

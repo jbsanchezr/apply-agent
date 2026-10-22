@@ -5,10 +5,10 @@ from datetime import datetime
 from typing import Any, cast
 
 from sqlalchemy import CursorResult, Result, delete, func, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, selectinload, sessionmaker
 
 from apply_agent.domain.offers import JobOffer, OfferState, StoredOffer
-from apply_agent.storage.schema import JobOfferRow, ScannedAlertRow
+from apply_agent.storage.schema import JobOfferRow, OfferClosureRow, ScannedAlertRow
 
 
 class OfferNotFoundError(LookupError):
@@ -59,17 +59,41 @@ class OfferRepository:
     def list_offers(self) -> list[StoredOffer]:
         with self._sessions() as session:
             rows = session.scalars(
-                select(JobOfferRow).order_by(JobOfferRow.last_seen_at.desc(), JobOfferRow.id)
+                select(JobOfferRow)
+                .options(selectinload(JobOfferRow.closure))
+                .order_by(JobOfferRow.last_seen_at.desc(), JobOfferRow.id)
             )
             return [_to_domain(row) for row in rows]
 
     def set_state(self, offer_id: int, state: OfferState) -> StoredOffer:
         with self._sessions.begin() as session:
-            row = session.get(JobOfferRow, offer_id)
-            if row is None:
-                raise OfferNotFoundError(offer_id)
+            row = _get(session, offer_id)
             row.state = state
             return _to_domain(row)
+
+    def mark_closed(self, offer_id: int, at: datetime) -> StoredOffer:
+        """The user found the posting no longer open. Its age then is remembered."""
+        with self._sessions.begin() as session:
+            row = _get(session, offer_id)
+            # Measured like the fold on the page: from the last alert that listed it.
+            age = max((at - row.last_seen_at).days, 0)
+            if row.closure is None:
+                row.closure = OfferClosureRow(reported_at=at, age_days=age)
+            else:
+                row.closure.reported_at, row.closure.age_days = at, age
+            return _to_domain(row)
+
+    def reopen(self, offer_id: int) -> StoredOffer:
+        """Undo a closure marked by mistake."""
+        with self._sessions.begin() as session:
+            row = _get(session, offer_id)
+            row.closure = None
+            return _to_domain(row)
+
+    def closing_ages(self) -> list[int]:
+        """Days old each offer was when the user found it closed."""
+        with self._sessions() as session:
+            return list(session.scalars(select(OfferClosureRow.age_days)))
 
     def scanned_message_ids(self, candidates: Collection[str]) -> set[str]:
         if not candidates:
@@ -104,6 +128,13 @@ class OfferRepository:
             )
 
 
+def _get(session: Session, offer_id: int) -> JobOfferRow:
+    row = session.get(JobOfferRow, offer_id)
+    if row is None:
+        raise OfferNotFoundError(offer_id)
+    return row
+
+
 def _deleted(result: Result[Any]) -> int:
     """Rows a DELETE removed. Its result is always a cursor result."""
     return cast(CursorResult[Any], result).rowcount
@@ -125,4 +156,5 @@ def _to_domain(row: JobOfferRow) -> StoredOffer:
         state=row.state,
         first_seen_at=row.first_seen_at,
         last_seen_at=row.last_seen_at,
+        closed_at=row.closure.reported_at if row.closure else None,
     )

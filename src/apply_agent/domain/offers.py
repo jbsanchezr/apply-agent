@@ -6,11 +6,12 @@ so an application recorded after the offer was found shows up at once.
 """
 
 import hashlib
+import statistics
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Final
 
 from pydantic import Field
 
@@ -70,6 +71,8 @@ class StoredOffer(DomainModel):
     state: OfferState
     first_seen_at: UtcDatetime
     last_seen_at: UtcDatetime
+    # When the user found the posting no longer open (D61).
+    closed_at: UtcDatetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,3 +110,21 @@ def match_offer(offer: JobOffer, applications: Sequence[Application]) -> OfferAp
         latest = max(same_company, key=lambda a: a.last_activity_at)
         return OfferApplicationMatch(OfferMatch.SAME_COMPANY, latest.id, latest.role, latest.status)
     return OfferApplicationMatch(OfferMatch.NONE)
+
+
+# Closed offers needed before their age is trusted, and the shortest age the
+# page will fold at: one quick closure must not hide a week of offers.
+MIN_CLOSURES_TO_LEARN: Final = 5
+MIN_LEARNED_DAYS: Final = 3
+
+
+def typical_closing_age(ages_days: Sequence[int]) -> int | None:
+    """How old offers usually are when the user finds them closed (D61).
+
+    The median of the ages recorded when the user marked offers as no longer
+    available, or None with fewer than ``MIN_CLOSURES_TO_LEARN`` marks. It is
+    when they were found closed, not when they closed, so it errs late.
+    """
+    if len(ages_days) < MIN_CLOSURES_TO_LEARN:
+        return None
+    return max(round(statistics.median(ages_days)), MIN_LEARNED_DAYS)

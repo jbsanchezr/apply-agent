@@ -140,3 +140,26 @@ def test_a_rescan_replaces_misread_offers_and_keeps_decisions(offers: OfferRepos
 def test_deciding_about_an_unknown_offer_fails(offers: OfferRepository) -> None:
     with pytest.raises(OfferNotFoundError):
         offers.set_state(404, OfferState.INTERESTED)
+
+
+def test_a_closed_offer_remembers_its_age_and_can_be_reopened(offers: OfferRepository) -> None:
+    offers.save([found("Data Engineer", "4100000021")])
+    [stored] = offers.list_offers()
+
+    closed = offers.mark_closed(stored.id, stored.last_seen_at + timedelta(days=12, hours=5))
+
+    assert closed.closed_at == stored.last_seen_at + timedelta(days=12, hours=5)
+    assert offers.closing_ages() == [12]
+    assert offers.list_offers()[0].closed_at is not None
+    assert offers.reopen(stored.id).closed_at is None
+    assert offers.closing_ages() == []
+
+
+def test_deleting_an_offer_deletes_its_closure(offers: OfferRepository) -> None:
+    offers.save([found("Data Engineer", "4100000022")])
+    [stored] = offers.list_offers()
+    offers.mark_closed(stored.id, stored.last_seen_at)
+    assert offers.delete_offers([stored.id]) == 1
+    assert offers.closing_ages() == []
+    with pytest.raises(OfferNotFoundError):
+        offers.mark_closed(stored.id, T0)

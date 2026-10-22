@@ -43,6 +43,7 @@ def test_expected_tables_exist(engine: Engine) -> None:
         "events",
         "follow_up_drafts",
         "job_offers",
+        "offer_closures",
         "scanned_alert_messages",
         "status_overrides",
     }

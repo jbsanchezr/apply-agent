@@ -77,6 +77,7 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0; }
 summary h2 { display: inline; }
 summary { cursor: pointer; margin-top: 2rem; }
 .quiet { color: #b45309; font-weight: 600; }
+.fresh { color: #15803d; font-weight: 600; }
 .count { color: var(--muted); font-weight: normal; }
 button, .button, select { font: inherit; padding: .4rem .9rem; cursor: pointer; }
 .button {

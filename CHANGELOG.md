@@ -17,6 +17,10 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* An offer can be marked *No longer available*. It folds away, and once five
+  are marked, offers fold into *Older offers* at the typical age those had
+  instead of a fixed 14 days. Each offer shows how long ago its last alert
+  was, in orange once it may be closed. See D61.
 * The alert reader follows LinkedIn's real layout: the first one took hints
   such as "This company is actively hiring" for titles. `offers --rescan`
   repairs offers read before. See D58.

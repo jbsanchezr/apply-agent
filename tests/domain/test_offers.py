@@ -4,7 +4,13 @@ import pytest
 from pydantic import ValidationError
 
 from apply_agent.domain import Application, ApplicationStatus
-from apply_agent.domain.offers import JobOffer, OfferMatch, OfferSource, match_offer
+from apply_agent.domain.offers import (
+    JobOffer,
+    OfferMatch,
+    OfferSource,
+    match_offer,
+    typical_closing_age,
+)
 from tests.agent.helpers import T0
 
 
@@ -77,3 +83,13 @@ def test_another_role_at_the_company_is_only_a_hint() -> None:
 
 def test_an_unknown_company_is_no_match() -> None:
     assert match_offer(offer(), [application("Brisa", "Data Engineer")]).kind is OfferMatch.NONE
+
+
+def test_the_closing_age_is_learned_only_from_enough_closures() -> None:
+    assert typical_closing_age([]) is None
+    assert typical_closing_age([9, 9, 9, 9]) is None
+    assert typical_closing_age([4, 9, 10, 12, 30]) == 10
+
+
+def test_a_learned_age_is_never_shorter_than_the_minimum() -> None:
+    assert typical_closing_age([0, 0, 1, 1, 2]) == 3
