@@ -660,3 +660,33 @@ Age is when an alert last mentioned the offer, since the alerts give no
 posting date and a re-sent offer is likely still open. Offers older than
 `APPLY_AGENT_OFFERS_OLD_AFTER_DAYS` (14) fold into "Older offers". Within each
 section offers are ranked by score, then by that date.
+
+## D59 - The fit profile is a TOML file outside the repository
+D58 read a profile from two variables, years and keywords. The user's real
+profile was richer: roles they want (applied AI, LLM agents, backend), roles
+to avoid whatever else the title says (MLOps, DevOps, SRE, platform or infra,
+frontend-only, research, freelance), preferred places (the Netherlands or
+Madrid), bonus industries, and a ceiling on years asked (five, though they
+have three). It also corrected an assumption: three years of experience, not
+none. That does not fit in environment variables, and it is personal, so it
+is a TOML file at `~/.config/apply_agent/profile.toml`, next to the Gmail
+token, with a synthetic `profile.example.toml` in the repository. The two
+variables are gone (they were never released). A missing file means an empty
+profile; a broken one stops the app, since ranking with half a profile would
+look right and be wrong.
+
+The score, from 0 to 100, keeps D58's base from the title's seniority, now
+in three bands: within the years the candidate has (75), above them but
+within the ceiling (60), and beyond it (40 or 10). One wanted word adds 10,
+two or more 15; a preferred place and a bonus word in the title or company
+add 10 each. An avoided word caps the score at 15. Words match whole words
+of the role key, so "back end" matches "Back-End" and "ia" does not match
+"Ingeniería". Offers that score under 40 fold into "Poor fit", next to the
+old ones: hidden from the first view, never deleted.
+
+Tuned on the user's 863 real offers. The first weights put 64% in "good" and
+many at 100, so the top said nothing; a senior title, within the ceiling,
+scored like a mid one. With the bands above: 45% good, 47% possible, 8% poor,
+and the top is mid-level AI roles in Utrecht and Madrid. A bare "frontend"
+also sank full-stack titles ("Backend, AI & Frontend"); the profile avoids
+"frontend developer" and "frontend engineer" instead.

@@ -66,13 +66,6 @@ def _parse_searches(value: object) -> object:
     return searches
 
 
-def _parse_keywords(value: object) -> object:
-    """'ai, llm , python' -> ('ai', 'llm', 'python')."""
-    if not isinstance(value, str):
-        return value
-    return tuple(word.strip() for word in value.split(",") if word.strip())
-
-
 class Settings(BaseModel):
     # validate_default so "~" in the default paths is expanded too.
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
@@ -119,11 +112,10 @@ class Settings(BaseModel):
     linkedin_search_pages: int = Field(default=2, ge=1, le=5)
     linkedin_search_days: int = Field(default=7, ge=1, le=30)
 
-    # Your profile, to rank offers by fit (D58). Years of professional
-    # experience (0 = just graduated) and words you want in a title, such as
-    # "ai, llm, python, backend".
-    profile_years_experience: int = Field(default=0, ge=0, le=50)
-    profile_keywords: Annotated[tuple[str, ...], BeforeValidator(_parse_keywords)] = ()
+    # Your profile, to rank offers by fit (D59): experience, roles wanted and
+    # avoided, places, bonus words. Personal, so outside the repository; see
+    # profile.example.toml. Without it, offers are ranked by title alone.
+    profile_path: UserPath = _CONFIG_HOME / "profile.toml"
     # Offers no alert has mentioned for this long are folded away as old.
     offers_old_after_days: int = Field(default=14, ge=1)
 

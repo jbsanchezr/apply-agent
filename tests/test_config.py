@@ -83,13 +83,9 @@ def test_turning_search_on_without_searches_fails_fast() -> None:
         Settings.from_env({"APPLY_AGENT_LINKEDIN_SEARCH_ENABLED": "true"})
 
 
-def test_profile_defaults_to_a_new_graduate_with_no_keywords() -> None:
+def test_the_profile_lives_outside_the_repository() -> None:
     settings = Settings.from_env({})
-    assert settings.profile_years_experience == 0
-    assert settings.profile_keywords == ()
+    repo = Path(__file__).parents[1].resolve()
+    assert settings.profile_path.name == "profile.toml"
+    assert repo not in settings.profile_path.resolve().parents
     assert settings.offers_old_after_days == 14
-
-
-def test_profile_keywords_are_a_comma_list() -> None:
-    settings = Settings.from_env({"APPLY_AGENT_PROFILE_KEYWORDS": " ai, llm ,, python "})
-    assert settings.profile_keywords == ("ai", "llm", "python")

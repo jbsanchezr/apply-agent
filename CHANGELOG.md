@@ -6,14 +6,17 @@
   emails and checks each one against your applications: already applied,
   applied to the same company for another role, or new. Offers can be marked
   as interesting or dismissed. *Sync now*, on either page, syncs mail and
-  then looks for offers; `python -m apply_agent offers` looks for offers only. A search of LinkedIn's public listings is included but off by default.
-  See D57 in [DECISIONS.md](DECISIONS.md).
-* Offers are ranked by fit, judged from the title's seniority against your
-  profile (`APPLY_AGENT_PROFILE_YEARS_EXPERIENCE`, `APPLY_AGENT_PROFILE_KEYWORDS`),
-  then by the last alert that mentioned them; offers older than 14 days fold
-  away. The alert reader now follows LinkedIn's real layout: the first one
-  took hints such as "This company is actively hiring" for titles.
-  `offers --rescan` repairs offers read before. See D58.
+  then looks for offers; `python -m apply_agent offers` looks for offers
+  only. A search of LinkedIn's public listings is included but off by
+  default. See D57 in [DECISIONS.md](DECISIONS.md).
+* Offers are ranked by fit with a profile file
+  (`~/.config/apply_agent/profile.toml`, see `profile.example.toml`): the
+  title's seniority against your years, roles you want and avoid, preferred
+  places and bonus words. Then by the last alert that mentioned them. Poor
+  fits and offers older than 14 days fold away. See D58 and D59.
+* The alert reader follows LinkedIn's real layout: the first one took hints
+  such as "This company is actively hiring" for titles. `offers --rescan`
+  repairs offers read before. See D58.
 * A search box on the page filters the applications by company or role as
   you type, ignoring case and accents.
 * A Workday email that never names the company (sent from

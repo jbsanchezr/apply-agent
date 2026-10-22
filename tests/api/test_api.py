@@ -43,6 +43,8 @@ def _settings(tmp_path: Path, **extra: str) -> Settings:
             "APPLY_AGENT_FIXTURES_DIR": str(FIXTURES_DIR / "emails"),
             "APPLY_AGENT_INITIAL_LOOKBACK_DAYS": "3650",
             "APPLY_AGENT_API_TOKEN": TOKEN,
+            # Never the real profile in ~/.config: tests must not depend on it.
+            "APPLY_AGENT_PROFILE_PATH": str(tmp_path / "profile.toml"),
             **extra,
         }
     )
@@ -693,7 +695,8 @@ def test_offers_are_ranked_by_fit_then_date_and_old_ones_folded(
             posting("Junior Data Engineer", "4100000005", 30),
         ]
     )
-    settings = _settings(tmp_path, APPLY_AGENT_PROFILE_KEYWORDS="ai")
+    (tmp_path / "profile.toml").write_text('target = ["ai"]\n', encoding="utf-8")
+    settings = _settings(tmp_path)
     app = create_app(
         settings,
         run_sync=lambda: EMPTY_REPORT,
@@ -706,13 +709,17 @@ def test_offers_are_ranked_by_fit_then_date_and_old_ones_folded(
         page = client.get("/offers", headers=AUTH).text
 
     assert [(r["linkedin_id"], r["fit"], r["section"]) for r in rows] == [
-        ("4100000003", "good", "new"),  # entry title + keyword: 90
-        ("4100000005", "good", "older"),  # entry title: 80, but no alert for 30 days
-        ("4100000004", "good", "new"),  # unstated + keyword: 70, newer
-        ("4100000002", "good", "new"),  # unstated + keyword: 70, older
-        ("4100000001", "unlikely", "new"),  # senior title for a new graduate
+        ("4100000003", "good", "new"),  # entry title + keyword: 85
+        ("4100000005", "good", "older"),  # entry title: 75, but no alert for 30 days
+        ("4100000004", "possible", "new"),  # unstated + keyword: 65, newer
+        ("4100000002", "possible", "new"),  # unstated + keyword: 65, older
+        ("4100000001", "unlikely", "poor"),  # senior title for a new graduate
     ]
-    assert rows[-1]["fit_reasons"] == ["A senior title, usually 5+ years", "Matches ai"]
-    assert "3 a good fit" in page
+    assert rows[-1]["fit_reasons"] == [
+        "A senior title, usually 5+ years, more than you have",
+        "Wanted: ai",
+    ]
+    assert "1 poor fit" in page
+    assert "1 a good fit" in page
     assert "1 older than 14 days" in page
     assert page.index("Junior AI Engineer") < page.index("Senior AI Engineer")

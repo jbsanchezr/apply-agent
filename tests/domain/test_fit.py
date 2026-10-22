@@ -1,6 +1,28 @@
 import pytest
 
 from apply_agent.domain.fit import FitLevel, Seniority, assess_fit, seniority
+from apply_agent.domain.offers import JobOffer, OfferSource
+from apply_agent.domain.profile import CandidateProfile
+from tests.agent.helpers import T0
+
+PROFILE = CandidateProfile(
+    years_experience=3,
+    max_years_asked=5,
+    target=("ai engineer", "llm", "backend", "python"),
+    avoid=("devops", "phd", "freelance", "front end"),
+    preferred_places=("amsterdam", "madrid"),
+    bonus=("fashion", "second hand"),
+)
+
+
+def offer(title: str, company: str = "Arcwell", location: str | None = None) -> JobOffer:
+    return JobOffer(
+        source=OfferSource.LINKEDIN_ALERT,
+        title=title,
+        company=company,
+        location=location,
+        seen_at=T0,
+    )
 
 
 @pytest.mark.parametrize(
@@ -28,34 +50,54 @@ def test_seniority_is_read_from_the_title(title: str, level: Seniority) -> None:
     assert seniority(title) is level
 
 
-def test_a_graduate_fits_entry_roles_and_not_senior_ones() -> None:
-    junior = assess_fit("Junior Backend Developer", years=0, keywords=())
-    unstated = assess_fit("AI Engineer", years=0, keywords=())
-    senior = assess_fit("Senior ML Engineer", years=0, keywords=())
-
-    assert junior.level is FitLevel.GOOD
-    assert unstated.level is FitLevel.POSSIBLE
-    assert senior.level is FitLevel.UNLIKELY
-    assert junior.score > unstated.score > senior.score
-    assert senior.reasons == ("A senior title, usually 5+ years",)
-
-
-def test_experience_closes_the_gap() -> None:
-    assert assess_fit("Senior ML Engineer", years=6, keywords=()).level is FitLevel.GOOD
-    assert assess_fit("Senior ML Engineer", years=3, keywords=()).level is FitLevel.POSSIBLE
+def test_years_asked_are_compared_with_the_ceiling() -> None:
+    graduate = CandidateProfile()
+    assert assess_fit(offer("Senior Engineer"), graduate).level is FitLevel.UNLIKELY
+    assert assess_fit(offer("Junior Engineer"), graduate).level is FitLevel.GOOD
+    within_reach = assess_fit(offer("Senior Engineer"), PROFILE)
+    assert within_reach.level is FitLevel.POSSIBLE
+    assert within_reach.reasons[0].endswith("within reach")
+    assert assess_fit(offer("Medior Engineer"), PROFILE).level is FitLevel.GOOD
+    stretch = CandidateProfile(years_experience=3, max_years_asked=6)
+    lead = assess_fit(offer("Lead Engineer"), stretch)
+    assert lead.level is FitLevel.POSSIBLE
+    assert lead.reasons[0].endswith("a stretch")
+    assert assess_fit(offer("Lead Engineer"), PROFILE).level is FitLevel.UNLIKELY
 
 
-def test_profile_keywords_raise_the_score_as_whole_words() -> None:
-    plain = assess_fit("AI Engineer", years=0, keywords=())
-    matched = assess_fit("AI Engineer (LLM)", years=0, keywords=("ai", "llm", "python"))
-    no_partial = assess_fit("Email Engineer", years=0, keywords=("ai",))
+def test_without_a_seniority_word_wanted_words_decide() -> None:
+    plain = assess_fit(offer("Data Analyst"), PROFILE)
+    wanted = assess_fit(offer("AI Engineer (LLM)"), PROFILE)
 
-    assert matched.score == plain.score + 20
-    assert matched.level is FitLevel.GOOD
-    assert "Matches ai, llm" in matched.reasons
-    assert no_partial.score == plain.score
+    assert plain.level is FitLevel.POSSIBLE
+    assert wanted.level is FitLevel.GOOD
+    assert wanted.score == plain.score + 15
+    assert wanted.reasons == ("Title does not say the seniority", "Wanted: ai engineer, llm")
 
 
-def test_keywords_cannot_rescue_a_senior_role_for_a_graduate() -> None:
-    fit = assess_fit("Senior AI Engineer (LLM)", years=0, keywords=("ai", "llm"))
+def test_words_match_whole_words_only() -> None:
+    assert assess_fit(offer("Email Engineer"), CandidateProfile(target=("ai",))).score == 55
+
+
+def test_preferred_place_and_bonus_add_points() -> None:
+    base = assess_fit(offer("Data Analyst"), PROFILE).score
+    placed = assess_fit(offer("Data Analyst", location="Amsterdam, North Holland"), PROFILE)
+    bonus = assess_fit(offer("Data Analyst", company="Second-Hand Fashion Co"), PROFILE)
+
+    assert placed.score == base + 10
+    assert "Preferred place: amsterdam" in placed.reasons
+    assert bonus.score == base + 10
+    assert "Bonus: fashion, second hand" in bonus.reasons
+
+
+def test_an_avoided_word_sinks_the_offer_whatever_else_matches() -> None:
+    fit = assess_fit(offer("Python Backend Engineer (Freelance)", location="Madrid"), PROFILE)
     assert fit.level is FitLevel.UNLIKELY
+    assert fit.score == 15
+    assert "Avoided: freelance" in fit.reasons
+    assert assess_fit(offer("Front-End Developer"), PROFILE).level is FitLevel.UNLIKELY
+
+
+def test_the_ceiling_cannot_be_below_the_experience() -> None:
+    with pytest.raises(ValueError, match="max_years_asked"):
+        CandidateProfile(years_experience=4, max_years_asked=2)

@@ -1,11 +1,11 @@
-"""How well an offer fits the user, judged from its title alone (D58).
+"""How well an offer fits the candidate's profile (D58, D59).
 
 An alert gives a title, a company and a place, never the requirements, so
 "asks for four years in AI" cannot be read. The title's seniority words are
-the best evidence there is: "Senior", "Lead" or "Principal" usually mean years
-the user may not have, "Junior" or "Graduate" mean an entry role. A title
-with none is unknown, not a match. Keywords from the user's profile that the
-title contains raise the score. It ranks offers; it never hides one.
+the best evidence there is: "Senior", "Lead" or "Principal" usually mean more
+years, "Junior" or "Graduate" an entry role. A title with none is unknown,
+not a match. Then the profile's words: roles wanted raise the score, roles to
+avoid sink it, and a preferred place or a bonus word add a little.
 """
 
 import re
@@ -14,6 +14,8 @@ from enum import IntEnum, StrEnum
 from typing import Final
 
 from apply_agent.domain.keys import role_key
+from apply_agent.domain.offers import JobOffer
+from apply_agent.domain.profile import CandidateProfile
 
 
 class Seniority(IntEnum):
@@ -75,28 +77,51 @@ def seniority(title: str) -> Seniority:
     return Seniority.UNSTATED
 
 
-def assess_fit(title: str, *, years: int, keywords: tuple[str, ...]) -> OfferFit:
-    """A score from 0 to 100: experience asked against experience had, plus keywords."""
-    level = seniority(title)
-    reasons = [] if level is Seniority.UNSTATED else [_LABELS[level].capitalize()]
+def _found(words: tuple[str, ...], *texts: str | None) -> list[str]:
+    """The profile words that appear, as whole words, in any of the texts."""
+    padded = " ".join(f" {role_key(t)} " for t in texts if t)
+    return [w for w in words if (key := role_key(w)) and f" {key} " in padded]
+
+
+def _experience(level: Seniority, profile: CandidateProfile) -> tuple[int, str]:
     if level is Seniority.UNSTATED:
-        score = 60
-        reasons.append("Title does not say the seniority")
-    elif level - years <= 0:
-        score = 80
-    elif level - years <= 2:
-        score = 45
-    else:
-        score = 10
-    padded = f" {role_key(title)} "
-    matched = [k for k in keywords if (key := role_key(k)) and f" {key} " in padded]
-    if matched:
-        score = min(100, score + 10 * min(len(matched), 2))
-        reasons.append("Matches " + ", ".join(matched))
+        return 55, "Title does not say the seniority"
+    label = _LABELS[level].capitalize()
+    if level <= profile.years_experience:
+        return 75, label
+    over = level - profile.years_ceiling
+    if over <= 0:
+        return 60, f"{label}, more years than you have but within reach"
+    if over <= 1:
+        return 40, f"{label}, a stretch"
+    return 10, f"{label}, more than you have"
+
+
+def assess_fit(offer: JobOffer, profile: CandidateProfile) -> OfferFit:
+    """A score from 0 to 100 from the title's seniority and the profile's words.
+
+    An avoided word ("DevOps", "PhD", "freelance") caps the score low, whatever
+    else matches: the candidate said they do not want those roles.
+    """
+    score, reason = _experience(seniority(offer.title), profile)
+    reasons = [reason]
+    if target := _found(profile.target, offer.title):
+        score += 10 if len(target) == 1 else 15
+        reasons.append("Wanted: " + ", ".join(target))
+    if place := _found(profile.preferred_places, offer.location):
+        score += 10
+        reasons.append("Preferred place: " + ", ".join(place))
+    if bonus := _found(profile.bonus, offer.title, offer.company):
+        score += 10
+        reasons.append("Bonus: " + ", ".join(bonus))
+    if avoid := _found(profile.avoid, offer.title):
+        score = min(score, 15)
+        reasons.append("Avoided: " + ", ".join(avoid))
+    score = max(0, min(score, 100))
     if score >= 70:
-        fit = FitLevel.GOOD
+        level = FitLevel.GOOD
     elif score >= 40:
-        fit = FitLevel.POSSIBLE
+        level = FitLevel.POSSIBLE
     else:
-        fit = FitLevel.UNLIKELY
-    return OfferFit(fit, score, tuple(reasons))
+        level = FitLevel.UNLIKELY
+    return OfferFit(level, score, tuple(reasons))

@@ -1,0 +1,25 @@
+# Your profile, used to rank job offers by fit (D59). Copy it to
+# ~/.config/apply_agent/profile.toml (or set APPLY_AGENT_PROFILE_PATH) and
+# edit it. It is personal: keep it out of the repository.
+#
+# Words match whole words, ignoring case, accents and punctuation:
+# "back end" matches "Back-End", and "ia" does not match "Ingeniería".
+# Alerts carry a title, a company and a place, so that is all this can see.
+
+# Years of professional experience.
+years_experience = 2
+# The most years a posting may ask for before it ranks low. Titles are read
+# as: junior 0, mid 2, senior 5, lead / staff / architect 7.
+max_years_asked = 4
+
+# Roles, skills and topics you want in a title.
+target = ["data engineer", "backend", "python", "analytics engineer"]
+
+# Words that make a title a poor fit, whatever else it says.
+avoid = ["devops", "sre", "frontend", "front end", "phd", "freelance"]
+
+# Places that make an offer better. Anywhere else is neutral.
+preferred_places = ["lisbon", "porto", "portugal"]
+
+# Words in a title or company name worth a little extra.
+bonus = ["climate", "energy"]

@@ -38,6 +38,7 @@ from apply_agent.domain.fit import assess_fit
 from apply_agent.domain.offers import OfferState, match_offer
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
+from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
 from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from apply_agent.storage.repository import ApplicationNotFoundError, Repository
@@ -108,6 +109,7 @@ def create_app(
         repository = repository or built_repository
     repo = repository
     offer_store = offers or OfferRepository(repo.session_factory)
+    profile = load_profile(settings.profile_path)
     if run_offer_scan is None:
         scanner, _ = build_offer_scanner(settings, offer_store)
         run_offer_scan = scanner.scan
@@ -250,11 +252,7 @@ def create_app(
             OfferView(
                 stored,
                 match_offer(stored.offer, applications),
-                assess_fit(
-                    stored.offer.title,
-                    years=settings.profile_years_experience,
-                    keywords=settings.profile_keywords,
-                ),
+                assess_fit(stored.offer, profile),
                 old=stored.last_seen_at < old_before,
             )
             for stored in offer_store.list_offers()

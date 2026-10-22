@@ -1,9 +1,10 @@
 """The job offers page: postings found on LinkedIn, and whether you applied.
 
-Offers you have not applied to come first, the ones you marked as
-interesting at the top; those you already applied to and those you dismissed
-are folded at the end. Like the applications page, every value comes from
-outside (an email or a web page) and is escaped.
+Offers you have not applied to come first, ranked by fit and date, the ones
+you marked as interesting at the top. Poor fits, old offers, those you
+already applied to and those you dismissed are folded at the end. Like the
+applications page, every value comes from outside (an email or a web page)
+and is escaped.
 """
 
 from collections.abc import Sequence
@@ -70,6 +71,7 @@ class _Section:
 _SECTIONS: Final = (
     _Section("interested", "Interested", "Nothing marked as interesting."),
     _Section("new", "New offers", "No new offers. Set up LinkedIn job alerts, then sync."),
+    _Section("poor", "Poor fit", "No offers ranked as a poor fit.", folded=True),
     _Section("older", "Older offers", "No old offers.", folded=True),
     _Section("applied", "Already applied", "None of these offers matches an application.", True),
     _Section("dismissed", "Dismissed", "Nothing dismissed.", folded=True),
@@ -83,7 +85,9 @@ def section_of(view: OfferView) -> str:
         return "applied"
     if view.stored.state is OfferState.INTERESTED:
         return "interested"
-    return "older" if view.old else "new"
+    if view.old:
+        return "older"
+    return "poor" if view.fit.level is FitLevel.UNLIKELY else "new"
 
 
 def rank(view: OfferView) -> tuple[int, float]:
@@ -233,6 +237,7 @@ def render_offers(
             f"{len(groups['new'])} new",
             f"{good} a good fit",
             f"{len(groups['interested'])} interested",
+            f"{len(groups['poor'])} poor fit",
             f"{len(groups['applied'])} already applied",
             f"{len(groups['older'])} older than {old_after_days} days",
         )

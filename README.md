@@ -245,15 +245,19 @@ alert emails LinkedIn already sends you (D57). Create alerts on LinkedIn
 reads the new ones, with rules and no model, so it costs nothing. A scan never
 creates or changes an application.
 
-Offers are ranked by fit with your profile (D58). The alerts carry no
-requirements, so fit comes from the title: "Junior" or "Graduate" rank high,
-"Senior", "Lead" or "Architect" low when you lack the years, and titles with
-your keywords rise. Hover the fit badge to see why. Set your profile with:
+Offers are ranked by fit with your profile (D58, D59). The alerts carry no
+requirements, so fit comes from the title, company and place: the seniority
+words of the title against your years ("Senior" or "Lead" sink when you lack
+them), roles you want, roles you never want (an avoided word sinks any
+offer), places you prefer and bonus words. Offers that fit poorly fold into
+*Poor fit*; hover a fit badge to see why it scored as it did. Write your
+profile from the example, outside the repository, since it is personal:
 
 ```bash
-APPLY_AGENT_PROFILE_YEARS_EXPERIENCE=0
-APPLY_AGENT_PROFILE_KEYWORDS="ai, llm, python, backend, machine learning"
+cp profile.example.toml ~/.config/apply_agent/profile.toml
 ```
+
+Without a profile, offers are ranked by their title's seniority alone.
 
 After upgrading from 0.1.x, `uv run python -m apply_agent offers --rescan`
 re-reads your alerts and replaces offers the first reader misread.
