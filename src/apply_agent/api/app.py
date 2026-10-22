@@ -18,6 +18,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
+from functools import cache
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -110,10 +111,17 @@ def create_app(
     repo = repository
     offer_store = offers or OfferRepository(repo.session_factory)
     profile = load_profile(settings.profile_path)
-    if run_offer_scan is None:
+    sync_mail, injected_scan = run_sync, run_offer_scan
+
+    @cache
+    def scan_offers_with_settings() -> Callable[[], OfferScanReport]:
+        # Built on the first sync, not at startup: building it opens the mail
+        # provider (the Gmail token), which serving the pages never needs.
         scanner, _ = build_offer_scanner(settings, offer_store)
-        run_offer_scan = scanner.scan
-    sync_mail, scan_offers = run_sync, run_offer_scan
+        return scanner.scan
+
+    def scan_offers() -> OfferScanReport:
+        return (injected_scan or scan_offers_with_settings())()
 
     def sync_both_pages() -> dict[str, Any]:
         """Mail first, so an application sent today already counts against new offers."""
