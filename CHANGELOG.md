@@ -17,6 +17,10 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* A **company page** (`/company?name=...`): recent news from Google News and
+  Hacker News with an optional summary by your local model, how the company
+  is hiring, the contacts it publishes, and LinkedIn searches for the people
+  worth contacting, which you open yourself. Company names link to it. See D64.
 * A **Search** page (`/search`): search jobs by title, place, country, company
   and age through Adzuna's API (paid after 25 test calls), save searches to
   run on every sync, and watch companies' own job boards (Greenhouse, Lever,

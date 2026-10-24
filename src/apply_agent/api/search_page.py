@@ -11,7 +11,7 @@ from html import escape
 from typing import Final
 
 from apply_agent.api.offers_page import OfferView, fit_badge, match_cell, offer_link, rank
-from apply_agent.api.page import STYLE, nav
+from apply_agent.api.page import STYLE, company_link, nav
 from apply_agent.domain.search import COUNTRY_NAMES, JobSearch, SavedSearch, WatchedCompany
 from apply_agent.offers.search import TitleSource
 
@@ -138,7 +138,7 @@ def _result_row(view: OfferView) -> str:
         f"<td>{fit_badge(view.fit)}</td>"
         f'<td><a href="{link}" target="_blank" rel="noopener noreferrer">'
         f"{escape(offer.title)}</a></td>"
-        f"<td>{escape(offer.company)}</td>"
+        f"<td>{company_link(offer.company)}</td>"
         f"<td>{escape(offer.location or '-')}</td>"
         f'<td class="date">{posted}</td>'
         f"<td>{match_cell(view.match)}</td>"
@@ -214,7 +214,7 @@ def _companies(companies: Sequence[WatchedCompany], default_keywords: Sequence[s
         else:
             status = '<span class="muted">checked on the next sync</span>'
         rows.append(
-            f"<tr><td>{escape(company.name)}</td>"
+            f"<tr><td>{company_link(company.name)}</td>"
             f"<td>{_BOARDS.get(company.board, escape(company.board))} "
             f'<span class="muted">{escape(company.slug)}</span></td>'
             f'<td>{escape(keywords)}<br><span class="muted">{escape(places)}</span></td>'
@@ -292,6 +292,13 @@ def render_search(
 </header>
 {_form(search, sources)}
 {results_html}
+<section id="research"><h2>Research a company</h2>
+<p class="muted">Its recent news, how it is hiring, and whom to contact.</p>
+<form method="get" action="company" class="search-form">
+  <label>Company<br><input name="name" required placeholder="Mollie"></label>
+  <label>What it does (optional)<br><input name="context" placeholder="payments"></label>
+  <button type="submit">Research</button>
+</form></section>
 <section id="saved"><h2>Saved searches <span class="count">({len(saved)})</span></h2>
 {_saved(saved)}</section>
 {_companies(companies, default_keywords)}

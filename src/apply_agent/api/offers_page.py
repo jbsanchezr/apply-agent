@@ -15,7 +15,15 @@ from typing import Final
 from urllib.parse import quote_plus
 
 from apply_agent.api.jobs import SyncJob
-from apply_agent.api.page import SEARCH_SCRIPT, STATUS_COLOURS, STYLE, SYNC_SCRIPT, days_since, nav
+from apply_agent.api.page import (
+    SEARCH_SCRIPT,
+    STATUS_COLOURS,
+    STYLE,
+    SYNC_SCRIPT,
+    company_link,
+    days_since,
+    nav,
+)
 from apply_agent.domain.fit import FitLevel, OfferFit
 from apply_agent.domain.offers import (
     MIN_CLOSURES_TO_LEARN,
@@ -229,7 +237,7 @@ def _row(view: OfferView, now: datetime, fold_days: int) -> str:
         f"<td>{fit_badge(view.fit)}</td>"
         f'<td><a href="{link}" target="_blank" rel="noopener noreferrer">'
         f"{escape(offer.title)}</a></td>"
-        f"<td>{escape(offer.company)}</td>"
+        f"<td>{company_link(offer.company)}</td>"
         f"<td>{escape(offer.location or '-')}</td>"
         f"{_found(view, now, fold_days)}"
         f"<td>{match_cell(view.match)}</td>"

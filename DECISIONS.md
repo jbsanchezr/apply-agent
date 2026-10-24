@@ -835,3 +835,35 @@ documented API) were left out.
 Adding these sources also exposed a bug from D62: the offers page labelled
 sources from a map that only knew LinkedIn's two, and failed on any other
 offer. Every source now has a label, and a test renders one of each.
+
+## D64 - Company research: news, hiring and whom to contact, without scraping people
+Before writing to a company the user wanted to know what it is going through
+and whom to contact. A company page (`/company?name=...`) brings together:
+
+* **News** from Google News' RSS search and Hacker News' search API, both
+  public and meant for programs. A company named like a person drowns in
+  namesakes ("Mollie" returned obituaries), so the page takes an optional
+  context ("payments") and otherwise adds generic business words and drops
+  obituaries; a headline that does not name the company is dropped too,
+  since searches also match article bodies. Results are cached 15 minutes.
+* **A summary** of the headlines by the configured model, on request: the
+  local Ollama model by default, so it costs nothing and the headlines stay
+  on the machine (about 20 s with qwen3:8b). The headlines are untrusted, so
+  the prompt says they are data, and the reply is escaped. A plain model is
+  built for it (`make_text_model`), leaving the classifier and its
+  recordings untouched.
+* **Hiring**, from offers the app already keeps: open, new this week and
+  month, closed, and where. These are the offers that passed the user's
+  filters, not the company's whole headcount, and the page says so.
+* **Contacts the company publishes**: its careers page, and email addresses
+  written into its own job descriptions. Nothing is guessed.
+* **People to look for**: roles (a technical recruiter, talent acquisition,
+  the engineering manager and head of each area the company hires in), each
+  a LinkedIn people search the user opens with their own account.
+
+Two things were left out on purpose. Reading people from LinkedIn would be
+scraping it with the user's account (D57). Guessing or looking up personal
+email addresses would compile personal data about people who never agreed
+to it, which the GDPR frowns on. The app stores no one's details. A first
+version also suggested the CTO when few offers were open; it was dropped,
+since the count reflects the user's filters, not the company's size.

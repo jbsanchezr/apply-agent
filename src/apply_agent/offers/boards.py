@@ -109,6 +109,23 @@ class Board:
         """Every posting's external id from this board starts with this."""
         return f"{self.kind.value}/{self.slug}/"
 
+    @property
+    def careers_url(self) -> str:
+        """The public page where people browse this company's postings."""
+        return _CAREERS_PAGES[self.kind].format(slug=self.slug)
+
+
+_CAREERS_PAGES: Final = {
+    BoardKind.GREENHOUSE: "https://job-boards.greenhouse.io/{slug}",
+    BoardKind.LEVER: "https://jobs.lever.co/{slug}",
+    BoardKind.LEVER_EU: "https://jobs.eu.lever.co/{slug}",
+    BoardKind.ASHBY: "https://jobs.ashbyhq.com/{slug}",
+    BoardKind.RECRUITEE: "https://{slug}.recruitee.com",
+    BoardKind.PERSONIO: "https://{slug}.jobs.personio.de",
+    BoardKind.PERSONIO_COM: "https://{slug}.jobs.personio.com",
+    BoardKind.SMARTRECRUITERS: "https://careers.smartrecruiters.com/{slug}",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class Listing:

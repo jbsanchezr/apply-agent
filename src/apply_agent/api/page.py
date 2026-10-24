@@ -389,3 +389,14 @@ def nav(current: str) -> str:
         marker = ' aria-current="page"' if href == current else ""
         links.append(f'<a href="{href}"{marker}>{label}</a>')
     return f"<nav>{''.join(links)}</nav>"
+
+
+def company_url(name: str, context: str | None = None) -> str:
+    """Where the company page for ``name`` lives, relative to the app (D64)."""
+    url = f"company?name={quote(name, safe='')}"
+    return f"{url}&context={quote(context, safe='')}" if context else url
+
+
+def company_link(name: str) -> str:
+    """The company's name, linking to its page."""
+    return f'<a href="{escape(company_url(name), quote=True)}">{escape(name)}</a>'

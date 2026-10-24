@@ -25,25 +25,33 @@ from typing import Any
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, JSONResponse
+from langchain_core.language_models import LanguageModelInput
+from langchain_core.messages import BaseMessage
+from langchain_core.runnables import Runnable
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from apply_agent.agent.llm import make_text_model
 from apply_agent.agent.outcomes import SyncReport
 from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
+from apply_agent.api.company_page import render_company
 from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
 from apply_agent.api.offers_page import OfferView, OldAfter, rank, render_offers, section_of
 from apply_agent.api.page import days_since, gmail_url, render_applications
 from apply_agent.api.search_page import render_search
-from apply_agent.config import ProviderKind, Settings
+from apply_agent.config import LlmKind, ProviderKind, Settings
 from apply_agent.domain import Application, ApplicationStatus, stage_of
 from apply_agent.domain.fit import assess_fit
+from apply_agent.domain.keys import company_key, similar_company
 from apply_agent.domain.offers import JobOffer, OfferState, match_offer, typical_closing_age
 from apply_agent.domain.search import JobSearch
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
-from apply_agent.offers.boards import BoardError, board_from_url
+from apply_agent.offers.boards import Board, BoardError, BoardKind, board_from_url
+from apply_agent.offers.company import CompanyResearcher, NewsItem, summarize
+from apply_agent.offers.company import make_client as make_company_client
 from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
 from apply_agent.offers.search import (
@@ -78,6 +86,15 @@ class StatusCorrection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: ApplicationStatus
+
+
+class SummaryRequest(BaseModel):
+    """Body of ``POST /company/summary``."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=100)
+    context: str | None = Field(default=None, max_length=100)
 
 
 class WatchRequest(BaseModel):
@@ -130,6 +147,8 @@ def create_app(
     run_offer_scan: Callable[[], OfferScanReport] | None = None,
     offers: OfferRepository | None = None,
     searcher: JobSearcher | None = None,
+    researcher: CompanyResearcher | None = None,
+    summarizer: Callable[[str, Sequence[NewsItem]], str] | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> FastAPI:
     """Build the app. Its collaborators and ``clock`` can be injected for tests."""
@@ -144,6 +163,7 @@ def create_app(
     search_store = SearchRepository(repo.session_factory)
     sync_mail, injected_scan = run_sync, run_offer_scan
     job_searcher = searcher or build_job_searcher(settings, offer_store, search_store, profile)
+    company_researcher = researcher or CompanyResearcher(make_company_client(), clock=clock)
 
     @cache
     def scan_offers_with_settings() -> Callable[[], OfferScanReport]:
@@ -391,6 +411,59 @@ def create_app(
         keys = {offer.key for offer in found}
         fold = old_after()
         return [v for v in offer_views(now, fold) if v.stored.offer.key in keys]
+
+    @cache
+    def text_model() -> Runnable[LanguageModelInput, BaseMessage] | None:
+        # Built on first use: loading the model client is not needed to serve pages.
+        return make_text_model(settings)
+
+    def can_summarize() -> bool:
+        return summarizer is not None or settings.llm is not LlmKind.BASELINE
+
+    @app.get("/company", dependencies=protected, response_class=HTMLResponse)
+    def company_view(name: str, context: str | None = None) -> HTMLResponse:
+        """A company's news, hiring and whom to contact (D64)."""
+        name, context = name.strip()[:100], (context or "").strip()[:100] or None
+        if not name:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "a company name is needed")
+        careers = [
+            Board(BoardKind(c.board), c.slug).careers_url
+            for c in search_store.list_companies()
+            if similar_company(company_key(name), company_key(c.name))
+            and c.board in {kind.value for kind in BoardKind}
+        ]
+        now = clock()
+        views = offer_views(now, old_after())
+        research = company_researcher.research(
+            name, context, [v.stored for v in views], profile, careers
+        )
+        ids = {o.id for o in research.offers}
+        return HTMLResponse(
+            render_company(
+                research,
+                [v for v in views if v.stored.id in ids],
+                can_summarize=can_summarize(),
+            )
+        )
+
+    @app.post("/company/summary", dependencies=protected)
+    def company_summary(request: SummaryRequest) -> dict[str, str]:
+        """Have the configured model sum up the company's recent news."""
+        news, _ = company_researcher.news(request.name, request.context)
+        if summarizer is not None:
+            return {"summary": summarizer(request.name, news)}
+        model = text_model()
+        if model is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "no model to summarize with: set APPLY_AGENT_LLM"
+            )
+        try:
+            return {"summary": summarize(model, request.name, news)}
+        except Exception as err:  # the page shows the failure; the app keeps running
+            logger.exception("news summary failed")
+            raise HTTPException(
+                status.HTTP_502_BAD_GATEWAY, f"the model failed: {type(err).__name__}"
+            ) from err
 
     @app.get("/search", dependencies=protected, response_class=HTMLResponse)
     def search_view(

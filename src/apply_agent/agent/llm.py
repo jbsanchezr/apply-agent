@@ -97,3 +97,38 @@ def make_chat_model(
             return model.bind_tools(tool_definitions(), parallel_tool_calls=False)
         case _:
             assert_never(settings.llm)
+
+
+def make_text_model(settings: Settings) -> Runnable[LanguageModelInput, BaseMessage] | None:
+    """A plain model for short texts (D64), without the classifier's tools.
+
+    None for the keyword baseline, which cannot write. Built apart from
+    ``make_chat_model`` so the classifier and its recordings do not change.
+    """
+    match settings.llm:
+        case LlmKind.BASELINE:
+            return None
+        case LlmKind.OLLAMA:
+            from langchain_ollama import ChatOllama
+
+            return ChatOllama(
+                model=settings.ollama_model,
+                base_url=settings.ollama_base_url,
+                num_ctx=settings.ollama_num_ctx,
+                num_predict=OLLAMA_NUM_PREDICT,
+                client_kwargs={"timeout": OLLAMA_TIMEOUT_SECONDS},
+                temperature=OLLAMA_DECODING["temperature"],
+                seed=OLLAMA_DECODING["seed"],
+            )
+        case LlmKind.ANTHROPIC:
+            from langchain_anthropic import ChatAnthropic
+
+            return ChatAnthropic(
+                model=settings.anthropic_model,
+                max_tokens=MAX_TOKENS,
+                reasoning_effort=settings.anthropic_effort.value,
+                default_request_timeout=REQUEST_TIMEOUT_SECONDS,
+                max_retries=3,
+            )
+        case _:
+            assert_never(settings.llm)

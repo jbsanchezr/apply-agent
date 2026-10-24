@@ -5,7 +5,7 @@ import json
 import re
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -27,6 +27,7 @@ from apply_agent.domain.offers import JobOffer, OfferSource
 from apply_agent.domain.profile import CandidateProfile
 from apply_agent.offers.adzuna import AdzunaSearch
 from apply_agent.offers.boards import CompanyBoards
+from apply_agent.offers.company import CompanyResearcher, NewsItem
 from apply_agent.offers.scanner import OfferScanReport
 from apply_agent.offers.search import JobSearcher
 from apply_agent.storage import make_session_factory
@@ -37,6 +38,13 @@ from tests.agent.helpers import T0, assessment, message
 from tests.conftest import FIXTURES_DIR
 from tests.offers.test_adzuna import result as adzuna_result
 from tests.offers.test_boards import GREENHOUSE
+
+GOOGLE_NEWS = (
+    '<?xml version="1.0"?><rss><channel><item><title>Arcwell raises EUR 40M - Wire</title>'
+    "<link>https://news.google.com/rss/articles/a</link>"
+    '<pubDate>Wed, 23 Sep 2026 07:00:00 GMT</pubDate><source url="https://w.example">Wire</source>'
+    "</item></channel></rss>"
+)
 
 TOKEN = "test-token-not-secret"  # noqa: S105 - fake token for tests
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
@@ -946,3 +954,78 @@ def test_the_offers_page_shows_offers_from_every_source(
     assert response.status_code == 200
     for label in ("Adzuna", "Recruitee", "Personio", "SmartRecruiters", "InfoJobs"):
         assert f"{label}</span>" in response.text
+
+
+def _company_app(
+    tmp_path: Path, repository: Repository, summarizer: Any = None, llm: str = "baseline"
+) -> TestClient:
+    def handle(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "news.google.com":
+            return httpx.Response(200, text=GOOGLE_NEWS)
+        if request.url.host == "hn.algolia.com":
+            return httpx.Response(200, text=json.dumps({"hits": []}))
+        if "boards/arcwell" in str(request.url):
+            return httpx.Response(200, text=json.dumps(GREENHOUSE))
+        return httpx.Response(404)
+
+    client = httpx.Client(transport=httpx.MockTransport(handle))
+    sessions = repository.session_factory
+    searcher = JobSearcher(
+        OfferRepository(sessions),
+        SearchRepository(sessions),
+        CandidateProfile(target=("ai",)),
+        boards=CompanyBoards(client, clock=lambda: ALERT_DAY),
+        clock=lambda: ALERT_DAY,
+    )
+    return TestClient(
+        create_app(
+            _settings(tmp_path, APPLY_AGENT_LLM=llm),
+            run_sync=lambda: EMPTY_REPORT,
+            repository=repository,
+            run_offer_scan=lambda: OfferScanReport(),
+            searcher=searcher,
+            researcher=CompanyResearcher(client, clock=lambda: ALERT_DAY),
+            summarizer=summarizer,
+            clock=lambda: ALERT_DAY,
+        )
+    )
+
+
+def test_a_company_page_shows_its_hiring_news_and_whom_to_contact(
+    tmp_path: Path, repository: Repository
+) -> None:
+    with _company_app(tmp_path, repository) as client:
+        client.post("/search/companies", headers=AUTH, json={"name": "Arcwell"})
+        page = client.get("/company?name=Arcwell&context=robots", headers=AUTH).text
+
+        assert "<h1>Arcwell</h1>" in page
+        assert "<strong>1</strong> open" in page
+        assert "AI Engineer" in page
+        assert "Arcwell raises EUR 40M" in page
+        assert "Careers page" in page
+        assert "https://job-boards.greenhouse.io/arcwell" in page
+        assert "linkedin.com/search/results/people/?keywords=Technical+Recruiter+Arcwell" in page
+        assert "Set APPLY_AGENT_LLM to ollama or anthropic" in page
+        offers = client.get("/offers", headers=AUTH).text
+        assert 'href="company?name=Arcwell"' in offers
+
+        assert client.get("/company?name=%20", headers=AUTH).status_code == 422
+        missing = client.post("/company/summary", headers=AUTH, json={"name": "Arcwell"})
+        assert missing.status_code == 409
+
+
+def test_the_news_summary_comes_from_the_model(tmp_path: Path, repository: Repository) -> None:
+    asked: list[tuple[str, int]] = []
+
+    def summarizer(name: str, news: Sequence[NewsItem]) -> str:
+        asked.append((name, len(news)))
+        return "- It raised money."
+
+    with _company_app(tmp_path, repository, summarizer) as client:
+        page = client.get("/company?name=Arcwell", headers=AUTH).text
+        assert "Summarize the news" in page
+        response = client.post(
+            "/company/summary", headers=AUTH, json={"name": "Arcwell", "context": None}
+        )
+        assert response.json() == {"summary": "- It raised money."}
+        assert asked == [("Arcwell", 1)]

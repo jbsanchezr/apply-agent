@@ -132,6 +132,8 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `GET /search` | The Search page; with `?what=...&where=...&country=es&company=...&max_days_old=14` it searches every source set up for that country (InfoJobs for Spain, Adzuna for any) |
 | `POST /search/saved` | Save a search to run on every sync: `{"what": "AI engineer", "country": "nl"}`; `DELETE /search/saved/{id}` removes it |
 | `POST /search/companies` | Watch a company's job board: `{"name": "Mollie", "keywords": "", "places": "Netherlands"}`; `DELETE /search/companies/{id}` stops |
+| `GET /company?name=...&context=...` | A company's news, hiring and whom to contact |
+| `POST /company/summary` | Summarize its news with the configured model: `{"name": "Mollie", "context": "payments"}` |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
 | `GET /healthz` | Liveness |
 
@@ -304,6 +306,13 @@ The **Search** page (`/search`) finds offers beyond your alerts (D62, D63):
   guessed, and a posting that disappears is marked as no longer available.
 
 Results join *Job offers*, with the same fit score and applied check.
+
+Every company name links to its **company page**: recent news (Google News
+and Hacker News; add what the company does to tell it from namesakes), a
+summary of it by your model on request, how it is hiring, the contacts it
+publishes, and LinkedIn searches for the people worth writing to (a technical
+recruiter, the manager of the team), which you open with your own account.
+The app never reads people from LinkedIn and guesses no one's email (D64).
 
 ## Limitations and next steps
 
