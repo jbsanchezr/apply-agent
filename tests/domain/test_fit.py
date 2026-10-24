@@ -3,6 +3,7 @@ import pytest
 from apply_agent.domain.fit import FitLevel, Seniority, assess_fit, seniority
 from apply_agent.domain.offers import JobOffer, OfferSource
 from apply_agent.domain.profile import Area, CandidateProfile
+from apply_agent.domain.requirements import years_required
 from tests.agent.helpers import T0
 
 PROFILE = CandidateProfile(
@@ -160,3 +161,38 @@ def test_ai_titles_without_seniority_rank_below_backend_ones() -> None:
     ai = assess_fit(offer("AI Engineer"), AREAS)
     assert backend.score == 65
     assert ai.score == 40
+
+
+@pytest.mark.parametrize(
+    ("text", "years"),
+    [
+        ("You have 3+ years of experience building APIs.", 3),
+        ("5+ years of professional software engineering experience", 5),
+        ("3-5 years of experience in Python", 3),
+        ("At least four years of hands-on work.", 4),
+        ("Minimum of 2 years in a similar role", 2),
+        ("2+ years of Python and 5+ years of engineering experience", 5),
+        ("Experiencia mínima de 3 años en desarrollo backend.", 3),
+        ("Al menos 2 años de experiencia con Java.", 2),
+        ("Minimaal 3 jaar werkervaring als developer.", 3),
+        ("In your first year, you will own a service.", None),
+        ("Founded 25 years ago, we have experience in retail.", None),
+        ("Several years of experience in sales.", None),
+        ("", None),
+    ],
+)
+def test_years_are_read_from_the_description(text: str, years: int | None) -> None:
+    assert years_required(text) == years
+
+
+def test_the_description_beats_the_title() -> None:
+    plain = offer("AI Engineer").model_copy(
+        update={"description": "Requires 4+ years of experience."}
+    )
+    junior = offer("Junior AI Engineer").model_copy(
+        update={"description": "You have 1 year of experience with Python."}
+    )
+    asked = assess_fit(plain, AREAS)
+    assert asked.reasons[0] == "The description asks for 4+ years; you have only 0 in ai"
+    assert asked.level is FitLevel.UNLIKELY
+    assert assess_fit(junior, AREAS).reasons[0].startswith("The description asks for 1+ years")

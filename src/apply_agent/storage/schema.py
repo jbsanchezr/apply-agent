@@ -169,6 +169,9 @@ class JobOfferRow(Base):
     state: Mapped[OfferState] = mapped_column(_str_enum(OfferState), default=OfferState.NEW)
     first_seen_at: Mapped[datetime]
     last_seen_at: Mapped[datetime]
+    # Added in D62; a database from before gets them from migrate().
+    external_id: Mapped[str | None] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text)
 
     closure: Mapped["OfferClosureRow | None"] = relationship(
         back_populates="offer", cascade="all, delete-orphan"
@@ -205,5 +208,46 @@ class OfferClosureRow(Base):
     reported_at: Mapped[datetime]
     # Days from the last alert that listed it to the day it was found closed.
     age_days: Mapped[int]
+    # True when a company board stopped listing it (D62), false when the user
+    # reported it. Only reports teach the fold age: a board closure is seen
+    # at once, so its age says nothing about when users find offers closed.
+    detected: Mapped[bool] = mapped_column(default=False)
 
     offer: Mapped[JobOfferRow] = relationship(back_populates="closure")
+
+
+class SavedSearchRow(Base):
+    """A search the user saved on the Search page, run again on every sync (D62)."""
+
+    __tablename__ = "saved_searches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    what: Mapped[str] = mapped_column(String(100))
+    where: Mapped[str | None] = mapped_column(String(100))
+    country: Mapped[str] = mapped_column(String(2))
+    company: Mapped[str | None] = mapped_column(String(100))
+    max_days_old: Mapped[int]
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
+
+
+class WatchedCompanyRow(Base):
+    """A company whose own job board is read on every sync (D62).
+
+    ``board`` and ``slug`` say where it was found (Greenhouse, Lever, Ashby);
+    plain strings rather than an enum, so a new board needs no migration.
+    """
+
+    __tablename__ = "watched_companies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    board: Mapped[str] = mapped_column(String(20))
+    slug: Mapped[str] = mapped_column(String(100))
+    # Only titles with one of these words are kept; empty uses the profile's.
+    keywords: Mapped[str | None] = mapped_column(String(300))
+    # Only postings in one of these places are kept; empty keeps all.
+    places: Mapped[str | None] = mapped_column(String(300))
+    last_checked_at: Mapped[datetime | None]
+    last_error: Mapped[str | None] = mapped_column(String(300))
+
+    __table_args__ = (UniqueConstraint("board", "slug", name="uq_watched_board"),)

@@ -129,6 +129,9 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `GET /offers` | Job offers and whether you applied; JSON via `?format=json` |
 | `PUT /offers/{id}/state` | `{"state": "interested"}`, `"dismissed"` or `"new"` |
 | `PUT /offers/{id}/closed` | The posting is no longer open; `DELETE` undoes it |
+| `GET /search` | The Search page; with `?what=...&where=...&country=nl&company=...&max_days_old=14` it searches Adzuna |
+| `POST /search/saved` | Save a search to run on every sync: `{"what": "AI engineer", "country": "nl"}`; `DELETE /search/saved/{id}` removes it |
+| `POST /search/companies` | Watch a company's job board: `{"name": "Mollie", "keywords": "", "places": "Netherlands"}`; `DELETE /search/companies/{id}` stops |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
 | `GET /healthz` | Liveness |
 
@@ -277,6 +280,22 @@ APPLY_AGENT_LINKEDIN_SEARCH_ENABLED=true
 APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer @ Spain"
 ```
 
+## Searching for jobs
+
+The **Search** page (`/search`) finds offers beyond your alerts (D62):
+
+* **By title, place, country and company**, through Adzuna's job API. It is
+  free for personal use: create an app at <https://developer.adzuna.com>, then
+  set `APPLY_AGENT_ADZUNA_APP_ID` and `APPLY_AGENT_ADZUNA_APP_KEY`. Save a
+  search and it runs again on every sync.
+* **Companies you watch**, by name or careers page URL, read from their own
+  job boards (Greenhouse, Lever, Ashby) on every sync. No key needed. Their
+  postings carry the full description, so the years of experience asked are
+  read from it rather than guessed, and a posting that disappears is marked
+  as no longer available.
+
+Results join *Job offers*, with the same fit score and applied check.
+
 ## Limitations and next steps
 
 * **Small evaluation set.** 48 synthetic emails written by the same author as
@@ -302,8 +321,12 @@ APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer
 * **Offers depend on LinkedIn's alert emails.** Only postings your alerts
   send are seen, and an HTML-only alert loses its links (the page then links
   to a LinkedIn search for the role). The public search is usually refused.
-* **Closed offers are not detected.** LinkedIn blocks automated checks, so
-  you mark closed offers yourself; the app only learns how old they get.
+* **Closed offers are not detected for LinkedIn.** LinkedIn blocks automated
+  checks, so you mark closed offers yourself; the app only learns how old
+  they get. Companies watched on their own job boards are detected.
+* **Company boards cover some companies only**: those on Greenhouse, Lever or
+  Ashby. Others (Workday, SmartRecruiters, own sites) are not read yet.
+
 * **Fit is a guess from the title.** Alerts do not include requirements, and
   most titles (85% in one real inbox) name no seniority, so a plain "AI
   Engineer" asking for four years ranks like one asking for none.

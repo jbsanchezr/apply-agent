@@ -136,7 +136,7 @@ def _status(match: OfferApplicationMatch) -> str:
     return f' <span class="status" style="background:{colour}">{label}</span>'
 
 
-def _match(match: OfferApplicationMatch) -> str:
+def match_cell(match: OfferApplicationMatch) -> str:
     if match.kind is OfferMatch.APPLIED:
         return f'<span class="applied">Applied</span>{_status(match)}'
     if match.kind is OfferMatch.SAME_COMPANY:
@@ -170,7 +170,7 @@ _FIT_COLOURS: Final = {
 }
 
 
-def _fit(fit: OfferFit) -> str:
+def fit_badge(fit: OfferFit) -> str:
     """A badge; the reasons are on hover, so the column stays narrow."""
     why = escape("; ".join(fit.reasons), quote=True)
     return (
@@ -217,13 +217,13 @@ def _row(view: OfferView, now: datetime, fold_days: int) -> str:
     link = escape(offer_link(view), quote=True)
     return (
         f'<tr data-search="{search}">'
-        f"<td>{_fit(view.fit)}</td>"
+        f"<td>{fit_badge(view.fit)}</td>"
         f'<td><a href="{link}" target="_blank" rel="noopener noreferrer">'
         f"{escape(offer.title)}</a></td>"
         f"<td>{escape(offer.company)}</td>"
         f"<td>{escape(offer.location or '-')}</td>"
         f"{_found(view, now, fold_days)}"
-        f"<td>{_match(view.match)}</td>"
+        f"<td>{match_cell(view.match)}</td>"
         f"<td>{_actions(view)}</td>"
         "</tr>"
     )

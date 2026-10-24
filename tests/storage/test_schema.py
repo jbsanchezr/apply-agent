@@ -44,8 +44,10 @@ def test_expected_tables_exist(engine: Engine) -> None:
         "follow_up_drafts",
         "job_offers",
         "offer_closures",
+        "saved_searches",
         "scanned_alert_messages",
         "status_overrides",
+        "watched_companies",
     }
 
 

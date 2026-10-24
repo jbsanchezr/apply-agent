@@ -15,17 +15,18 @@ Run with ``uvicorn --factory apply_agent.api.app:create_app``.
 import logging
 import secrets
 import sys
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from functools import cache
 from typing import Any
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from apply_agent.agent.outcomes import SyncReport
 from apply_agent.agent.runner import build_agent
@@ -34,16 +35,26 @@ from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
 from apply_agent.api.offers_page import OfferView, OldAfter, rank, render_offers, section_of
 from apply_agent.api.page import days_since, gmail_url, render_applications
+from apply_agent.api.search_page import render_search
 from apply_agent.config import ProviderKind, Settings
 from apply_agent.domain import Application, ApplicationStatus, stage_of
 from apply_agent.domain.fit import assess_fit
-from apply_agent.domain.offers import OfferState, match_offer, typical_closing_age
+from apply_agent.domain.offers import JobOffer, OfferState, match_offer, typical_closing_age
+from apply_agent.domain.search import JobSearch
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
+from apply_agent.offers.adzuna import AdzunaError
+from apply_agent.offers.boards import BoardError, board_from_url
 from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
+from apply_agent.offers.search import (
+    JobSearcher,
+    SearchUnavailableError,
+    build_job_searcher,
+)
 from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from apply_agent.storage.repository import ApplicationNotFoundError, Repository
+from apply_agent.storage.searches import SearchRepository
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +79,24 @@ class StatusCorrection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: ApplicationStatus
+
+
+class WatchRequest(BaseModel):
+    """Body of ``POST /search/companies``."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=300)
+    keywords: str = Field(default="", max_length=300)
+    places: str = Field(default="", max_length=300)
+
+    @property
+    def keyword_list(self) -> list[str]:
+        return [w.strip() for w in self.keywords.split(",") if w.strip()]
+
+    @property
+    def place_list(self) -> list[str]:
+        return [w.strip() for w in self.places.split(",") if w.strip()]
 
 
 class OfferDecision(BaseModel):
@@ -101,6 +130,7 @@ def create_app(
     repository: Repository | None = None,
     run_offer_scan: Callable[[], OfferScanReport] | None = None,
     offers: OfferRepository | None = None,
+    searcher: JobSearcher | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> FastAPI:
     """Build the app. Its collaborators and ``clock`` can be injected for tests."""
@@ -112,7 +142,9 @@ def create_app(
     repo = repository
     offer_store = offers or OfferRepository(repo.session_factory)
     profile = load_profile(settings.profile_path)
+    search_store = SearchRepository(repo.session_factory)
     sync_mail, injected_scan = run_sync, run_offer_scan
+    job_searcher = searcher or build_job_searcher(settings, offer_store, search_store, profile)
 
     @cache
     def scan_offers_with_settings() -> Callable[[], OfferScanReport]:
@@ -132,6 +164,11 @@ def create_app(
         except Exception as err:  # the mail is synced; a failed scan must not hide that
             logger.exception("offer scan failed")
             report["offers"] = {"error": f"{type(err).__name__}: {err}"}
+        try:
+            report["search"] = asdict(job_searcher.run_saved())
+        except Exception as err:  # same: searches failing must not hide the rest
+            logger.exception("saved searches failed")
+            report["search"] = {"errors": [f"{type(err).__name__}: {err}"]}
         return report
 
     sync_service = SyncService(sync_both_pages)
@@ -349,5 +386,108 @@ def create_app(
         except OfferNotFoundError as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown offer") from err
         return {"id": stored.id, "state": stored.state.value}
+
+    def views_for(found: Sequence[JobOffer], now: datetime) -> list[OfferView]:
+        """Stored offers for search results, with their fit and applied check."""
+        keys = {offer.key for offer in found}
+        fold = old_after()
+        return [v for v in offer_views(now, fold) if v.stored.offer.key in keys]
+
+    @app.get("/search", dependencies=protected, response_class=HTMLResponse)
+    def search_view(
+        what: str | None = None,
+        where: str | None = None,
+        country: str = "nl",
+        company: str | None = None,
+        max_days_old: int = 14,
+    ) -> HTMLResponse:
+        """The Search page. With ``what``, it searches Adzuna and shows the results."""
+        search: JobSearch | None = None
+        results: list[OfferView] = []
+        new, error = 0, None
+        if what and what.strip():
+            try:
+                search = JobSearch.model_validate(
+                    {
+                        "what": what,
+                        "where": where or None,
+                        "country": country,
+                        "company": company or None,
+                        "max_days_old": max_days_old,
+                    }
+                )
+            except ValidationError as err:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid search"
+                ) from err
+            try:
+                result = job_searcher.search(search)
+                results, new = views_for(result.offers, clock()), result.new
+            except (AdzunaError, SearchUnavailableError) as err:
+                error = str(err)
+        return HTMLResponse(
+            render_search(
+                search=search,
+                results=results,
+                new=new,
+                error=error,
+                adzuna_enabled=job_searcher.adzuna_enabled,
+                saved=search_store.list_searches(),
+                companies=search_store.list_companies(),
+                default_keywords=profile.target,
+            )
+        )
+
+    @app.post("/search/saved", dependencies=protected, status_code=status.HTTP_201_CREATED)
+    def save_search(search: JobSearch) -> dict[str, Any]:
+        """Run this search again on every sync."""
+        return {"id": search_store.save_search(search)}
+
+    @app.delete("/search/saved/{search_id}", dependencies=protected)
+    def delete_search(search_id: int) -> dict[str, Any]:
+        if not search_store.delete_search(search_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown saved search")
+        return {"id": search_id}
+
+    @app.post("/search/companies", dependencies=protected, status_code=status.HTTP_201_CREATED)
+    def watch_company(request: WatchRequest) -> dict[str, Any]:
+        """Find the company's job board, watch it, and read it once now."""
+        try:
+            board = job_searcher.find_company(request.name)
+        except (httpx.HTTPError, BoardError) as err:
+            raise HTTPException(
+                status.HTTP_502_BAD_GATEWAY, f"could not reach the job boards: {err}"
+            ) from err
+        if board is None:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                f"{request.name} was not found on Greenhouse, Lever or Ashby. "
+                "Try the address of its careers page.",
+            )
+        name = request.name if board_from_url(request.name) is None else board.slug
+        company_id = search_store.watch_company(
+            name, board.kind.value, board.slug, request.keyword_list, request.place_list
+        )
+        watched = next(c for c in search_store.list_companies() if c.id == company_id)
+        try:
+            kept, new, _ = job_searcher.check_company(watched)
+            search_store.record_check(company_id, clock(), None)
+        except (httpx.HTTPError, BoardError) as err:
+            search_store.record_check(company_id, clock(), f"{type(err).__name__}: {err}")
+            kept = new = 0
+        return {
+            "id": company_id,
+            "board": board.kind.value,
+            "slug": board.slug,
+            "offers": kept,
+            "new": new,
+        }
+
+    @app.delete("/search/companies/{company_id}", dependencies=protected)
+    def unwatch_company(company_id: int) -> dict[str, Any]:
+        """Stop reading its board. Offers already found stay."""
+        if not search_store.unwatch_company(company_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown company")
+        return {"id": company_id}
 
     return app

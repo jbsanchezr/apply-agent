@@ -50,3 +50,6 @@ def configure_logging(level: str = "INFO") -> None:
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level)
+    # httpx logs every request URL at INFO, and Adzuna's API key travels in
+    # the URL (D62). Its warnings and errors carry no URL and still show.
+    logging.getLogger("httpx").setLevel(max(logging.WARNING, root.level))

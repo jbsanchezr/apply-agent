@@ -1,6 +1,7 @@
 """Command line entry point: ``python -m apply_agent sync`` or ``offers``.
 
-``sync`` does what the page's *Sync now* does: mail first, then offers.
+``sync`` does what the page's *Sync now* does: mail, then alert offers, then
+saved searches and watched companies.
 """
 
 import argparse
@@ -11,8 +12,11 @@ from dataclasses import asdict
 from apply_agent.agent.runner import build_agent
 from apply_agent.config import Settings
 from apply_agent.logs import configure_logging
+from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import build_offer_scanner
+from apply_agent.offers.search import build_job_searcher
 from apply_agent.storage.offers import OfferRepository
+from apply_agent.storage.searches import SearchRepository
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -44,11 +48,15 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if scan.search_errors else 0
     agent, repository = build_agent(settings)
     report = agent.sync()
-    scanner, _ = build_offer_scanner(settings, OfferRepository(repository.session_factory))
+    offer_store = OfferRepository(repository.session_factory)
+    scanner, _ = build_offer_scanner(settings, offer_store)
     scan = scanner.scan()
-    output = asdict(report) | {"offers": asdict(scan)}
+    searches = SearchRepository(repository.session_factory)
+    profile = load_profile(settings.profile_path)
+    searched = build_job_searcher(settings, offer_store, searches, profile).run_saved()
+    output = asdict(report) | {"offers": asdict(scan), "search": asdict(searched)}
     sys.stdout.write(json.dumps(output, indent=2) + "\n")
-    return 1 if report.failed or scan.search_errors else 0
+    return 1 if report.failed or scan.search_errors or searched.errors else 0
 
 
 if __name__ == "__main__":

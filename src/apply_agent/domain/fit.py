@@ -16,6 +16,7 @@ from typing import Final
 from apply_agent.domain.keys import role_key
 from apply_agent.domain.offers import JobOffer
 from apply_agent.domain.profile import CandidateProfile
+from apply_agent.domain.requirements import years_required
 
 
 class Seniority(IntEnum):
@@ -77,7 +78,7 @@ def seniority(title: str) -> Seniority:
     return Seniority.UNSTATED
 
 
-def _found(words: tuple[str, ...], *texts: str | None) -> list[str]:
+def found_words(words: tuple[str, ...], *texts: str | None) -> list[str]:
     """The profile words that appear, as whole words, in any of the texts."""
     padded = " ".join(f" {role_key(t)} " for t in texts if t)
     return [w for w in words if (key := role_key(w)) and f" {key} " in padded]
@@ -90,22 +91,26 @@ def _years_had(title: str, profile: CandidateProfile) -> tuple[int, str]:
     fewest years: the role asks for experience in each field it names.
     """
     matched = [
-        (area.years, name) for name, area in profile.areas.items() if _found(area.words, title)
+        (area.years, name) for name, area in profile.areas.items() if found_words(area.words, title)
     ]
     if not matched:
         return profile.years_experience, "total"
     return min(matched)
 
 
-def _experience(title: str, profile: CandidateProfile) -> tuple[int, str]:
+def _experience(offer: JobOffer, profile: CandidateProfile) -> tuple[int, str]:
+    title = offer.title
     level = seniority(title)
-    stated = level is not Seniority.UNSTATED
-    asked = int(level) if stated else profile.unstated_years_asked
-    label = (
-        _LABELS[level].capitalize()
-        if stated
-        else f"No seniority in the title, assumed ~{asked} years"
-    )
+    # What the description says beats what the title suggests (D62).
+    written = years_required(offer.description)
+    stated = written is not None or level is not Seniority.UNSTATED
+    if written is not None:
+        asked, label = written, f"The description asks for {written}+ years"
+    elif stated:
+        asked, label = int(level), _LABELS[level].capitalize()
+    else:
+        asked = profile.unstated_years_asked
+        label = f"No seniority in the title, assumed ~{asked} years"
     if asked > profile.years_ceiling:
         return 10, f"{label}, beyond your limit of {profile.years_ceiling}"
     had, area = _years_had(title, profile)
@@ -122,18 +127,18 @@ def assess_fit(offer: JobOffer, profile: CandidateProfile) -> OfferFit:
     An avoided word ("DevOps", "PhD", "freelance") caps the score low, whatever
     else matches: the candidate said they do not want those roles.
     """
-    score, reason = _experience(offer.title, profile)
+    score, reason = _experience(offer, profile)
     reasons = [reason]
-    if target := _found(profile.target, offer.title):
+    if target := found_words(profile.target, offer.title):
         score += 10 if len(target) == 1 else 15
         reasons.append("Wanted: " + ", ".join(target))
-    if place := _found(profile.preferred_places, offer.location):
+    if place := found_words(profile.preferred_places, offer.location):
         score += 10
         reasons.append("Preferred place: " + ", ".join(place))
-    if bonus := _found(profile.bonus, offer.title, offer.company):
+    if bonus := found_words(profile.bonus, offer.title, offer.company):
         score += 10
         reasons.append("Bonus: " + ", ".join(bonus))
-    if avoid := _found(profile.avoid, offer.title):
+    if avoid := found_words(profile.avoid, offer.title):
         score = min(score, 15)
         reasons.append("Avoided: " + ", ".join(avoid))
     score = max(0, min(score, 100))

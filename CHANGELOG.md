@@ -17,6 +17,12 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* A **Search** page (`/search`): search jobs by title, place, country, company
+  and age through Adzuna's API (free key), save searches to run on every
+  sync, and watch companies' own job boards (Greenhouse, Lever, Ashby) by
+  name or careers URL. Board postings come with their full description, so
+  the years asked are read from it, and are marked closed when they
+  disappear. Existing databases are migrated on start. See D62.
 * An offer can be marked *No longer available*. It folds away, and once five
   are marked, offers fold into *Older offers* at the typical age those had
   instead of a fixed 14 days. Each offer shows how long ago its last alert

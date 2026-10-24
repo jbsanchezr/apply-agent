@@ -119,11 +119,22 @@ class Settings(BaseModel):
     # Offers no alert has mentioned for this long are folded away as old.
     offers_old_after_days: int = Field(default=14, ge=1)
 
-    @field_validator("api_token", mode="before")
+    # Adzuna's job search API (D62): a free app id and key from
+    # developer.adzuna.com. Without them the Search page reads company boards only.
+    adzuna_app_id: str | None = None
+    adzuna_app_key: SecretStr | None = None
+
+    @field_validator("api_token", "adzuna_app_id", "adzuna_app_key", mode="before")
     @classmethod
     def _blank_token_means_unset(cls, value: object) -> object:
         # docker-compose passes an unset variable through as an empty string.
         return None if isinstance(value, str) and not value.strip() else value
+
+    @model_validator(mode="after")
+    def _adzuna_needs_both(self) -> Self:
+        if (self.adzuna_app_id is None) != (self.adzuna_app_key is None):
+            raise ValueError("adzuna_app_id and adzuna_app_key must be set together")
+        return self
 
     @model_validator(mode="after")
     def _search_needs_queries(self) -> Self:

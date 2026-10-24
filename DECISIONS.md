@@ -747,3 +747,50 @@ risk. So the app does not check; the user tells it, and it learns from that:
 
 Age is measured from the last alert that listed an offer, the same for the
 fold and for closures, because an offer an alert repeats is likely still open.
+
+## D62 - A Search page over Adzuna and companies' own job boards
+LinkedIn alerts were not enough: the user wanted to search by title,
+company and country themselves. Searching Google or LinkedIn directly is
+scraping, which they refuse (D57). Two sources are built for it instead:
+
+* **Adzuna's API**, a job aggregator with a free key for personal use. It
+  searches by title or keywords, place, country (19, the Netherlands and
+  Spain among them), company and age, and returns a snippet of each
+  description. Its key travels in the URL, so the httpx request log is
+  silenced and errors never repeat it. It is optional
+  (`APPLY_AGENT_ADZUNA_APP_ID` and `_APP_KEY`); its parser follows the
+  documented shape and was not checked against the live API, which needs
+  the key.
+* **Companies' own job boards** through the public APIs of Greenhouse,
+  Lever (and its EU host) and Ashby, which publish every open posting with
+  its full description, without a key, so that sites can list them. A
+  company is found from its careers URL, or by trying slugs made from its
+  name on each board ("Mollie" was found on Ashby). Checked against real
+  boards on 2026-10-24.
+
+The boards bring two things the alerts never could. The **description**,
+from which `years_required` reads what a posting asks ("3+ years of
+experience", "at least four years", "3 años de experiencia", "3 jaar
+ervaring"); when it says, that beats the title's guess (D60). On 363 real
+postings, 94 stated years and the samples read right; the rest name none.
+And **closure**: a board's listing is complete, so a posting missing from a
+fresh one has closed, and is marked so. Board closures do not teach the fold
+age (D61), which is about when users find LinkedIn offers closed. A posting
+listed again is reopened.
+
+A search typed on the page runs at once and its results become offers, with
+the same fit score and applied check; it can be saved to run on every sync.
+Watched companies are read on every sync too, keeping only titles with the
+profile's target words (or the company's own) in the places asked, and
+always remote postings. One failure never stops the rest of a sync.
+
+The offers table had to change: its source column's CHECK constraint listed
+the two LinkedIn sources, and SQLite cannot alter a CHECK. So D9's rule (no
+migrations, `create_all` only) gets its first exception, `storage.migrations`:
+it rebuilds `job_offers` when its CHECK or columns are behind (create the new
+table, copy every row, drop, rename, with foreign keys off so closures keep
+their ids) and adds `offer_closures.detected`. It checks before acting, so it
+runs on every start and changes nothing the second time. Tested against the
+user's real table definitions; on their database, every row came through and
+the integrity check passed. Saved searches and watched companies store board
+names as plain strings, so a new board needs no migration.

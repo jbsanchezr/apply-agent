@@ -25,6 +25,18 @@ ShortStr = Annotated[str, Field(min_length=1, max_length=200)]
 class OfferSource(StrEnum):
     LINKEDIN_ALERT = "linkedin_alert"
     LINKEDIN_SEARCH = "linkedin_search"
+    # Adzuna's job search API (D62).
+    ADZUNA = "adzuna"
+    # Companies' own job boards, read through their public APIs (D62).
+    GREENHOUSE = "greenhouse"
+    LEVER = "lever"
+    ASHBY = "ashby"
+
+
+# Sources that list every open posting of a company: a posting missing from
+# a fresh listing has closed (D62).
+COMPANY_BOARDS: Final = frozenset({OfferSource.GREENHOUSE, OfferSource.LEVER, OfferSource.ASHBY})
+MAX_DESCRIPTION: Final = 20_000
 
 
 class OfferState(StrEnum):
@@ -54,11 +66,18 @@ class JobOffer(DomainModel):
     url: Annotated[str, Field(max_length=500, pattern=r"^https://")] | None = None
     posted_on: date | None = None
     seen_at: UtcDatetime
+    # The source's own id for the posting, when it is not LinkedIn.
+    external_id: Annotated[str, Field(min_length=1, max_length=200)] | None = None
+    # Plain text, when the source gives it: requirements can then be read (D62).
+    description: Annotated[str, Field(max_length=MAX_DESCRIPTION)] | None = None
 
     @property
     def key(self) -> str:
         if self.linkedin_id is not None:
             return f"linkedin:{self.linkedin_id}"
+        if self.external_id is not None:
+            digest = hashlib.sha256(self.external_id.encode()).hexdigest()[:24]
+            return f"{self.source.value}:{digest}"
         identity = "|".join(
             (company_key(self.company), role_key(self.title), role_key(self.location))
         )

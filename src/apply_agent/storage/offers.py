@@ -40,6 +40,8 @@ class OfferRepository:
                             location=offer.location,
                             url=offer.url,
                             posted_on=offer.posted_on,
+                            external_id=offer.external_id,
+                            description=offer.description,
                             state=OfferState.NEW,
                             first_seen_at=offer.seen_at,
                             last_seen_at=offer.seen_at,
@@ -52,6 +54,10 @@ class OfferRepository:
                 row.location = offer.location or row.location
                 row.url = offer.url or row.url
                 row.posted_on = offer.posted_on or row.posted_on
+                row.description = offer.description or row.description
+                if row.closure is not None and row.closure.detected:
+                    # Listed again by its board: it was not closed after all.
+                    row.closure = None
                 row.first_seen_at = min(row.first_seen_at, offer.seen_at)
                 row.last_seen_at = max(row.last_seen_at, offer.seen_at)
         return created
@@ -90,10 +96,30 @@ class OfferRepository:
             row.closure = None
             return _to_domain(row)
 
+    def close_missing(self, id_prefix: str, open_ids: Collection[str], at: datetime) -> int:
+        """Close offers from one board that its fresh listing no longer has (D62).
+
+        ``open_ids`` is the whole listing, before any filter, so an offer the
+        user's filters now hide is not taken for a closed one.
+        """
+        with self._sessions.begin() as session:
+            rows = session.scalars(
+                select(JobOfferRow).where(
+                    JobOfferRow.external_id.startswith(id_prefix, autoescape=True),
+                    ~JobOfferRow.closure.has(),
+                )
+            )
+            gone = [row for row in rows if row.external_id not in open_ids]
+            for row in gone:
+                age = max((at - row.first_seen_at).days, 0)
+                row.closure = OfferClosureRow(reported_at=at, age_days=age, detected=True)
+            return len(gone)
+
     def closing_ages(self) -> list[int]:
-        """Days old each offer was when the user found it closed."""
+        """Days old each offer was when the user found it closed (not board closures)."""
         with self._sessions() as session:
-            return list(session.scalars(select(OfferClosureRow.age_days)))
+            query = select(OfferClosureRow.age_days).where(OfferClosureRow.detected.is_(False))
+            return list(session.scalars(query))
 
     def scanned_message_ids(self, candidates: Collection[str]) -> set[str]:
         if not candidates:
@@ -152,6 +178,8 @@ def _to_domain(row: JobOfferRow) -> StoredOffer:
             url=row.url,
             posted_on=row.posted_on,
             seen_at=row.first_seen_at,
+            external_id=row.external_id,
+            description=row.description,
         ),
         state=row.state,
         first_seen_at=row.first_seen_at,
