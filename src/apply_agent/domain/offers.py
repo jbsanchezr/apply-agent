@@ -25,8 +25,6 @@ ShortStr = Annotated[str, Field(min_length=1, max_length=200)]
 class OfferSource(StrEnum):
     LINKEDIN_ALERT = "linkedin_alert"
     LINKEDIN_SEARCH = "linkedin_search"
-    # Adzuna's job search API (D62).
-    ADZUNA = "adzuna"
     # Companies' own job boards, read through their public APIs (D62, D63).
     GREENHOUSE = "greenhouse"
     LEVER = "lever"

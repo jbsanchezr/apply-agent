@@ -106,7 +106,7 @@ def test_migrating_twice_changes_nothing(old_engine: Engine) -> None:
     before = table_sql(old_engine)
     migrate(old_engine)
     assert table_sql(old_engine) == before
-    assert "'adzuna'" in before
+    assert "'infojobs'" in before
     offers = OfferRepository(make_session_factory(old_engine))
     assert len(offers.list_offers()) == 1
 

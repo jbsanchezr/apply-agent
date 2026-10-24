@@ -867,3 +867,23 @@ email addresses would compile personal data about people who never agreed
 to it, which the GDPR frowns on. The app stores no one's details. A first
 version also suggested the CTO when few offers were open; it was dropped,
 since the count reflects the user's filters, not the company's size.
+
+## D65 - Adzuna is removed: no paid sources
+Adzuna (D62) gives a new key 25 test calls, then charges for access. The
+user's rule is plain: a source that has to be paid for does not belong in
+the project. So it is gone, not switched off: the client, its settings
+(`APPLY_AGENT_ADZUNA_*`, now rejected at startup like any unknown variable),
+its offer source, its tests and its documentation. The httpx request log is
+back at INFO, since no key travels in a URL any more.
+
+What remains is free to use: company job boards (D62, D63), which need no
+key, and InfoJobs (D63), which needs an app registered at
+developer.infojobs.net; on 2026-10-24 its registrations were paused. So a
+search by title now covers Spain only, and only once InfoJobs reopens; for
+other countries, the way in is watching the companies themselves. The
+Search form defaults to Spain. Databases keep "adzuna" in their source
+constraint (D62's migration only widens it), which is harmless: no offer
+uses it.
+
+D62 and D63 still describe Adzuna as it was decided then; this entry is
+where it ends.

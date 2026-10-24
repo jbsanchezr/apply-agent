@@ -96,12 +96,17 @@ def test_the_profile_lives_outside_the_repository() -> None:
     [
         {"APPLY_AGENT_INFOJOBS_CLIENT_ID": "id"},
         {"APPLY_AGENT_INFOJOBS_CLIENT_SECRET": "secret"},
-        {"APPLY_AGENT_ADZUNA_APP_ID": "id"},
     ],
 )
 def test_search_credentials_come_in_pairs(env: dict[str, str]) -> None:
     with pytest.raises(ValidationError, match="must be set together"):
         Settings.from_env(env)
+
+
+def test_adzuna_settings_are_gone() -> None:
+    """Adzuna was removed (D65); a leftover variable fails loudly, like any typo."""
+    with pytest.raises(ValidationError, match="adzuna_app_id"):
+        Settings.from_env({"APPLY_AGENT_ADZUNA_APP_ID": "id"})
 
 
 def test_blank_search_credentials_mean_unset() -> None:

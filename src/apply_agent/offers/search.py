@@ -1,10 +1,9 @@
 """The Search page's engine: title searches and watched companies (D62, D63).
 
-A title search runs on every source set up for its country (Adzuna for any,
-InfoJobs for Spain) and its results join the offers; one source failing
-leaves the others' results. A saved search and every watched company run
-again on each sync. Offers from
-here go through the same fit score and applied check as alert offers; they
+A title search runs on every source set up for its country (today InfoJobs,
+for Spain) and its results join the offers; one source failing leaves the
+others' results. A saved search and every watched company run again on each
+sync. Offers from here go through the same fit score and applied check as alert offers; they
 only carry more, a description and, for company boards, closure for free.
 """
 
@@ -20,8 +19,6 @@ from apply_agent.domain.fit import found_words
 from apply_agent.domain.offers import JobOffer
 from apply_agent.domain.profile import CandidateProfile
 from apply_agent.domain.search import COUNTRY_NAMES, JobSearch, WatchedCompany
-from apply_agent.offers.adzuna import AdzunaError, AdzunaSearch
-from apply_agent.offers.adzuna import make_client as make_adzuna_client
 from apply_agent.offers.boards import Board, BoardError, BoardKind, CompanyBoards
 from apply_agent.offers.boards import make_client as make_boards_client
 from apply_agent.offers.infojobs import InfoJobsError, InfoJobsSearch
@@ -42,7 +39,7 @@ class TitleSource:
 
     name: str
     run: Callable[[JobSearch], list[JobOffer]]
-    # Countries it covers, or None for any Adzuna country.
+    # Countries it covers, or None for every country the form offers.
     countries: frozenset[str] | None = None
 
     @property
@@ -94,7 +91,6 @@ class JobSearcher:
         profile: CandidateProfile,
         *,
         boards: CompanyBoards,
-        adzuna: AdzunaSearch | None = None,
         infojobs: InfoJobsSearch | None = None,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
@@ -104,8 +100,6 @@ class JobSearcher:
         self._boards = boards
         self._clock = clock
         self._sources: list[TitleSource] = []
-        if adzuna is not None:
-            self._sources.append(TitleSource("Adzuna", adzuna.search))
         if infojobs is not None:
             self._sources.append(TitleSource("InfoJobs", infojobs.search, frozenset({"es"})))
 
@@ -128,7 +122,7 @@ class JobSearcher:
             try:
                 for offer in source.run(search):
                     found.setdefault(offer.key, offer)
-            except (AdzunaError, InfoJobsError) as err:
+            except InfoJobsError as err:
                 errors.append(f"{source.name}: {err}")
         offers = tuple(found.values())
         names = tuple(s.name for s in sources)
@@ -190,14 +184,6 @@ def build_job_searcher(
     profile: CandidateProfile,
 ) -> JobSearcher:
     clock: Callable[[], datetime] = lambda: datetime.now(UTC)  # noqa: E731
-    adzuna = None
-    if settings.adzuna_app_id is not None and settings.adzuna_app_key is not None:
-        adzuna = AdzunaSearch(
-            make_adzuna_client(),
-            app_id=settings.adzuna_app_id,
-            app_key=settings.adzuna_app_key.get_secret_value(),
-            clock=clock,
-        )
     infojobs = None
     if settings.infojobs_client_id is not None and settings.infojobs_client_secret is not None:
         infojobs = InfoJobsSearch(
@@ -207,6 +193,4 @@ def build_job_searcher(
             clock=clock,
         )
     boards = CompanyBoards(make_boards_client(), clock=clock)
-    return JobSearcher(
-        offers, searches, profile, boards=boards, adzuna=adzuna, infojobs=infojobs, clock=clock
-    )
+    return JobSearcher(offers, searches, profile, boards=boards, infojobs=infojobs, clock=clock)

@@ -61,7 +61,6 @@ async function decide(id, select) {
 SOURCE_LABELS: Final = {
     OfferSource.LINKEDIN_ALERT: "job alert",
     OfferSource.LINKEDIN_SEARCH: "LinkedIn search",
-    OfferSource.ADZUNA: "Adzuna",
     OfferSource.GREENHOUSE: "Greenhouse",
     OfferSource.LEVER: "Lever",
     OfferSource.ASHBY: "Ashby",

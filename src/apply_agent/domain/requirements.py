@@ -1,7 +1,7 @@
 """Years of experience a job description asks for, read with rules (D62).
 
 LinkedIn alerts carry no description, so for them the years are guessed from
-the title (D60). Company boards and Adzuna give the text, and the text says it:
+the title (D60). Company boards and InfoJobs give the text, and the text says it:
 "3+ years of experience", "at least five years", "3-5 years of professional
 software engineering experience", "2 años de experiencia", "3 jaar ervaring".
 

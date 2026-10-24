@@ -469,7 +469,7 @@ def create_app(
     def search_view(
         what: str | None = None,
         where: str | None = None,
-        country: str = "nl",
+        country: str = "es",
         company: str | None = None,
         max_days_old: int = 14,
     ) -> HTMLResponse:

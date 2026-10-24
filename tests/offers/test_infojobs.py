@@ -17,7 +17,6 @@ from apply_agent.domain.offers import OfferSource
 from apply_agent.domain.profile import CandidateProfile
 from apply_agent.domain.requirements import years_required
 from apply_agent.domain.search import JobSearch
-from apply_agent.offers.adzuna import AdzunaSearch
 from apply_agent.offers.boards import CompanyBoards
 from apply_agent.offers.infojobs import (
     InfoJobsError,
@@ -30,7 +29,6 @@ from apply_agent.storage import make_session_factory
 from apply_agent.storage.offers import OfferRepository
 from apply_agent.storage.searches import SearchRepository
 from tests.agent.helpers import T0
-from tests.offers.test_adzuna import result as adzuna_result
 
 SECRET = "secret-not-real"  # noqa: S105 - fake secret for tests
 
@@ -145,10 +143,8 @@ def test_errors_never_show_the_secret(status: int, body: dict[str, Any], message
     assert SECRET not in str(caught.value)
 
 
-def searcher(engine: Engine, *, adzuna: bool, infojobs_status: int = 200) -> JobSearcher:
+def searcher(engine: Engine, *, infojobs_status: int = 200) -> JobSearcher:
     def handle(request: httpx.Request) -> httpx.Response:
-        if "adzuna" in str(request.url):
-            return httpx.Response(200, text=json.dumps({"results": [adzuna_result(1)]}))
         if infojobs_status != 200:
             return httpx.Response(infojobs_status, text="{}")
         return httpx.Response(200, text=json.dumps({"items": [item(1)]}))
@@ -160,30 +156,27 @@ def searcher(engine: Engine, *, adzuna: bool, infojobs_status: int = 200) -> Job
         SearchRepository(sessions),
         CandidateProfile(),
         boards=CompanyBoards(client, clock=lambda: T0),
-        adzuna=AdzunaSearch(client, app_id="a", app_key="k", clock=lambda: T0) if adzuna else None,
         infojobs=InfoJobsSearch(client, client_id="i", client_secret=SECRET, clock=lambda: T0),
         clock=lambda: T0,
     )
 
 
-def test_spain_is_searched_on_every_source_that_covers_it(engine: Engine) -> None:
-    result = searcher(engine, adzuna=True).search(JobSearch(what="python", country="es"))
-    assert result.sources == ("Adzuna", "InfoJobs")
-    assert {o.source for o in result.offers} == {OfferSource.ADZUNA, OfferSource.INFOJOBS}
-    assert result.new == 2
+def test_spain_is_searched_on_infojobs(engine: Engine) -> None:
+    result = searcher(engine).search(JobSearch(what="python", country="es"))
+    assert result.sources == ("InfoJobs",)
+    assert [o.source for o in result.offers] == [OfferSource.INFOJOBS]
+    assert result.new == 1
     assert result.errors == ()
 
 
 def test_infojobs_is_not_asked_outside_spain(engine: Engine) -> None:
-    only_infojobs = searcher(engine, adzuna=False)
+    only_infojobs = searcher(engine)
     assert [s.name for s in only_infojobs.title_sources] == ["InfoJobs"]
     with pytest.raises(SearchUnavailableError, match="Netherlands"):
         only_infojobs.search(JobSearch(what="python", country="nl"))
 
 
-def test_one_source_failing_keeps_the_others_results(engine: Engine) -> None:
-    result = searcher(engine, adzuna=True, infojobs_status=401).search(
-        JobSearch(what="python", country="es")
-    )
-    assert [o.source for o in result.offers] == [OfferSource.ADZUNA]
+def test_a_failing_source_is_reported_not_raised(engine: Engine) -> None:
+    result = searcher(engine, infojobs_status=401).search(JobSearch(what="python", country="es"))
+    assert result.offers == ()
     assert result.errors == ("InfoJobs: InfoJobs refused the client id or secret",)

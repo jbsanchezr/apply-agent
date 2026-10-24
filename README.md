@@ -129,7 +129,7 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `GET /offers` | Job offers and whether you applied; JSON via `?format=json` |
 | `PUT /offers/{id}/state` | `{"state": "interested"}`, `"dismissed"` or `"new"` |
 | `PUT /offers/{id}/closed` | The posting is no longer open; `DELETE` undoes it |
-| `GET /search` | The Search page; with `?what=...&where=...&country=es&company=...&max_days_old=14` it searches every source set up for that country (InfoJobs for Spain, Adzuna for any) |
+| `GET /search` | The Search page; with `?what=...&where=...&country=es&company=...&max_days_old=14` it searches InfoJobs (Spain) |
 | `POST /search/saved` | Save a search to run on every sync: `{"what": "AI engineer", "country": "nl"}`; `DELETE /search/saved/{id}` removes it |
 | `POST /search/companies` | Watch a company's job board: `{"name": "Mollie", "keywords": "", "places": "Netherlands"}`; `DELETE /search/companies/{id}` stops |
 | `GET /company?name=...&context=...` | A company's news, hiring and whom to contact |
@@ -286,18 +286,14 @@ APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer
 
 The **Search** page (`/search`) finds offers beyond your alerts (D62, D63):
 
-* **By title, place, country and company**, on every source set up for the
-  country. Save a search and it runs again on every sync, one call per
-  source each time.
-  * **InfoJobs** (Spain; its developer site states no price on 2026-10-24):
-    register an app with your InfoJobs account at
-    <https://developer.infojobs.net>, then set `APPLY_AGENT_INFOJOBS_CLIENT_ID`
-    and `APPLY_AGENT_INFOJOBS_CLIENT_SECRET`. Each offer states its minimum
-    experience, which the fit score reads. The place is used as the province.
-  * **Adzuna** (any of 19 countries), not free: a new key gets 25 test calls,
-    and full access is a paid plan (£8 a month for 5,000 calls on
-    2026-10-24). Create an app at <https://developer.adzuna.com>, then set
-    `APPLY_AGENT_ADZUNA_APP_ID` and `APPLY_AGENT_ADZUNA_APP_KEY`.
+* **By title, place and company, in Spain**, through InfoJobs' official API.
+  Register an app with your InfoJobs account at
+  <https://developer.infojobs.net> (its developer site states no price; on
+  2026-10-24 new registrations were paused), then set
+  `APPLY_AGENT_INFOJOBS_CLIENT_ID` and `APPLY_AGENT_INFOJOBS_CLIENT_SECRET`.
+  Each offer states its minimum experience, which the fit score reads. The
+  place is used as the province. Save a search and it runs again on every
+  sync.
 * **Companies you watch**, by name or careers page URL, read from their own
   job boards on every sync: Greenhouse, Lever, Ashby, Recruitee (common among
   Dutch startups), Personio (common in Spain and Germany) and SmartRecruiters
@@ -346,8 +342,10 @@ The app never reads people from LinkedIn and guesses no one's email (D64).
   Ashby, Recruitee, Personio or SmartRecruiters. Others (Workday, own sites)
   are not read yet. A SmartRecruiters company with more than 1,000 postings
   is read in part, so its closures are not detected.
-* **InfoJobs and Adzuna were built from their documentation** and not yet run
-  against the live APIs, which need your credentials.
+* **InfoJobs was built from its documentation** and not yet run against the
+  live API, which needs your credentials.
+* **Searching by title covers Spain only.** No free API searches other
+  countries by title; for them, watch the companies you care about.
 
 * **Fit is a guess from the title.** Alerts do not include requirements, and
   most titles (85% in one real inbox) name no seniority, so a plain "AI

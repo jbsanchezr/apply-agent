@@ -1,4 +1,4 @@
-"""The Search page: search Adzuna, save searches, watch companies' boards (D62).
+"""The Search page: search by title, save searches, watch companies' boards (D62).
 
 The form sends a GET, so a search can be bookmarked or reloaded. Its results
 are offers like any other: they get the fit score and the applied check, and
@@ -56,12 +56,6 @@ def _input(name: str, label: str, value: str | int | None, **attrs: str) -> str:
 
 # How to turn on each title source, shown while it is off.
 _SETUP: Final = {
-    "Adzuna": (
-        "<strong>Adzuna</strong> (any country; 25 test calls, then a paid plan): set "
-        "<code>APPLY_AGENT_ADZUNA_APP_ID</code> and <code>APPLY_AGENT_ADZUNA_APP_KEY</code> from "
-        '<a href="https://developer.adzuna.com" target="_blank" rel="noopener noreferrer">'
-        "developer.adzuna.com</a>."
-    ),
     "InfoJobs": (
         "<strong>InfoJobs</strong> (Spain): set <code>APPLY_AGENT_INFOJOBS_CLIENT_ID</code> and "
         "<code>APPLY_AGENT_INFOJOBS_CLIENT_SECRET</code> from an app registered with your "
@@ -70,8 +64,6 @@ _SETUP: Final = {
     ),
 }
 _CREDITS: Final = {
-    "Adzuna": '<a href="https://www.adzuna.com" target="_blank" '
-    'rel="noopener noreferrer">Jobs by Adzuna</a>.',
     "InfoJobs": '<a href="https://www.infojobs.net" target="_blank" '
     'rel="noopener noreferrer">Offers from InfoJobs</a>.',
 }
@@ -95,7 +87,7 @@ def _sources_note(sources: Sequence[TitleSource]) -> str:
 
 def _form(search: JobSearch | None, sources: Sequence[TitleSource]) -> str:
     what = search.what if search else None
-    country = search.country if search else "nl"
+    country = search.country if search else "es"
     options = "".join(
         f'<option value="{code}"{" selected" if code == country else ""}>{name}</option>'
         for code, name in sorted(COUNTRY_NAMES.items(), key=lambda item: item[1])
@@ -109,7 +101,7 @@ def _form(search: JobSearch | None, sources: Sequence[TitleSource]) -> str:
 <form method="get" action="search" class="search-form">
   <fieldset{disabled}>
   {_input("what", "Title or keywords", what, required="required", placeholder="AI engineer")}
-  {_input("where", "Place", search.where if search else None, placeholder="Utrecht")}
+  {_input("where", "Place", search.where if search else None, placeholder="Madrid")}
   <label>Country<br><select name="country">{options}</select></label>
   {_input("company", "Company", search.company if search else None, placeholder="optional")}
   {

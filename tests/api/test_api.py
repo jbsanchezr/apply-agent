@@ -25,9 +25,9 @@ from apply_agent.config import Settings
 from apply_agent.domain import MessageAssessment
 from apply_agent.domain.offers import JobOffer, OfferSource
 from apply_agent.domain.profile import CandidateProfile
-from apply_agent.offers.adzuna import AdzunaSearch
 from apply_agent.offers.boards import CompanyBoards
 from apply_agent.offers.company import CompanyResearcher, NewsItem
+from apply_agent.offers.infojobs import InfoJobsSearch
 from apply_agent.offers.scanner import OfferScanReport
 from apply_agent.offers.search import JobSearcher
 from apply_agent.storage import make_session_factory
@@ -36,8 +36,9 @@ from apply_agent.storage.repository import Repository
 from apply_agent.storage.searches import SearchRepository
 from tests.agent.helpers import T0, assessment, message
 from tests.conftest import FIXTURES_DIR
-from tests.offers.test_adzuna import result as adzuna_result
 from tests.offers.test_boards import GREENHOUSE
+from tests.offers.test_infojobs import SECRET as INFOJOBS_SECRET
+from tests.offers.test_infojobs import item as infojobs_item
 
 GOOGLE_NEWS = (
     '<?xml version="1.0"?><rss><channel><item><title>Arcwell raises EUR 40M - Wire</title>'
@@ -807,13 +808,13 @@ def test_closed_offers_fold_away_and_teach_when_offers_go_old(
         assert client.delete("/offers/999/closed", headers=AUTH).status_code == 404
 
 
-def _searcher(repository: Repository, *, adzuna: bool) -> JobSearcher:
-    """A JobSearcher whose Adzuna and job boards are fakes in their real shapes."""
+def _searcher(repository: Repository, *, infojobs: bool) -> JobSearcher:
+    """A JobSearcher whose InfoJobs and job boards are fakes in their real shapes."""
 
     def handle(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
-        if "adzuna" in url:
-            return httpx.Response(200, text=json.dumps({"results": [adzuna_result(1)]}))
+        if "infojobs" in url:
+            return httpx.Response(200, text=json.dumps({"items": [infojobs_item(1)]}))
         if "boards/arcwell" in url:
             return httpx.Response(200, text=json.dumps(GREENHOUSE))
         return httpx.Response(404)
@@ -825,63 +826,62 @@ def _searcher(repository: Repository, *, adzuna: bool) -> JobSearcher:
         SearchRepository(sessions),
         CandidateProfile(target=("ai",)),
         boards=CompanyBoards(client, clock=lambda: ALERT_DAY),
-        adzuna=AdzunaSearch(client, app_id="a", app_key="k", clock=lambda: ALERT_DAY)
-        if adzuna
+        infojobs=InfoJobsSearch(
+            client, client_id="i", client_secret=INFOJOBS_SECRET, clock=lambda: ALERT_DAY
+        )
+        if infojobs
         else None,
         clock=lambda: ALERT_DAY,
     )
 
 
-def _search_app(tmp_path: Path, repository: Repository, *, adzuna: bool) -> TestClient:
+def _search_app(tmp_path: Path, repository: Repository, *, infojobs: bool) -> TestClient:
     return TestClient(
         create_app(
             _settings(tmp_path),
             run_sync=lambda: EMPTY_REPORT,
             repository=repository,
             run_offer_scan=lambda: OfferScanReport(),
-            searcher=_searcher(repository, adzuna=adzuna),
+            searcher=_searcher(repository, infojobs=infojobs),
             clock=lambda: ALERT_DAY,
         )
     )
 
 
-def test_without_adzuna_the_page_says_how_to_turn_it_on(
+def test_without_infojobs_the_page_says_how_to_turn_it_on(
     tmp_path: Path, repository: Repository
 ) -> None:
-    with _search_app(tmp_path, repository, adzuna=False) as client:
+    with _search_app(tmp_path, repository, infojobs=False) as client:
         page = client.get("/search", headers=AUTH).text
-        assert "APPLY_AGENT_ADZUNA_APP_ID" in page
         assert "APPLY_AGENT_INFOJOBS_CLIENT_ID" in page
         assert "<fieldset disabled>" in page
         assert "Companies you watch" in page
         searched = client.get("/search?what=python", headers=AUTH).text
-        assert "No title search is set up for Netherlands" in searched
+        assert "No title search is set up for Spain" in searched
 
 
 def test_a_search_shows_ranked_results_that_join_the_offers(
     tmp_path: Path, repository: Repository
 ) -> None:
-    with _search_app(tmp_path, repository, adzuna=True) as client:
+    with _search_app(tmp_path, repository, infojobs=True) as client:
         page = client.get(
-            "/search?what=AI+engineer&where=Utrecht&country=nl&max_days_old=7", headers=AUTH
+            "/search?what=python&where=Madrid&country=es&max_days_old=7", headers=AUTH
         ).text
-        assert "1 found on Adzuna, 1 new to your offers." in page
-        assert "AI Engineer" in page
-        assert "Jobs by Adzuna" in page
+        assert "1 found on InfoJobs, 1 new to your offers." in page
+        assert "Desarrollador/a Backend Python" in page
+        assert "Offers from InfoJobs" in page
         [offer] = client.get("/offers?format=json", headers=AUTH).json()
-        assert offer["source"] == "adzuna"
+        assert offer["source"] == "infojobs"
         assert offer["fit_reasons"][0].startswith("The description asks for 2+ years")
 
         assert client.get("/search?what=x&country=zz", headers=AUTH).status_code == 422
 
 
 def test_saved_searches_run_on_every_sync(tmp_path: Path, repository: Repository) -> None:
-    with _search_app(tmp_path, repository, adzuna=True) as client:
-        saved = client.post(
-            "/search/saved", headers=AUTH, json={"what": "AI engineer", "country": "nl"}
-        )
+    with _search_app(tmp_path, repository, infojobs=True) as client:
+        saved = client.post("/search/saved", headers=AUTH, json={"what": "python", "country": "es"})
         assert saved.status_code == 201
-        assert "AI engineer · Netherlands" in client.get("/search", headers=AUTH).text
+        assert "python · Spain" in client.get("/search", headers=AUTH).text
 
         job = _wait_for(client, client.post("/sync", headers=AUTH).json()["id"])
         assert job["report"]["search"]["searches_run"] == 1
@@ -895,7 +895,7 @@ def test_saved_searches_run_on_every_sync(tmp_path: Path, repository: Repository
 def test_a_watched_company_is_found_read_and_checked_on_sync(
     tmp_path: Path, repository: Repository
 ) -> None:
-    with _search_app(tmp_path, repository, adzuna=False) as client:
+    with _search_app(tmp_path, repository, infojobs=False) as client:
         missing = client.post("/search/companies", headers=AUTH, json={"name": "Nowhere Ltd"})
         assert missing.status_code == 404
         assert "careers page" in missing.json()["detail"]
@@ -952,7 +952,7 @@ def test_the_offers_page_shows_offers_from_every_source(
     with TestClient(app) as client:
         response = client.get("/offers", headers=AUTH)
     assert response.status_code == 200
-    for label in ("Adzuna", "Recruitee", "Personio", "SmartRecruiters", "InfoJobs"):
+    for label in ("Greenhouse", "Recruitee", "Personio", "SmartRecruiters", "InfoJobs"):
         assert f"{label}</span>" in response.text
 
 

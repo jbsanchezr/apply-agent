@@ -7,8 +7,9 @@ from pydantic import Field
 
 from apply_agent.domain.models import DomainModel
 
-# Countries Adzuna's API covers, by its two-letter codes.
-AdzunaCountry = Literal[
+# Countries the search form offers, by their two-letter codes. A title search
+# runs on the sources that cover the country chosen (InfoJobs: Spain).
+Country = Literal[
     "at", "au", "be", "br", "ca", "ch", "de", "es", "fr", "gb",
     "in", "it", "mx", "nl", "nz", "pl", "sg", "us", "za",
 ]  # fmt: skip
@@ -24,11 +25,11 @@ Text = Annotated[str, Field(min_length=1, max_length=100)]
 
 
 class JobSearch(DomainModel):
-    """A search of Adzuna: title or keywords, place, country, company, age."""
+    """A title search: title or keywords, place, country, company, age."""
 
     what: Text
     where: Text | None = None
-    country: AdzunaCountry = "nl"
+    country: Country = "es"
     company: Text | None = None
     max_days_old: Annotated[int, Field(ge=1, le=60)] = 14
 

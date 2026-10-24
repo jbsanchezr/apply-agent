@@ -21,18 +21,14 @@
   Hacker News with an optional summary by your local model, how the company
   is hiring, the contacts it publishes, and LinkedIn searches for the people
   worth contacting, which you open yourself. Company names link to it. See D64.
-* A **Search** page (`/search`): search jobs by title, place, country, company
-  and age through Adzuna's API (paid after 25 test calls), save searches to
-  run on every sync, and watch companies' own job boards (Greenhouse, Lever,
-  Ashby) by name or careers URL. Board postings come with their full
-  description, so the years asked are read from it, and are marked closed
-  when they disappear. Existing databases are migrated on start. See D62.
-* Two more sources for the Search page. InfoJobs' official API searches
-  Spain by title and province, with each offer's minimum experience (an app
-  registered at developer.infojobs.net, no price stated). Watched companies
-  can also be on Recruitee, Personio or SmartRecruiters, which need no key. A title search runs on every
-  source for its country, and one failing leaves the others' results. See
-  D63.
+* A **Search** page (`/search`): watch companies' own job boards (Greenhouse,
+  Lever, Ashby, Recruitee, Personio, SmartRecruiters) by name or careers URL,
+  and search Spain by title, province, company and age through InfoJobs'
+  official API (an app registered at developer.infojobs.net, no price
+  stated). Searches can be saved to run on every sync. Board postings come
+  with their full description, so the years asked are read from it, and are
+  marked closed when they disappear. Existing databases are migrated on
+  start. See D62, D63 and D65.
 * Fixed: the *Job offers* page failed as soon as it held an offer from any
   source other than LinkedIn alerts.
 * An offer can be marked *No longer available*. It folds away, and once five
