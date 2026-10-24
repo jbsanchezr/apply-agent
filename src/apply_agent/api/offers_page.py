@@ -49,9 +49,18 @@ async function decide(id, select) {
 }
 """
 
-_SOURCES: Final = {
+# Every source needs a label: a missing one broke the page for D62's offers.
+SOURCE_LABELS: Final = {
     OfferSource.LINKEDIN_ALERT: "job alert",
     OfferSource.LINKEDIN_SEARCH: "LinkedIn search",
+    OfferSource.ADZUNA: "Adzuna",
+    OfferSource.GREENHOUSE: "Greenhouse",
+    OfferSource.LEVER: "Lever",
+    OfferSource.ASHBY: "Ashby",
+    OfferSource.RECRUITEE: "Recruitee",
+    OfferSource.PERSONIO: "Personio",
+    OfferSource.SMARTRECRUITERS: "SmartRecruiters",
+    OfferSource.INFOJOBS: "InfoJobs",
 }
 _ACTIONS: Final = {
     OfferState.INTERESTED: "Interested",
@@ -207,7 +216,7 @@ def _found(view: OfferView, now: datetime, fold_days: int) -> str:
     return (
         f'<td class="date"><span class="{css}">{label}</span><br>'
         f'<span class="muted">{stored.last_seen_at:%Y-%m-%d}, '
-        f"{_SOURCES[stored.offer.source]}{extra}</span>{closed}</td>"
+        f"{SOURCE_LABELS[stored.offer.source]}{extra}</span>{closed}</td>"
     )
 
 

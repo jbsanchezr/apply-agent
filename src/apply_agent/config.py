@@ -119,21 +119,34 @@ class Settings(BaseModel):
     # Offers no alert has mentioned for this long are folded away as old.
     offers_old_after_days: int = Field(default=14, ge=1)
 
-    # Adzuna's job search API (D62): a free app id and key from
+    # Adzuna's job search API (D62): an app id and key from
     # developer.adzuna.com. Without them the Search page reads company boards only.
     adzuna_app_id: str | None = None
     adzuna_app_key: SecretStr | None = None
+    # InfoJobs' offer search, Spain only (D63): a client id and secret from an
+    # app registered at developer.infojobs.net with an InfoJobs account.
+    infojobs_client_id: str | None = None
+    infojobs_client_secret: SecretStr | None = None
 
-    @field_validator("api_token", "adzuna_app_id", "adzuna_app_key", mode="before")
+    @field_validator(
+        "api_token",
+        "adzuna_app_id",
+        "adzuna_app_key",
+        "infojobs_client_id",
+        "infojobs_client_secret",
+        mode="before",
+    )
     @classmethod
     def _blank_token_means_unset(cls, value: object) -> object:
         # docker-compose passes an unset variable through as an empty string.
         return None if isinstance(value, str) and not value.strip() else value
 
     @model_validator(mode="after")
-    def _adzuna_needs_both(self) -> Self:
+    def _credentials_come_in_pairs(self) -> Self:
         if (self.adzuna_app_id is None) != (self.adzuna_app_key is None):
             raise ValueError("adzuna_app_id and adzuna_app_key must be set together")
+        if (self.infojobs_client_id is None) != (self.infojobs_client_secret is None):
+            raise ValueError("infojobs_client_id and infojobs_client_secret must be set together")
         return self
 
     @model_validator(mode="after")

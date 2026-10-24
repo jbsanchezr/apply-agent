@@ -35,9 +35,9 @@ _PATTERNS: Final = (
         re.IGNORECASE,
     ),
     # Spanish: N años de experiencia; experiencia (mínima) de (al menos) N años.
-    re.compile(_YEARS + r"años\b(?=[^.;\n]{0,40}?\bexperiencia)", re.IGNORECASE),
+    re.compile(_YEARS + r"años?\b(?=[^.;\n]{0,40}?\bexperiencia)", re.IGNORECASE),
     re.compile(
-        r"\bexperiencia[^.;\n]{0,40}?\b(?:de|al menos|m[ií]nim[oa] de)\s+" + _YEARS + r"años",
+        r"\bexperiencia[^.;\n]{0,40}?\b(?:de|al menos|m[ií]nim[oa] de)\s+" + _YEARS + r"años?",
         re.IGNORECASE,
     ),
     # Dutch: N jaar (relevante) werkervaring; minimaal N jaar.

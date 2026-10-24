@@ -62,6 +62,14 @@ class OfferRepository:
                 row.last_seen_at = max(row.last_seen_at, offer.seen_at)
         return created
 
+    def known_keys(self, keys: Collection[str]) -> set[str]:
+        """Which of these offer keys are already stored."""
+        if not keys:
+            return set()
+        with self._sessions() as session:
+            query = select(JobOfferRow.offer_key).where(JobOfferRow.offer_key.in_(keys))
+            return set(session.scalars(query))
+
     def list_offers(self) -> list[StoredOffer]:
         with self._sessions() as session:
             rows = session.scalars(

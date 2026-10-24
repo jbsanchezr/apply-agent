@@ -753,7 +753,9 @@ LinkedIn alerts were not enough: the user wanted to search by title,
 company and country themselves. Searching Google or LinkedIn directly is
 scraping, which they refuse (D57). Two sources are built for it instead:
 
-* **Adzuna's API**, a job aggregator with a free key for personal use. It
+* **Adzuna's API**, a job aggregator. Its key is not free: a new one gets 25
+  test calls, and full access (5,000 calls a month) was £8 a month on
+  2026-10-24, which the first version of this decision missed. It
   searches by title or keywords, place, country (19, the Netherlands and
   Spain among them), company and age, and returns a snippet of each
   description. Its key travels in the URL, so the httpx request log is
@@ -794,3 +796,42 @@ runs on every start and changes nothing the second time. Tested against the
 user's real table definitions; on their database, every row came through and
 the integrity check passed. Saved searches and watched companies store board
 names as plain strings, so a new board needs no migration.
+
+## D63 - More sources: InfoJobs, and Recruitee, Personio, SmartRecruiters boards
+Adzuna turned out not to be free (25 test calls, then a paid plan), so the
+user asked for free ways to search by title, company and country. There is
+no free API that searches everything: LinkedIn and Indeed closed theirs, and
+what sells that today is paid or scraping under another name. Checked on
+2026-10-24, two kinds of source cost nothing to try and fit where the user
+looks (the Netherlands and Madrid):
+
+* **InfoJobs**, Spain's largest job board, has an official offer search: a
+  public operation, authenticated with the client id and secret of an app
+  the user registers with their InfoJobs account (its developer site states
+  no price; this was not confirmed further). It filters by keyword,
+  province and age, and every offer states its minimum experience from a
+  fixed list ("Al menos 2 años", "Más de 5 años"), which goes into the
+  description for `years_required` (now reading the singular "año" too). It
+  cannot filter by company name, so that is matched locally (D4). Without
+  credentials it answers 401; the client follows the documented operation
+  and was not run against the live API.
+* **Three more company boards** with public listings and no key: Recruitee
+  (common among Dutch startups), Personio (an XML feed, common in Spain and
+  Germany, which states the years asked as a code such as "2-5") and
+  SmartRecruiters (large employers). Recruitee and Personio list complete
+  descriptions. SmartRecruiters lists none, and pages: a description costs
+  one request per posting, so it is fetched only for postings that pass the
+  filters and are not stored yet; and a listing is read up to 1,000
+  postings, past which it is partial and no closure is inferred from it.
+  It also answers any name with an empty listing, so empty means not found.
+  All three were checked against real boards.
+
+A title search now runs on every source set up for its country, Adzuna for
+any and InfoJobs for Spain, merges their offers, and reports a failing source
+without losing the others' results. Jooble (a key by request, truncated
+descriptions), Careerjet (needs each end user's IP and browser) and EURES (no
+documented API) were left out.
+
+Adding these sources also exposed a bug from D62: the offers page labelled
+sources from a map that only knew LinkedIn's two, and failed on any other
+offer. Every source now has a label, and a test renders one of each.

@@ -43,7 +43,6 @@ from apply_agent.domain.offers import JobOffer, OfferState, match_offer, typical
 from apply_agent.domain.search import JobSearch
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
-from apply_agent.offers.adzuna import AdzunaError
 from apply_agent.offers.boards import BoardError, board_from_url
 from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
@@ -401,10 +400,12 @@ def create_app(
         company: str | None = None,
         max_days_old: int = 14,
     ) -> HTMLResponse:
-        """The Search page. With ``what``, it searches Adzuna and shows the results."""
+        """The Search page. With ``what``, it searches every source for the country."""
         search: JobSearch | None = None
         results: list[OfferView] = []
-        new, error = 0, None
+        new = 0
+        errors: list[str] = []
+        searched: tuple[str, ...] = ()
         if what and what.strip():
             try:
                 search = JobSearch.model_validate(
@@ -422,16 +423,19 @@ def create_app(
                 ) from err
             try:
                 result = job_searcher.search(search)
+            except SearchUnavailableError as err:
+                errors = [str(err)]
+            else:
                 results, new = views_for(result.offers, clock()), result.new
-            except (AdzunaError, SearchUnavailableError) as err:
-                error = str(err)
+                errors, searched = list(result.errors), result.sources
         return HTMLResponse(
             render_search(
                 search=search,
                 results=results,
                 new=new,
-                error=error,
-                adzuna_enabled=job_searcher.adzuna_enabled,
+                errors=errors,
+                searched=searched,
+                sources=job_searcher.title_sources,
                 saved=search_store.list_searches(),
                 companies=search_store.list_companies(),
                 default_keywords=profile.target,

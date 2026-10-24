@@ -1,7 +1,9 @@
-"""The Search page's engine: Adzuna searches and watched companies (D62).
+"""The Search page's engine: title searches and watched companies (D62, D63).
 
-A search typed on the page runs at once and its results join the offers. A
-saved search and every watched company run again on each sync. Offers from
+A title search runs on every source set up for its country (Adzuna for any,
+InfoJobs for Spain) and its results join the offers; one source failing
+leaves the others' results. A saved search and every watched company run
+again on each sync. Offers from
 here go through the same fit score and applied check as alert offers; they
 only carry more, a description and, for company boards, closure for free.
 """
@@ -17,11 +19,13 @@ from apply_agent.config import Settings
 from apply_agent.domain.fit import found_words
 from apply_agent.domain.offers import JobOffer
 from apply_agent.domain.profile import CandidateProfile
-from apply_agent.domain.search import JobSearch, WatchedCompany
+from apply_agent.domain.search import COUNTRY_NAMES, JobSearch, WatchedCompany
 from apply_agent.offers.adzuna import AdzunaError, AdzunaSearch
 from apply_agent.offers.adzuna import make_client as make_adzuna_client
 from apply_agent.offers.boards import Board, BoardError, BoardKind, CompanyBoards
 from apply_agent.offers.boards import make_client as make_boards_client
+from apply_agent.offers.infojobs import InfoJobsError, InfoJobsSearch
+from apply_agent.offers.infojobs import make_client as make_infojobs_client
 from apply_agent.storage.offers import OfferRepository
 from apply_agent.storage.searches import SearchRepository
 
@@ -29,13 +33,32 @@ logger = logging.getLogger(__name__)
 
 
 class SearchUnavailableError(RuntimeError):
-    """Adzuna is not configured, so title searches cannot run."""
+    """No title source is set up for the search's country."""
+
+
+@dataclass(frozen=True, slots=True)
+class TitleSource:
+    """A source that searches by title: a name, where it searches, how."""
+
+    name: str
+    run: Callable[[JobSearch], list[JobOffer]]
+    # Countries it covers, or None for any Adzuna country.
+    countries: frozenset[str] | None = None
+
+    @property
+    def coverage(self) -> str:
+        if self.countries is None:
+            return "any country"
+        return ", ".join(sorted(COUNTRY_NAMES[c] for c in self.countries))
 
 
 @dataclass(frozen=True, slots=True)
 class SearchResult:
     offers: tuple[JobOffer, ...]
     new: int
+    sources: tuple[str, ...] = ()
+    # One line per source that failed; the others' offers are still here.
+    errors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,25 +95,44 @@ class JobSearcher:
         *,
         boards: CompanyBoards,
         adzuna: AdzunaSearch | None = None,
+        infojobs: InfoJobsSearch | None = None,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._offers = offers
         self._searches = searches
         self._profile = profile
         self._boards = boards
-        self._adzuna = adzuna
         self._clock = clock
+        self._sources: list[TitleSource] = []
+        if adzuna is not None:
+            self._sources.append(TitleSource("Adzuna", adzuna.search))
+        if infojobs is not None:
+            self._sources.append(TitleSource("InfoJobs", infojobs.search, frozenset({"es"})))
 
     @property
-    def adzuna_enabled(self) -> bool:
-        return self._adzuna is not None
+    def title_sources(self) -> tuple[TitleSource, ...]:
+        return tuple(self._sources)
+
+    def sources_for(self, country: str) -> list[TitleSource]:
+        return [s for s in self._sources if s.countries is None or country in s.countries]
 
     def search(self, search: JobSearch) -> SearchResult:
-        """Run one Adzuna search now and keep its results as offers."""
-        if self._adzuna is None:
-            raise SearchUnavailableError("Adzuna is not configured")
-        found = self._adzuna.search(search)
-        return SearchResult(tuple(found), self._offers.save(found))
+        """Run a title search on every source for its country; keep the results as offers."""
+        sources = self.sources_for(search.country)
+        if not sources:
+            country = COUNTRY_NAMES[search.country]
+            raise SearchUnavailableError(f"No title search is set up for {country}")
+        found: dict[str, JobOffer] = {}
+        errors: list[str] = []
+        for source in sources:
+            try:
+                for offer in source.run(search):
+                    found.setdefault(offer.key, offer)
+            except (AdzunaError, InfoJobsError) as err:
+                errors.append(f"{source.name}: {err}")
+        offers = tuple(found.values())
+        names = tuple(s.name for s in sources)
+        return SearchResult(offers, self._offers.save(offers), names, tuple(errors))
 
     def find_company(self, name: str) -> Board | None:
         return self._boards.find(name)
@@ -101,24 +143,30 @@ class JobSearcher:
         listing = self._boards.listing(board, company.name)
         keywords = company.keywords or self._profile.target
         kept = [o for o in listing.offers if keep_offer(o, keywords, company.places)]
-        new = self._offers.save(kept)
-        closed = self._offers.close_missing(board.id_prefix, listing.open_ids, self._clock())
+        # Details cost a request each on some boards: only for postings not seen before.
+        known = self._offers.known_keys([o.key for o in kept])
+        fresh = self._boards.describe(board, [o for o in kept if o.key not in known])
+        new = self._offers.save([*fresh, *(o for o in kept if o.key in known)])
+        closed = 0
+        if listing.complete:
+            closed = self._offers.close_missing(board.id_prefix, listing.open_ids, self._clock())
         return len(kept), new, closed
 
     def run_saved(self) -> SearchReport:
         """Every saved search and watched company. One failure never stops the rest."""
         runs = checked = found = new = closed = 0
         errors: list[str] = []
-        if self._adzuna is not None:
-            for saved in self._searches.list_searches():
-                label = f"search {saved.search.what!r}"
-                try:
-                    result = self.search(saved.search)
-                except AdzunaError as err:
-                    errors.append(f"{label}: {err}")
-                    continue
+        for saved in self._searches.list_searches():
+            label = f"search {saved.search.what!r}"
+            try:
+                result = self.search(saved.search)
+            except SearchUnavailableError as err:
+                errors.append(f"{label}: {err}")
+                continue
+            errors.extend(f"{label}: {error}" for error in result.errors)
+            if len(result.errors) < len(result.sources):
                 runs += 1
-                found, new = found + len(result.offers), new + result.new
+            found, new = found + len(result.offers), new + result.new
         for company in self._searches.list_companies():
             try:
                 kept, added, gone = self.check_company(company)
@@ -150,5 +198,15 @@ def build_job_searcher(
             app_key=settings.adzuna_app_key.get_secret_value(),
             clock=clock,
         )
+    infojobs = None
+    if settings.infojobs_client_id is not None and settings.infojobs_client_secret is not None:
+        infojobs = InfoJobsSearch(
+            make_infojobs_client(),
+            client_id=settings.infojobs_client_id,
+            client_secret=settings.infojobs_client_secret.get_secret_value(),
+            clock=clock,
+        )
     boards = CompanyBoards(make_boards_client(), clock=clock)
-    return JobSearcher(offers, searches, profile, boards=boards, adzuna=adzuna, clock=clock)
+    return JobSearcher(
+        offers, searches, profile, boards=boards, adzuna=adzuna, infojobs=infojobs, clock=clock
+    )

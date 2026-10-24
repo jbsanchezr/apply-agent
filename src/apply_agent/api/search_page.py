@@ -13,6 +13,7 @@ from typing import Final
 from apply_agent.api.offers_page import OfferView, fit_badge, match_cell, offer_link, rank
 from apply_agent.api.page import STYLE, nav
 from apply_agent.domain.search import COUNTRY_NAMES, JobSearch, SavedSearch, WatchedCompany
+from apply_agent.offers.search import TitleSource
 
 _SCRIPT: Final = """
 const json = {"Content-Type": "application/json"};
@@ -40,6 +41,10 @@ _BOARDS: Final = {
     "lever": "Lever",
     "lever_eu": "Lever (EU)",
     "ashby": "Ashby",
+    "recruitee": "Recruitee",
+    "personio": "Personio",
+    "personio_com": "Personio",
+    "smartrecruiters": "SmartRecruiters",
 }
 
 
@@ -49,22 +54,54 @@ def _input(name: str, label: str, value: str | int | None, **attrs: str) -> str:
     return f'<label>{label}<br><input name="{name}" value="{shown}"{extra}></label>'
 
 
-def _form(search: JobSearch | None, *, enabled: bool) -> str:
+# How to turn on each title source, shown while it is off.
+_SETUP: Final = {
+    "Adzuna": (
+        "<strong>Adzuna</strong> (any country; 25 test calls, then a paid plan): set "
+        "<code>APPLY_AGENT_ADZUNA_APP_ID</code> and <code>APPLY_AGENT_ADZUNA_APP_KEY</code> from "
+        '<a href="https://developer.adzuna.com" target="_blank" rel="noopener noreferrer">'
+        "developer.adzuna.com</a>."
+    ),
+    "InfoJobs": (
+        "<strong>InfoJobs</strong> (Spain): set <code>APPLY_AGENT_INFOJOBS_CLIENT_ID</code> and "
+        "<code>APPLY_AGENT_INFOJOBS_CLIENT_SECRET</code> from an app registered with your "
+        'InfoJobs account at <a href="https://developer.infojobs.net" target="_blank" '
+        'rel="noopener noreferrer">developer.infojobs.net</a>.'
+    ),
+}
+_CREDITS: Final = {
+    "Adzuna": '<a href="https://www.adzuna.com" target="_blank" '
+    'rel="noopener noreferrer">Jobs by Adzuna</a>.',
+    "InfoJobs": '<a href="https://www.infojobs.net" target="_blank" '
+    'rel="noopener noreferrer">Offers from InfoJobs</a>.',
+}
+
+
+def _sources_note(sources: Sequence[TitleSource]) -> str:
+    on = ", ".join(f"{escape(s.name)} ({escape(s.coverage)})" for s in sources)
+    missing = [html for name, html in _SETUP.items() if name not in {s.name for s in sources}]
+    parts = [f'<p class="muted">Searching {on}.</p>' if on else ""]
+    if missing:
+        lead = "To search by title, turn on" if not on else "Also available"
+        items = "".join(f"<li>{item}</li>" for item in missing)
+        parts.append(
+            f'<div class="{"quiet" if not on else "muted"}">{lead}, then restart:'
+            f"<ul>{items}</ul></div>"
+        )
+    if not on:
+        parts.append('<p class="muted">Watching companies needs nothing.</p>')
+    return "".join(parts)
+
+
+def _form(search: JobSearch | None, sources: Sequence[TitleSource]) -> str:
     what = search.what if search else None
     country = search.country if search else "nl"
     options = "".join(
         f'<option value="{code}"{" selected" if code == country else ""}>{name}</option>'
         for code, name in sorted(COUNTRY_NAMES.items(), key=lambda item: item[1])
     )
-    disabled = "" if enabled else " disabled"
-    note = (
-        ""
-        if enabled
-        else '<p class="quiet">Searching by title needs a free Adzuna API key: set '
-        "<code>APPLY_AGENT_ADZUNA_APP_ID</code> and <code>APPLY_AGENT_ADZUNA_APP_KEY</code> "
-        '(from <a href="https://developer.adzuna.com" target="_blank" rel="noopener noreferrer">'
-        "developer.adzuna.com</a>) and restart. Watching companies needs nothing.</p>"
-    )
+    disabled = "" if sources else " disabled"
+    note = _sources_note(sources)
     return f"""
 <section id="find">
 <h2>Search by title</h2>
@@ -109,32 +146,42 @@ def _result_row(view: OfferView) -> str:
     )
 
 
-def _results(search: JobSearch, views: Sequence[OfferView], new: int, error: str | None) -> str:
+def _results(
+    search: JobSearch,
+    views: Sequence[OfferView],
+    new: int,
+    errors: Sequence[str],
+    searched: Sequence[str],
+) -> str:
     saved = escape(search.model_dump_json(), quote=True)
     save = (
         f'<button type="button" data-search="{saved}" onclick="saveSearch(this)">'
         "Save this search (it runs on every sync)</button>"
     )
-    if error:
-        body = f'<p class="quiet">{escape(error)}</p>'
-    elif not views:
-        body = '<p class="muted">Nothing found. Try fewer words or more days.</p>'
-    else:
+    # A source that failed is reported; the others' results still show.
+    failed = "".join(f'<p class="quiet">{escape(error)}</p>' for error in errors)
+    if views:
         rows = "\n".join(_result_row(v) for v in sorted(views, key=rank))
-        body = (
+        table = (
             '<div class="wrap"><table><thead><tr><th>Fit</th><th>Role</th><th>Company</th>'
             "<th>Location</th><th>Posted</th><th>Your applications</th></tr></thead>"
             f"<tbody>\n{rows}\n</tbody></table></div>"
         )
+    elif searched and len(errors) < len(searched):
+        table = '<p class="muted">Nothing found. Try fewer words or more days.</p>'
+    else:
+        table = ""
     count = len(views)
-    summary = f"{count} found, {new} new to your offers." if not error else ""
+    on = ", ".join(escape(name) for name in searched)
+    summary = f"{count} found on {on}, {new} new to your offers." if searched else ""
+    credits = " ".join(_CREDITS[name] for name in searched if name in _CREDITS)
     return f"""
 <section id="results">
 <h2>Results <span class="count">({count})</span></h2>
-<div class="actions"><span class="muted">{summary}</span> {save}</div>
-{body}
+<div class="actions"><span class="muted">{summary}</span> {save if searched else ""}</div>
+{failed}{table}
 <p class="muted">Results are added to <a href="offers">Job offers</a>, where you can mark them.
-<a href="https://www.adzuna.com" target="_blank" rel="noopener noreferrer">Jobs by Adzuna</a>.</p>
+{credits}</p>
 </section>"""
 
 
@@ -212,13 +259,14 @@ def render_search(
     search: JobSearch | None,
     results: Sequence[OfferView],
     new: int,
-    error: str | None,
-    adzuna_enabled: bool,
+    errors: Sequence[str],
+    searched: Sequence[str],
+    sources: Sequence[TitleSource],
     saved: Sequence[SavedSearch],
     companies: Sequence[WatchedCompany],
     default_keywords: Sequence[str],
 ) -> str:
-    results_html = _results(search, results, new, error) if search else ""
+    results_html = _results(search, results, new, errors, searched) if search else ""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -242,7 +290,7 @@ def render_search(
     own job boards.</div>
   </div>
 </header>
-{_form(search, enabled=adzuna_enabled)}
+{_form(search, sources)}
 {results_html}
 <section id="saved"><h2>Saved searches <span class="count">({len(saved)})</span></h2>
 {_saved(saved)}</section>

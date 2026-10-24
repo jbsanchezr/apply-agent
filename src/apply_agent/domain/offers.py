@@ -27,15 +27,29 @@ class OfferSource(StrEnum):
     LINKEDIN_SEARCH = "linkedin_search"
     # Adzuna's job search API (D62).
     ADZUNA = "adzuna"
-    # Companies' own job boards, read through their public APIs (D62).
+    # Companies' own job boards, read through their public APIs (D62, D63).
     GREENHOUSE = "greenhouse"
     LEVER = "lever"
     ASHBY = "ashby"
+    RECRUITEE = "recruitee"
+    PERSONIO = "personio"
+    SMARTRECRUITERS = "smartrecruiters"
+    # InfoJobs' offer search API, Spain only (D63).
+    INFOJOBS = "infojobs"
 
 
 # Sources that list every open posting of a company: a posting missing from
 # a fresh listing has closed (D62).
-COMPANY_BOARDS: Final = frozenset({OfferSource.GREENHOUSE, OfferSource.LEVER, OfferSource.ASHBY})
+COMPANY_BOARDS: Final = frozenset(
+    {
+        OfferSource.GREENHOUSE,
+        OfferSource.LEVER,
+        OfferSource.ASHBY,
+        OfferSource.RECRUITEE,
+        OfferSource.PERSONIO,
+        OfferSource.SMARTRECRUITERS,
+    }
+)
 MAX_DESCRIPTION: Final = 20_000
 
 

@@ -1,7 +1,8 @@
 """Search Adzuna's job API by title, place, country and company (D62).
 
-Adzuna aggregates job boards and offers a free API for personal use: an app
-id and key from developer.adzuna.com, sent as query parameters. It returns a
+Adzuna aggregates job boards and sells API access: an app id and key from
+developer.adzuna.com (25 test calls, then a paid plan), sent as query
+parameters. It returns a
 title, company, place, date and a snippet of the description, enough for the
 fit score to read "3+ years" when the snippet says it. Its terms ask for
 attribution, which the Search page shows.

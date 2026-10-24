@@ -18,11 +18,19 @@
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
 * A **Search** page (`/search`): search jobs by title, place, country, company
-  and age through Adzuna's API (free key), save searches to run on every
-  sync, and watch companies' own job boards (Greenhouse, Lever, Ashby) by
-  name or careers URL. Board postings come with their full description, so
-  the years asked are read from it, and are marked closed when they
-  disappear. Existing databases are migrated on start. See D62.
+  and age through Adzuna's API (paid after 25 test calls), save searches to
+  run on every sync, and watch companies' own job boards (Greenhouse, Lever,
+  Ashby) by name or careers URL. Board postings come with their full
+  description, so the years asked are read from it, and are marked closed
+  when they disappear. Existing databases are migrated on start. See D62.
+* Two more sources for the Search page. InfoJobs' official API searches
+  Spain by title and province, with each offer's minimum experience (an app
+  registered at developer.infojobs.net, no price stated). Watched companies
+  can also be on Recruitee, Personio or SmartRecruiters, which need no key. A title search runs on every
+  source for its country, and one failing leaves the others' results. See
+  D63.
+* Fixed: the *Job offers* page failed as soon as it held an offer from any
+  source other than LinkedIn alerts.
 * An offer can be marked *No longer available*. It folds away, and once five
   are marked, offers fold into *Older offers* at the typical age those had
   instead of a fixed 14 days. Each offer shows how long ago its last alert

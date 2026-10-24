@@ -843,10 +843,11 @@ def test_without_adzuna_the_page_says_how_to_turn_it_on(
     with _search_app(tmp_path, repository, adzuna=False) as client:
         page = client.get("/search", headers=AUTH).text
         assert "APPLY_AGENT_ADZUNA_APP_ID" in page
+        assert "APPLY_AGENT_INFOJOBS_CLIENT_ID" in page
         assert "<fieldset disabled>" in page
         assert "Companies you watch" in page
         searched = client.get("/search?what=python", headers=AUTH).text
-        assert "Adzuna is not configured" in searched
+        assert "No title search is set up for Netherlands" in searched
 
 
 def test_a_search_shows_ranked_results_that_join_the_offers(
@@ -856,7 +857,7 @@ def test_a_search_shows_ranked_results_that_join_the_offers(
         page = client.get(
             "/search?what=AI+engineer&where=Utrecht&country=nl&max_days_old=7", headers=AUTH
         ).text
-        assert "1 found, 1 new to your offers." in page
+        assert "1 found on Adzuna, 1 new to your offers." in page
         assert "AI Engineer" in page
         assert "Jobs by Adzuna" in page
         [offer] = client.get("/offers?format=json", headers=AUTH).json()
@@ -914,3 +915,34 @@ def test_a_watched_company_is_found_read_and_checked_on_sync(
         company_id = watched.json()["id"]
         assert client.delete(f"/search/companies/{company_id}", headers=AUTH).status_code == 200
         assert len(client.get("/offers?format=json", headers=AUTH).json()) == 1
+
+
+def test_the_offers_page_shows_offers_from_every_source(
+    tmp_path: Path, repository: Repository
+) -> None:
+    """Regression: the page knew only LinkedIn's sources and failed on any other."""
+    offers = OfferRepository(repository.session_factory)
+    offers.save(
+        [
+            JobOffer(
+                source=source,
+                external_id=f"{source.value}/{n}",
+                title=f"Role {n}",
+                company=f"Company {n}",
+                seen_at=ALERT_DAY,
+            )
+            for n, source in enumerate(OfferSource)
+        ]
+    )
+    app = create_app(
+        _settings(tmp_path),
+        run_sync=lambda: EMPTY_REPORT,
+        repository=repository,
+        offers=offers,
+        clock=lambda: ALERT_DAY,
+    )
+    with TestClient(app) as client:
+        response = client.get("/offers", headers=AUTH)
+    assert response.status_code == 200
+    for label in ("Adzuna", "Recruitee", "Personio", "SmartRecruiters", "InfoJobs"):
+        assert f"{label}</span>" in response.text

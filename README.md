@@ -129,7 +129,7 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `GET /offers` | Job offers and whether you applied; JSON via `?format=json` |
 | `PUT /offers/{id}/state` | `{"state": "interested"}`, `"dismissed"` or `"new"` |
 | `PUT /offers/{id}/closed` | The posting is no longer open; `DELETE` undoes it |
-| `GET /search` | The Search page; with `?what=...&where=...&country=nl&company=...&max_days_old=14` it searches Adzuna |
+| `GET /search` | The Search page; with `?what=...&where=...&country=es&company=...&max_days_old=14` it searches every source set up for that country (InfoJobs for Spain, Adzuna for any) |
 | `POST /search/saved` | Save a search to run on every sync: `{"what": "AI engineer", "country": "nl"}`; `DELETE /search/saved/{id}` removes it |
 | `POST /search/companies` | Watch a company's job board: `{"name": "Mollie", "keywords": "", "places": "Netherlands"}`; `DELETE /search/companies/{id}` stops |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
@@ -282,17 +282,26 @@ APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer
 
 ## Searching for jobs
 
-The **Search** page (`/search`) finds offers beyond your alerts (D62):
+The **Search** page (`/search`) finds offers beyond your alerts (D62, D63):
 
-* **By title, place, country and company**, through Adzuna's job API. It is
-  free for personal use: create an app at <https://developer.adzuna.com>, then
-  set `APPLY_AGENT_ADZUNA_APP_ID` and `APPLY_AGENT_ADZUNA_APP_KEY`. Save a
-  search and it runs again on every sync.
+* **By title, place, country and company**, on every source set up for the
+  country. Save a search and it runs again on every sync, one call per
+  source each time.
+  * **InfoJobs** (Spain; its developer site states no price on 2026-10-24):
+    register an app with your InfoJobs account at
+    <https://developer.infojobs.net>, then set `APPLY_AGENT_INFOJOBS_CLIENT_ID`
+    and `APPLY_AGENT_INFOJOBS_CLIENT_SECRET`. Each offer states its minimum
+    experience, which the fit score reads. The place is used as the province.
+  * **Adzuna** (any of 19 countries), not free: a new key gets 25 test calls,
+    and full access is a paid plan (£8 a month for 5,000 calls on
+    2026-10-24). Create an app at <https://developer.adzuna.com>, then set
+    `APPLY_AGENT_ADZUNA_APP_ID` and `APPLY_AGENT_ADZUNA_APP_KEY`.
 * **Companies you watch**, by name or careers page URL, read from their own
-  job boards (Greenhouse, Lever, Ashby) on every sync. No key needed. Their
-  postings carry the full description, so the years of experience asked are
-  read from it rather than guessed, and a posting that disappears is marked
-  as no longer available.
+  job boards on every sync: Greenhouse, Lever, Ashby, Recruitee (common among
+  Dutch startups), Personio (common in Spain and Germany) and SmartRecruiters
+  (large employers). No key needed. Their postings carry the full
+  description, so the years of experience asked are read from it rather than
+  guessed, and a posting that disappears is marked as no longer available.
 
 Results join *Job offers*, with the same fit score and applied check.
 
@@ -324,8 +333,12 @@ Results join *Job offers*, with the same fit score and applied check.
 * **Closed offers are not detected for LinkedIn.** LinkedIn blocks automated
   checks, so you mark closed offers yourself; the app only learns how old
   they get. Companies watched on their own job boards are detected.
-* **Company boards cover some companies only**: those on Greenhouse, Lever or
-  Ashby. Others (Workday, SmartRecruiters, own sites) are not read yet.
+* **Company boards cover some companies only**: those on Greenhouse, Lever,
+  Ashby, Recruitee, Personio or SmartRecruiters. Others (Workday, own sites)
+  are not read yet. A SmartRecruiters company with more than 1,000 postings
+  is read in part, so its closures are not detected.
+* **InfoJobs and Adzuna were built from their documentation** and not yet run
+  against the live APIs, which need your credentials.
 
 * **Fit is a guess from the title.** Alerts do not include requirements, and
   most titles (85% in one real inbox) name no seniority, so a plain "AI
