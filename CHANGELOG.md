@@ -17,6 +17,12 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* A **Companies page** (`/companies`): paste a list of companies (one group per
+  line) and the app looks for each one's job board in the background, then
+  shows per company its board, open offers, good fits and best match, with
+  links to its news and contacts. A board found by guessing the name is
+  confirmed only with enough postings and the right company name; otherwise
+  you are asked. See D66.
 * A **company page** (`/company?name=...`): recent news from Google News and
   Hacker News with an optional summary by your local model, how the company
   is hiring, the contacts it publishes, and LinkedIn searches for the people

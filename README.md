@@ -132,6 +132,9 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `GET /search` | The Search page; with `?what=...&where=...&country=es&company=...&max_days_old=14` it searches InfoJobs (Spain) |
 | `POST /search/saved` | Save a search to run on every sync: `{"what": "AI engineer", "country": "nl"}`; `DELETE /search/saved/{id}` removes it |
 | `POST /search/companies` | Watch a company's job board: `{"name": "Mollie", "keywords": "", "places": "Netherlands"}`; `DELETE /search/companies/{id}` stops |
+| `GET /companies` | Your list of companies, each with its job board and offers |
+| `POST /companies/import` | Add a pasted list: `{"text": "Netherlands: ASML, Adyen"}`; looks for their boards in the background |
+| `POST /companies/{id}/confirm` | A possible board is the company's; `/reject` says it is not |
 | `GET /company?name=...&context=...` | A company's news, hiring and whom to contact |
 | `POST /company/summary` | Summarize its news with the configured model: `{"name": "Mollie", "context": "payments"}` |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
@@ -302,6 +305,14 @@ The **Search** page (`/search`) finds offers beyond your alerts (D62, D63):
   guessed, and a posting that disappears is marked as no longer available.
 
 Results join *Job offers*, with the same fit score and applied check.
+
+To follow many companies at once, paste a list on the **Companies** page, one
+group per line ("Netherlands: ASML, Adyen, ING"). The app looks for each
+one's job board in the background and breaks each company down: its board,
+open offers, how many fit well and the best one. When a board found by name
+may belong to another company, it shows you its postings and asks (D66).
+Companies on no board it reads are best followed with a LinkedIn job alert
+for the company, which the agent already reads.
 
 Every company name links to its **company page**: recent news (Google News
 and Hacker News; add what the company does to tell it from namesakes), a

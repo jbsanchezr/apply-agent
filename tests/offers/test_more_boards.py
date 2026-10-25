@@ -172,7 +172,9 @@ def test_smartrecruiters_is_found_from_its_first_page_only() -> None:
     found = reader({"companies/brisagroup/postings": smartrecruiters_page(250)}, calls).find(
         "BrisaGroup"
     )
-    assert found == Board(BoardKind.SMARTRECRUITERS, "brisagroup")
+    assert found is not None
+    assert found.board == Board(BoardKind.SMARTRECRUITERS, "brisagroup")
+    assert found.confirmed  # "BrisaGroup" is the "Brisa Group" the postings name
     assert sum("smartrecruiters" in c for c in calls) == 1
 
 

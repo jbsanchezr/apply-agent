@@ -24,7 +24,7 @@ from typing import Any, Final
 import httpx
 from pydantic import ValidationError
 
-from apply_agent.domain.keys import company_key
+from apply_agent.domain.keys import company_key, similar_company
 from apply_agent.domain.offers import MAX_DESCRIPTION, JobOffer, OfferSource
 from apply_agent.offers.linkedin_search import USER_AGENT
 from apply_agent.providers.html_text import html_to_text
@@ -128,6 +128,44 @@ _CAREERS_PAGES: Final = {
 
 
 @dataclass(frozen=True, slots=True)
+class BoardMatch:
+    """A board that may hold a company's postings, and how sure that is (D66)."""
+
+    board: Board
+    # Real postings seen while probing (sample postings left out).
+    postings: int
+    # A few of their titles, for the user to judge an unconfirmed match.
+    examples: tuple[str, ...]
+    # Company names the board reports for its postings, if it reports any.
+    names: frozenset[str]
+    confirmed: bool
+
+
+# Fewer real postings than this, under a guessed name, needs the user's word.
+MIN_POSTINGS_TO_TRUST: Final = 5
+
+
+def _same_name(asked: str, reported: str) -> bool:
+    """'bosch group' and 'boschgroup', or 'bosch' and 'bosch group': one company."""
+    if similar_company(asked, reported):
+        return True
+    a, b = asked.replace(" ", ""), reported.replace(" ", "")
+    return bool(a and b) and (a.startswith(b) or b.startswith(a))
+
+
+def _match(
+    board: Board, rows: list[dict[str, Any]], company: str, *, confirmed: bool
+) -> BoardMatch:
+    real = [row for row in rows if not _is_sample(row)]
+    names = frozenset(str(row["company"]) for row in real if row.get("company"))
+    key = company_key(company)
+    right_name = not names or any(_same_name(key, company_key(name)) for name in names)
+    sure = confirmed or (len(real) >= MIN_POSTINGS_TO_TRUST and right_name)
+    examples = tuple(str(row.get("title") or "") for row in real[:3])
+    return BoardMatch(board, len(real), examples, names, sure)
+
+
+@dataclass(frozen=True, slots=True)
 class Listing:
     """The open postings on a board, before any filter."""
 
@@ -197,6 +235,7 @@ def _greenhouse(data: Any, board: Board) -> Iterator[dict[str, Any]]:
             "posted_on": _date(job.get("first_published") or job.get("updated_at")),
             # Greenhouse escapes the HTML of its descriptions once more.
             "description": _text(html.unescape(job.get("content") or "")),
+            "company": job.get("company_name"),
         }
 
 
@@ -243,6 +282,7 @@ def _recruitee(data: Any, board: Board) -> Iterator[dict[str, Any]]:
             "url": job.get("careers_url"),
             "posted_on": _date(job.get("published_at") or job.get("created_at")),
             "description": _joined((_text(job.get("description")), _text(job.get("requirements")))),
+            "company": job.get("company_name"),
         }
 
 
@@ -267,6 +307,7 @@ def _personio(root: ET.Element, board: Board) -> Iterator[dict[str, Any]]:
             "url": f"https://{board.slug}.{host}/job/{job_id}" if job_id else None,
             "posted_on": _date(position.findtext("createdAt")),
             "description": _joined([asked, *sections]),
+            "company": position.findtext("subcompany"),
         }
 
 
@@ -282,6 +323,7 @@ def _smartrecruiters(content: Any, board: Board) -> Iterator[dict[str, Any]]:
             # The listing has no description; describe() fetches it for the
             # postings worth keeping.
             "description": None,
+            "company": (job.get("company") or {}).get("name"),
         }
 
 
@@ -295,6 +337,14 @@ _READERS: Final[dict[BoardKind, Callable[[Any, Board], Iterator[dict[str, Any]]]
     BoardKind.PERSONIO_COM: _personio,
     BoardKind.SMARTRECRUITERS: _smartrecruiters,
 }
+
+
+_SAMPLE: Final = re.compile(r"\(\s*sample\s*\)|\bsample (?:job|posting|vacancy)\b", re.IGNORECASE)
+
+
+def _is_sample(row: dict[str, Any]) -> bool:
+    """A placeholder posting a job board puts in new accounts (D66)."""
+    return bool(_SAMPLE.search(str(row.get("title") or "")))
 
 
 class CompanyBoards:
@@ -363,22 +413,42 @@ class CompanyBoards:
             return None
         return list(_smartrecruiters(content, board)), len(content) >= total
 
-    def find(self, company: str) -> Board | None:
-        """Where a company publishes its postings: a careers URL, or slugs tried in turn."""
+    def find(self, company: str) -> BoardMatch | None:
+        """Where a company publishes its postings: a careers URL, or slugs tried in turn.
+
+        A careers URL is the user's word, so its board is confirmed. A board
+        found by guessing slugs is confirmed only with enough real postings
+        and, where the board names its company, the right name (D66): short
+        names are taken by other companies ("meta", "amazon") and by trial
+        accounts. Otherwise the match is returned unconfirmed, for the user
+        to check, and the first one found wins.
+        """
         if board := board_from_url(company):
-            return board if self._fetch(board, probe=True) is not None else None
+            fetched = self._fetch(board, probe=True)
+            return None if fetched is None else _match(board, fetched[0], company, confirmed=True)
+        possible: BoardMatch | None = None
         for slug in slug_candidates(company):
             for kind in BoardKind:
                 board = Board(kind, slug)
-                fetched = self._fetch(board, probe=True)
-                # A Lever account with no postings is an empty list: often an
-                # old account under a guessed name, so not taken as a match.
-                empty_lever = kind in (BoardKind.LEVER, BoardKind.LEVER_EU) and not (
-                    fetched and fetched[0]
-                )
-                if fetched is not None and not empty_lever:
-                    return board
-        return None
+                try:
+                    fetched = self._fetch(board, probe=True)
+                except (httpx.HTTPError, BoardError) as err:
+                    # One board failing (a 403, a timeout) must not end the search.
+                    logger.info(
+                        "board probe failed",
+                        extra={"board": kind.value, "error": type(err).__name__},
+                    )
+                    continue
+                if fetched is None:
+                    continue
+                match = _match(board, fetched[0], company, confirmed=False)
+                if match.confirmed:
+                    return match
+                # An empty account, or one with only the board's own sample
+                # postings ("Senior Marketer (Sample)"), is not worth showing.
+                if possible is None and match.postings:
+                    possible = match
+        return possible
 
     def listing(self, board: Board, company: str) -> Listing:
         """The open postings. Raises BoardError if the company is no longer there."""
@@ -390,7 +460,7 @@ class CompanyBoards:
         offers: list[JobOffer] = []
         open_ids: set[str] = set()
         for raw in rows:
-            if raw["id"] is None:
+            if raw["id"] is None or _is_sample(raw):
                 continue
             external_id = f"{board.id_prefix}{raw['id']}"
             open_ids.add(external_id)

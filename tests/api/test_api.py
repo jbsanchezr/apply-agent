@@ -34,6 +34,7 @@ from apply_agent.storage import make_session_factory
 from apply_agent.storage.offers import OfferRepository
 from apply_agent.storage.repository import Repository
 from apply_agent.storage.searches import SearchRepository
+from apply_agent.storage.targets import TargetRepository
 from tests.agent.helpers import T0, assessment, message
 from tests.conftest import FIXTURES_DIR
 from tests.offers.test_boards import GREENHOUSE
@@ -900,11 +901,14 @@ def test_a_watched_company_is_found_read_and_checked_on_sync(
         assert missing.status_code == 404
         assert "careers page" in missing.json()["detail"]
 
-        watched = client.post(
-            "/search/companies",
-            headers=AUTH,
-            json={"name": "Arcwell", "keywords": "", "places": "Netherlands"},
-        )
+        request = {"name": "Arcwell", "keywords": "", "places": "Netherlands"}
+        # Two postings under a guessed name: the user is asked first (D66).
+        asked = client.post("/search/companies", headers=AUTH, json=request)
+        assert asked.status_code == 409
+        assert "greenhouse/arcwell with 2 posting(s)" in asked.json()["detail"]
+        assert "AI Engineer" in asked.json()["detail"]
+
+        watched = client.post("/search/companies", headers=AUTH, json=request | {"confirm": True})
         assert watched.status_code == 201
         assert watched.json() | {"id": 0} == {
             "id": 0,
@@ -995,7 +999,7 @@ def test_a_company_page_shows_its_hiring_news_and_whom_to_contact(
     tmp_path: Path, repository: Repository
 ) -> None:
     with _company_app(tmp_path, repository) as client:
-        client.post("/search/companies", headers=AUTH, json={"name": "Arcwell"})
+        client.post("/search/companies", headers=AUTH, json={"name": "Arcwell", "confirm": True})
         page = client.get("/company?name=Arcwell&context=robots", headers=AUTH).text
 
         assert "<h1>Arcwell</h1>" in page
@@ -1029,3 +1033,41 @@ def test_the_news_summary_comes_from_the_model(tmp_path: Path, repository: Repos
         )
         assert response.json() == {"summary": "- It raised money."}
         assert asked == [("Arcwell", 1)]
+
+
+def test_a_list_of_companies_is_imported_checked_and_broken_down(
+    tmp_path: Path, repository: Repository
+) -> None:
+    with _company_app(tmp_path, repository) as client:
+        assert "No companies yet" in client.get("/companies", headers=AUTH).text
+        started = client.post(
+            "/companies/import", headers=AUTH, json={"text": "Netherlands: Arcwell y Nowhere"}
+        )
+        assert started.status_code == 202
+        assert started.json()["added"] == 2
+        job_id = started.json()["job"]["id"]
+        deadline = time.monotonic() + 30
+        while client.get(f"/companies/check/{job_id}", headers=AUTH).json()["status"] == "running":
+            assert time.monotonic() < deadline
+            time.sleep(0.05)
+
+        page = client.get("/companies", headers=AUTH).text
+        assert "<h2>Netherlands" in page
+        assert "Maybe Greenhouse (arcwell)" in page  # two postings: the user decides
+        assert "Not on a board this app reads" in page  # Nowhere
+        assert "1 to confirm" in page
+
+        arcwell = next(
+            t for t in TargetRepository(repository.session_factory).list() if t.name == "Arcwell"
+        )
+        confirmed = client.post(f"/companies/{arcwell.id}/confirm", headers=AUTH)
+        assert confirmed.json() | {"id": 0} == {"id": 0, "offers": 1, "new": 1}
+        page = client.get("/companies", headers=AUTH).text
+        assert "<strong>1</strong> open" in page
+        assert "AI Engineer" in page
+        assert "job-boards.greenhouse.io/arcwell" in page
+        assert client.post(f"/companies/{arcwell.id}/confirm", headers=AUTH).status_code == 409
+
+        assert client.delete(f"/companies/{arcwell.id}", headers=AUTH).status_code == 200
+        assert client.delete(f"/companies/{arcwell.id}", headers=AUTH).status_code == 404
+        assert client.post("/companies/999/reject", headers=AUTH).status_code == 404

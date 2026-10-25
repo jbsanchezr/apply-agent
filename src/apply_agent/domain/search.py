@@ -1,6 +1,7 @@
 """What the user asked the Search page to look for (D62)."""
 
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated, Final, Literal
 
 from pydantic import Field
@@ -52,3 +53,28 @@ class WatchedCompany(DomainModel):
     places: tuple[Text, ...] = ()
     last_checked_at: datetime | None = None
     last_error: str | None = None
+
+
+class BoardStatus(StrEnum):
+    """What looking for a target company's job board found (D66)."""
+
+    PENDING = "pending"  # not looked for yet
+    FOUND = "found"  # a board it surely uses; it is watched
+    POSSIBLE = "possible"  # a board under its name, maybe someone else's
+    NONE = "none"  # no board this app can read
+    ERROR = "error"
+
+
+class TargetCompany(DomainModel):
+    """A company the user wants to follow, loaded from a list (D66)."""
+
+    id: int
+    name: Text
+    group: Annotated[str, Field(max_length=60)] | None = None
+    context: Text | None = None
+    status: BoardStatus = BoardStatus.PENDING
+    board: Text | None = None
+    slug: Text | None = None
+    # Example titles of a possible board, or the error, for the user to read.
+    note: Annotated[str, Field(max_length=300)] | None = None
+    checked_at: datetime | None = None

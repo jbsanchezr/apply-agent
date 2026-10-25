@@ -887,3 +887,42 @@ uses it.
 
 D62 and D63 still describe Adzuna as it was decided then; this entry is
 where it ends.
+
+## D66 - A list of companies, and a board found by guessing is only a guess
+The user wanted to follow a list of companies in one go (one their father
+drew up: 45 names in seven markets) and see a breakdown for each. Checking
+that list showed two problems with how boards were found by name (D62):
+
+* **Namesakes.** Guessing slugs from a name found "meta" and "accenture" on
+  Recruitee and "amazon" on Personio. They were other companies, or trial
+  accounts holding only the board's sample postings ("Senior Marketer
+  (Sample)"). Short, common names are taken.
+* **One failing board ended the search.** A 403 from one board raised
+  instead of trying the next.
+
+So `find` now returns a `BoardMatch`, not just a board. A careers URL the
+user gives is confirmed. A board found by guessing is confirmed only with at
+least five real postings and, where the board reports the company's name
+(Greenhouse, Recruitee, Personio and SmartRecruiters do), a name that
+matches, spaces aside ("BoschGroup" is "Bosch Group"). Anything less is a
+possible match: the user sees its postings and says whether it is the
+company. Sample postings are never counted or stored, and a board that fails
+is skipped.
+
+The **Companies page** takes a pasted list, one group per line before a
+colon, names separated by commas or "and" (also "y", "e", "und", "et", as
+lists are written in several languages). Finding the boards takes seconds
+per company, so it runs as a background job, one company at a time. Sure
+matches are watched at once; possible ones wait for the user; companies on
+no readable board are followed through LinkedIn alerts, which the page
+suggests. Each company shows its board, its open offers, how many fit well,
+the best one, and a link to its company page (news and contacts, D64). The
+list is a table of its own, with statuses as plain strings, so it needs no
+migration.
+
+On the user's real list (45 companies, checked against the live boards on
+2026-10-25): 7 found and watched (Adyen, TomTom, Databricks, Nebius, Wise,
+Monzo, Celonis), 3 possible, which were exactly the three namesakes above,
+and 35 on no board this app reads: large employers on Workday,
+SuccessFactors or their own sites, followed through LinkedIn alerts. A name
+in several groups is kept once, in its first group.

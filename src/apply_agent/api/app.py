@@ -35,6 +35,7 @@ from apply_agent.agent.llm import make_text_model
 from apply_agent.agent.outcomes import SyncReport
 from apply_agent.agent.runner import build_agent
 from apply_agent.api.auth import TokenAuth
+from apply_agent.api.companies_page import CompanyRow, render_companies
 from apply_agent.api.company_page import render_company
 from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
 from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
@@ -46,11 +47,11 @@ from apply_agent.domain import Application, ApplicationStatus, stage_of
 from apply_agent.domain.fit import assess_fit
 from apply_agent.domain.keys import company_key, similar_company
 from apply_agent.domain.offers import JobOffer, OfferState, match_offer, typical_closing_age
-from apply_agent.domain.search import JobSearch
+from apply_agent.domain.search import BoardStatus, JobSearch, TargetCompany
 from apply_agent.logs import configure_logging
 from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
 from apply_agent.offers.boards import Board, BoardError, BoardKind, board_from_url
-from apply_agent.offers.company import CompanyResearcher, NewsItem, summarize
+from apply_agent.offers.company import CompanyResearcher, NewsItem, company_offers, summarize
 from apply_agent.offers.company import make_client as make_company_client
 from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
@@ -59,9 +60,11 @@ from apply_agent.offers.search import (
     SearchUnavailableError,
     build_job_searcher,
 )
+from apply_agent.offers.targets import check_targets
 from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from apply_agent.storage.repository import ApplicationNotFoundError, Repository
 from apply_agent.storage.searches import SearchRepository
+from apply_agent.storage.targets import TargetRepository, parse_company_list
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +91,14 @@ class StatusCorrection(BaseModel):
     status: ApplicationStatus
 
 
+class ImportRequest(BaseModel):
+    """Body of ``POST /companies/import``: a pasted list of companies."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=20_000)
+
+
 class SummaryRequest(BaseModel):
     """Body of ``POST /company/summary``."""
 
@@ -105,6 +116,8 @@ class WatchRequest(BaseModel):
     name: str = Field(min_length=1, max_length=300)
     keywords: str = Field(default="", max_length=300)
     places: str = Field(default="", max_length=300)
+    # Watch a board found by guessing even though it may be another company's.
+    confirm: bool = False
 
     @property
     def keyword_list(self) -> list[str]:
@@ -191,6 +204,9 @@ def create_app(
         return report
 
     sync_service = SyncService(sync_both_pages)
+    target_store = TargetRepository(repo.session_factory)
+    # Looking for job boards takes seconds per company: a job of its own (D66).
+    target_service = SyncService(lambda: asdict(check_targets(target_store, job_searcher, clock)))
     applications = ApplicationsCollector(repo.count_by_status)
 
     @asynccontextmanager
@@ -202,6 +218,7 @@ def create_app(
         finally:
             REGISTRY.unregister(applications)
             sync_service.shutdown()
+            target_service.shutdown()
 
     app = FastAPI(title="apply-agent", version="0.1.0", lifespan=lifespan)
     protected = [Depends(TokenAuth(_api_token(settings)))]
@@ -420,6 +437,81 @@ def create_app(
     def can_summarize() -> bool:
         return summarizer is not None or settings.llm is not LlmKind.BASELINE
 
+    def start_target_check() -> dict[str, Any]:
+        try:
+            return target_service.start().to_dict()
+        except SyncAlreadyRunningError as err:
+            return err.job.to_dict()
+
+    @app.get("/companies", dependencies=protected, response_class=HTMLResponse)
+    def companies_view() -> HTMLResponse:
+        """The user's companies, each with its job board and offers (D66)."""
+        now = clock()
+        views = offer_views(now, old_after())
+        stored = [v.stored for v in views]
+        by_id = {v.stored.id: v for v in views}
+        week = now - timedelta(days=7)
+        rows = []
+        for target in target_store.list():
+            mine = tuple(by_id[o.id] for o in company_offers(stored, target.name))
+            new = sum(1 for v in mine if v.stored.first_seen_at >= week)
+            rows.append(CompanyRow(target, mine, new))
+        return HTMLResponse(render_companies(rows, target_service.latest()))
+
+    @app.post("/companies/import", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
+    def import_companies(request: ImportRequest) -> dict[str, Any]:
+        """Add a pasted list of companies and look for their job boards in the background."""
+        added = target_store.add(parse_company_list(request.text))
+        return {"added": added, "job": start_target_check()}
+
+    @app.post("/companies/check", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
+    def check_companies() -> dict[str, Any]:
+        """Look again for the boards of companies not found yet or that failed."""
+        for target in target_store.list():
+            if target.status in (BoardStatus.ERROR, BoardStatus.NONE):
+                target_store.record(target.id, BoardStatus.PENDING, clock())
+        return start_target_check()
+
+    @app.get("/companies/check/{job_id}", dependencies=protected)
+    def company_check_status(job_id: str) -> dict[str, Any]:
+        job = target_service.get(job_id)
+        if job is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown check")
+        return job.to_dict()
+
+    def target_or_404(target_id: int) -> TargetCompany:
+        target = target_store.get(target_id)
+        if target is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown company")
+        return target
+
+    @app.post("/companies/{target_id}/confirm", dependencies=protected)
+    def confirm_company_board(target_id: int) -> dict[str, Any]:
+        """The possible board is the company's: watch it."""
+        target = target_or_404(target_id)
+        if target.status is not BoardStatus.POSSIBLE or not target.board or not target.slug:
+            raise HTTPException(status.HTTP_409_CONFLICT, "nothing to confirm")
+        board = Board(BoardKind(target.board), target.slug)
+        _, kept, new = job_searcher.watch_board(target.name, board)
+        target_store.record(
+            target_id, BoardStatus.FOUND, clock(), board=target.board, slug=target.slug
+        )
+        return {"id": target_id, "offers": kept, "new": new}
+
+    @app.post("/companies/{target_id}/reject", dependencies=protected)
+    def reject_company_board(target_id: int) -> dict[str, Any]:
+        """The possible board belongs to someone else."""
+        target_or_404(target_id)
+        target_store.record(target_id, BoardStatus.NONE, clock(), note="not theirs, you said")
+        return {"id": target_id}
+
+    @app.delete("/companies/{target_id}", dependencies=protected)
+    def remove_company(target_id: int) -> dict[str, Any]:
+        """Take it off the list. A board being watched stays on the Search page."""
+        if not target_store.remove(target_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown company")
+        return {"id": target_id}
+
     @app.get("/company", dependencies=protected, response_class=HTMLResponse)
     def company_view(name: str, context: str | None = None) -> HTMLResponse:
         """A company's news, hiring and whom to contact (D64)."""
@@ -528,30 +620,34 @@ def create_app(
 
     @app.post("/search/companies", dependencies=protected, status_code=status.HTTP_201_CREATED)
     def watch_company(request: WatchRequest) -> dict[str, Any]:
-        """Find the company's job board, watch it, and read it once now."""
+        """Find the company's job board, watch it, and read it once now.
+
+        A board found by guessing that may be another company's answers 409
+        with what it holds; sending ``confirm`` then watches it (D66).
+        """
         try:
-            board = job_searcher.find_company(request.name)
+            match = job_searcher.find_company(request.name)
         except (httpx.HTTPError, BoardError) as err:
             raise HTTPException(
                 status.HTTP_502_BAD_GATEWAY, f"could not reach the job boards: {err}"
             ) from err
-        if board is None:
+        if match is None:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND,
-                f"{request.name} was not found on Greenhouse, Lever or Ashby. "
+                f"{request.name} was not found on any job board this app reads. "
                 "Try the address of its careers page.",
             )
+        board = match.board
+        if not match.confirmed and not request.confirm:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"Found {board.kind.value}/{board.slug} with {match.postings} posting(s), "
+                f"such as: {'; '.join(match.examples)}. Is this {request.name}?",
+            )
         name = request.name if board_from_url(request.name) is None else board.slug
-        company_id = search_store.watch_company(
-            name, board.kind.value, board.slug, request.keyword_list, request.place_list
+        company_id, kept, new = job_searcher.watch_board(
+            name, board, request.keyword_list, request.place_list
         )
-        watched = next(c for c in search_store.list_companies() if c.id == company_id)
-        try:
-            kept, new, _ = job_searcher.check_company(watched)
-            search_store.record_check(company_id, clock(), None)
-        except (httpx.HTTPError, BoardError) as err:
-            search_store.record_check(company_id, clock(), f"{type(err).__name__}: {err}")
-            kept = new = 0
         return {
             "id": company_id,
             "board": board.kind.value,

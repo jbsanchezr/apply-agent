@@ -120,16 +120,67 @@ def test_slugs_are_tried_from_the_name() -> None:
     assert slug_candidates("!!!") == []
 
 
-def test_a_company_is_found_on_the_first_board_that_has_it() -> None:
+def ashby_with(count: int) -> dict[str, Any]:
+    job = ASHBY["jobs"][0]
+    return {"jobs": [job | {"id": f"job-{n}", "title": f"Role {n}"} for n in range(count)]}
+
+
+def test_a_company_is_found_on_the_first_board_that_surely_has_it() -> None:
     calls: list[str] = []
-    found = boards({"job-board/brisa": ASHBY}, calls).find("Brisa")
-    assert found == Board(BoardKind.ASHBY, "brisa")
+    found = boards({"job-board/brisa": ashby_with(5)}, calls).find("Brisa")
+    assert found is not None
+    assert found.board == Board(BoardKind.ASHBY, "brisa")
+    assert found.confirmed
     assert [c.split("/")[2] for c in calls] == [
         "boards-api.greenhouse.io",
         "api.lever.co",
         "api.eu.lever.co",
         "api.ashbyhq.com",
     ]
+
+
+def test_a_guessed_board_with_few_postings_is_only_possible() -> None:
+    found = boards({"job-board/brisa": ASHBY}).find("Brisa")
+    assert found is not None
+    assert not found.confirmed
+    assert (found.postings, found.examples) == (1, ("ML Engineer",))
+
+
+def test_a_careers_url_is_always_confirmed() -> None:
+    found = boards({"job-board/brisa": ASHBY}).find("https://jobs.ashbyhq.com/brisa")
+    assert found is not None
+    assert found.confirmed
+
+
+def test_sample_postings_and_other_companies_are_not_matches() -> None:
+    sample = {
+        "offers": [
+            {"id": 1, "title": "Senior Marketer (Sample)", "company_name": "brisa"},
+        ]
+    }
+    assert boards({"brisa.recruitee.com": sample}).find("Brisa") is None
+    other = {
+        "jobs": [
+            {"id": n, "title": f"Role {n}", "company_name": "Brisa Lighting Ltd"} for n in range(9)
+        ]
+    }
+    namesake = boards({"boards/brisa": other}).find("Brisa Pay")
+    # Same slug, enough postings, but the board names another company.
+    assert namesake is None or not namesake.confirmed
+
+
+def test_a_board_that_fails_does_not_stop_the_search() -> None:
+    def handle(request: httpx.Request) -> httpx.Response:
+        if "greenhouse" in str(request.url):
+            return httpx.Response(503)
+        if "job-board/brisa" in str(request.url):
+            return httpx.Response(200, text=json.dumps(ashby_with(6)))
+        return httpx.Response(404)
+
+    reader = CompanyBoards(httpx.Client(transport=httpx.MockTransport(handle)), clock=lambda: T0)
+    found = reader.find("Brisa")
+    assert found is not None
+    assert found.board == Board(BoardKind.ASHBY, "brisa")
 
 
 def test_an_empty_lever_account_is_not_a_match() -> None:

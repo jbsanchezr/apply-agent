@@ -251,3 +251,25 @@ class WatchedCompanyRow(Base):
     last_error: Mapped[str | None] = mapped_column(String(300))
 
     __table_args__ = (UniqueConstraint("board", "slug", name="uq_watched_board"),)
+
+
+class TargetCompanyRow(Base):
+    """A company on the user's list (D66): researched, and watched when it can be.
+
+    ``status`` is a plain string, like a watched company's board, so a new
+    status needs no migration.
+    """
+
+    __tablename__ = "target_companies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    name_key: Mapped[str] = mapped_column(String(100), unique=True)
+    group_label: Mapped[str | None] = mapped_column(String(60))
+    context: Mapped[str | None] = mapped_column(String(100))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    board: Mapped[str | None] = mapped_column(String(20))
+    slug: Mapped[str | None] = mapped_column(String(100))
+    note: Mapped[str | None] = mapped_column(String(300))
+    checked_at: Mapped[datetime | None]
+    added_at: Mapped[datetime] = mapped_column(default=_utcnow)

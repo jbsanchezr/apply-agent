@@ -47,6 +47,7 @@ def test_expected_tables_exist(engine: Engine) -> None:
         "saved_searches",
         "scanned_alert_messages",
         "status_overrides",
+        "target_companies",
         "watched_companies",
     }
 

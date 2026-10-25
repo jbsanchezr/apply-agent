@@ -28,11 +28,28 @@ async function send(url, method, body, button) {
 function saveSearch(button) {
   send("search/saved", "POST", JSON.parse(button.dataset.search), button);
 }
-function watch(form) {
+async function watch(form) {
   const data = Object.fromEntries(new FormData(form));
   const button = form.querySelector("button");
-  button.textContent = "Looking for its job board...";
-  send("search/companies", "POST", data, button);
+  button.disabled = true; button.textContent = "Looking for its job board...";
+  let response = await fetch("search/companies", {
+    method: "POST", headers: json, body: JSON.stringify(data),
+  });
+  if (response.status === 409) {
+    // A board under its name that may belong to someone else: ask (D66).
+    const detail = (await response.json()).detail;
+    if (confirm(detail)) {
+      response = await fetch("search/companies", {
+        method: "POST", headers: json, body: JSON.stringify({...data, confirm: true}),
+      });
+    } else {
+      button.disabled = false; button.textContent = "Watch"; return false;
+    }
+  }
+  if (response.ok) { location.reload(); return false; }
+  button.disabled = false; button.textContent = "Watch";
+  const detail = (await response.json().catch(() => ({}))).detail;
+  alert(typeof detail === "string" ? detail : "That did not work.");
   return false;
 }
 """
@@ -229,7 +246,7 @@ def _companies(companies: Sequence[WatchedCompany], default_keywords: Sequence[s
 full descriptions, so the years asked are read, and a posting that disappears is marked as no
 longer available.</p>
 {table}
-<form class="search-form" onsubmit="return watch(this)">
+<form class="search-form" onsubmit="watch(this); return false">
   {
         _input(
             "name",

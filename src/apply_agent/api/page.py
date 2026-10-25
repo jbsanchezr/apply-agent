@@ -382,9 +382,14 @@ filterRows(document.getElementById("search"));</script>
 
 
 def nav(current: str) -> str:
-    """Links between the pages: applications, offers and search."""
+    """Links between the pages."""
     links = []
-    pages = (("applications", "Applications"), ("offers", "Job offers"), ("search", "Search"))
+    pages = (
+        ("applications", "Applications"),
+        ("offers", "Job offers"),
+        ("companies", "Companies"),
+        ("search", "Search"),
+    )
     for href, label in pages:
         marker = ' aria-current="page"' if href == current else ""
         links.append(f'<a href="{href}"{marker}>{label}</a>')

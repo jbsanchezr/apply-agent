@@ -8,7 +8,7 @@ only carry more, a description and, for company boards, closure for free.
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -19,7 +19,7 @@ from apply_agent.domain.fit import found_words
 from apply_agent.domain.offers import JobOffer
 from apply_agent.domain.profile import CandidateProfile
 from apply_agent.domain.search import COUNTRY_NAMES, JobSearch, WatchedCompany
-from apply_agent.offers.boards import Board, BoardError, BoardKind, CompanyBoards
+from apply_agent.offers.boards import Board, BoardError, BoardKind, BoardMatch, CompanyBoards
 from apply_agent.offers.boards import make_client as make_boards_client
 from apply_agent.offers.infojobs import InfoJobsError, InfoJobsSearch
 from apply_agent.offers.infojobs import make_client as make_infojobs_client
@@ -128,7 +128,7 @@ class JobSearcher:
         names = tuple(s.name for s in sources)
         return SearchResult(offers, self._offers.save(offers), names, tuple(errors))
 
-    def find_company(self, name: str) -> Board | None:
+    def find_company(self, name: str) -> BoardMatch | None:
         return self._boards.find(name)
 
     def check_company(self, company: WatchedCompany) -> tuple[int, int, int]:
@@ -145,6 +145,30 @@ class JobSearcher:
         if listing.complete:
             closed = self._offers.close_missing(board.id_prefix, listing.open_ids, self._clock())
         return len(kept), new, closed
+
+    def watch_board(
+        self,
+        name: str,
+        board: Board,
+        keywords: Sequence[str] = (),
+        places: Sequence[str] = (),
+    ) -> tuple[int, int, int]:
+        """Watch a company's board and read it once now: (company id, kept, new).
+
+        A failed first read is recorded on the company and the next sync tries
+        again; the company is watched either way.
+        """
+        company_id = self._searches.watch_company(
+            name, board.kind.value, board.slug, keywords, places
+        )
+        watched = next(c for c in self._searches.list_companies() if c.id == company_id)
+        try:
+            kept, new, _ = self.check_company(watched)
+        except (httpx.HTTPError, BoardError) as err:
+            self._searches.record_check(company_id, self._clock(), f"{type(err).__name__}: {err}")
+            return company_id, 0, 0
+        self._searches.record_check(company_id, self._clock(), None)
+        return company_id, kept, new
 
     def run_saved(self) -> SearchReport:
         """Every saved search and watched company. One failure never stops the rest."""
