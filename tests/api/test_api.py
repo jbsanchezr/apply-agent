@@ -14,6 +14,7 @@ from typing import Any
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage
 from openpyxl import load_workbook
 from sqlalchemy import Engine
 
@@ -35,11 +36,12 @@ from apply_agent.storage.offers import OfferRepository
 from apply_agent.storage.repository import Repository
 from apply_agent.storage.searches import SearchRepository
 from apply_agent.storage.targets import TargetRepository
-from tests.agent.helpers import T0, assessment, message
+from tests.agent.helpers import T0, ScriptedChatModel, assessment, message
 from tests.conftest import FIXTURES_DIR
 from tests.offers.test_boards import GREENHOUSE
 from tests.offers.test_infojobs import SECRET as INFOJOBS_SECRET
 from tests.offers.test_infojobs import item as infojobs_item
+from tests.offers.test_web import investigator as web_investigator
 
 GOOGLE_NEWS = (
     '<?xml version="1.0"?><rss><channel><item><title>Arcwell raises EUR 40M - Wire</title>'
@@ -961,7 +963,11 @@ def test_the_offers_page_shows_offers_from_every_source(
 
 
 def _company_app(
-    tmp_path: Path, repository: Repository, summarizer: Any = None, llm: str = "baseline"
+    tmp_path: Path,
+    repository: Repository,
+    summarizer: Any = None,
+    llm: str = "baseline",
+    investigator: Any = None,
 ) -> TestClient:
     def handle(request: httpx.Request) -> httpx.Response:
         if request.url.host == "news.google.com":
@@ -990,6 +996,7 @@ def _company_app(
             searcher=searcher,
             researcher=CompanyResearcher(client, clock=lambda: ALERT_DAY),
             summarizer=summarizer,
+            investigator=investigator,
             clock=lambda: ALERT_DAY,
         )
     )
@@ -1071,3 +1078,45 @@ def test_a_list_of_companies_is_imported_checked_and_broken_down(
         assert client.delete(f"/companies/{arcwell.id}", headers=AUTH).status_code == 200
         assert client.delete(f"/companies/{arcwell.id}", headers=AUTH).status_code == 404
         assert client.post("/companies/999/reject", headers=AUTH).status_code == 404
+
+
+def test_without_searxng_the_company_page_says_how_to_research_online(
+    tmp_path: Path, repository: Repository
+) -> None:
+    with _company_app(tmp_path, repository) as client:
+        page = client.get("/company?name=Arcwell", headers=AUTH).text
+        assert "Needs SearXNG" in page
+        refused = client.post("/company/investigate", headers=AUTH, json={"name": "Arcwell"})
+        assert refused.status_code == 409
+
+
+def test_an_investigation_is_queued_run_and_shown_with_its_sources(
+    tmp_path: Path, repository: Repository
+) -> None:
+    model = ScriptedChatModel(script=[AIMessage("- They hire junior ML engineers [1]")])
+    pages = {"https://arcwell.example/careers": "<title>Careers</title>Junior ML roles."}
+    research = web_investigator(model, pages)
+    with _company_app(
+        tmp_path, repository, summarizer=lambda name, news: "-", investigator=research
+    ) as client:
+        assert "Investigate</button>" in client.get("/company?name=Arcwell", headers=AUTH).text
+        queued = client.post(
+            "/company/investigate",
+            headers=AUTH,
+            json={"name": "Arcwell", "question": "Do they hire juniors?"},
+        )
+        assert queued.status_code == 202
+        investigation_id = queued.json()["id"]
+        deadline = time.monotonic() + 30
+        state = {"status": "queued"}
+        while state["status"] in ("queued", "running"):
+            assert time.monotonic() < deadline
+            time.sleep(0.05)
+            state = client.get(f"/company/investigations/{investigation_id}", headers=AUTH).json()
+        assert state["status"] == "done"
+
+        page = client.get("/company?name=Arcwell", headers=AUTH).text
+        assert ": Do they hire juniors?</h3>" in page
+        assert "- They hire junior ML engineers [1]" in page
+        assert "https://arcwell.example/careers" in page
+        assert client.get("/company/investigations/999", headers=AUTH).status_code == 404

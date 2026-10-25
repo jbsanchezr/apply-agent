@@ -125,7 +125,13 @@ class Settings(BaseModel):
     infojobs_client_id: str | None = None
     infojobs_client_secret: SecretStr | None = None
 
-    @field_validator("api_token", "infojobs_client_id", "infojobs_client_secret", mode="before")
+    # A private SearXNG for web research (D67), e.g. http://localhost:8888.
+    # Unset turns research off. start.ps1 starts one with Docker and sets it.
+    searxng_url: Annotated[str, Field(pattern=r"^https?://\S+$")] | None = None
+
+    @field_validator(
+        "api_token", "infojobs_client_id", "infojobs_client_secret", "searxng_url", mode="before"
+    )
     @classmethod
     def _blank_token_means_unset(cls, value: object) -> object:
         # docker-compose passes an unset variable through as an empty string.

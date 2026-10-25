@@ -926,3 +926,49 @@ Monzo, Celonis), 3 possible, which were exactly the three namesakes above,
 and 35 on no board this app reads: large employers on Workday,
 SuccessFactors or their own sites, followed through LinkedIn alerts. A name
 in several groups is kept once, in its first group.
+
+## D67 - Web research through a private SearXNG, reported by the local model
+The user wanted the agent to research companies on the open web, not only
+in job boards and news feeds. Searching needs a search API, and on
+2026-10-25 the free ones had mostly gone: Google's web search API took no
+new customers and closes on 2027-01-01, Bing's closed in 2025, Brave's free
+tier now needs a card. Tavily and Exa had free tiers without a card; the
+user chose SearXNG on their own machine instead, unlimited and free.
+
+SearXNG is a meta-search engine: it asks Google, Bing and others the way a
+browser would, which their terms do not allow. For one person searching a
+few times a company it is unlikely to matter, but it is the user's call and
+it is written down here. The agent searches little and slowly: four
+queries per investigation, a pause between them. SearXNG runs in Docker
+(`deploy/searxng`), pinned to a release, bound to 127.0.0.1, with its JSON
+output on and its limiter off (one user, nothing to protect). `start.ps1`
+starts it when Docker is there and sets `APPLY_AGENT_SEARXNG_URL`; without
+it research is off and the page says how to turn it on.
+
+An investigation is queued from a company page, with an optional question,
+and run in the background one at a time (a report takes minutes with a
+local model). It searches with queries made from the company, its context,
+the question and the profile; picks the best results, at most two per site,
+skipping sites that need an account (LinkedIn, Glassdoor, Indeed); reads up
+to five pages as text; and has the configured model write a report under
+fixed headings, every point citing the numbered pages. Reports are kept with
+their sources.
+
+Pages are the open web, so they are treated as hostile. The reader fetches
+only http(s), never an address on this machine or its network, checked again
+on every redirect (a page cannot bounce it to the local API), only text, and
+at most 2 MB. The prompt says the pages are data, the model has no tools, and
+the report is escaped. It asks for nothing about people: no private names,
+no contact details.
+
+Tried for real on 2026-10-25, with Docker Desktop on the user's machine: a
+search for Adyen's ML roles returned 41 results with no engine failing, and
+investigations of ASML and Booking.com took 33 to 38 seconds each with
+qwen3:8b, the Booking.com one citing its careers page and engineering
+write-ups by OpenAI, AWS and Astronomer. The first try showed two faults,
+now fixed. A Reddit thread, built by JavaScript, was read as an empty page
+yet kept as a source, and the model cited it for its main answer: pages with
+under 300 characters of text are now not read. And `start.ps1` would have
+stopped every time: Docker reports progress on stderr, which Windows
+PowerShell under `$ErrorActionPreference = 'Stop'` takes for an error, so the
+compose call now runs with errors allowed and its exit code checked.

@@ -16,7 +16,7 @@ import logging
 import secrets
 import sys
 from collections.abc import AsyncIterator, Callable, Sequence
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from functools import cache
@@ -38,7 +38,7 @@ from apply_agent.api.auth import TokenAuth
 from apply_agent.api.companies_page import CompanyRow, render_companies
 from apply_agent.api.company_page import render_company
 from apply_agent.api.export import XLSX_MEDIA_TYPE, applications_workbook
-from apply_agent.api.jobs import SyncAlreadyRunningError, SyncService
+from apply_agent.api.jobs import JobStatus, SyncAlreadyRunningError, SyncService
 from apply_agent.api.offers_page import OfferView, OldAfter, rank, render_offers, section_of
 from apply_agent.api.page import days_since, gmail_url, render_applications
 from apply_agent.api.search_page import render_search
@@ -53,6 +53,7 @@ from apply_agent.observability.metrics import REGISTRY, ApplicationsCollector
 from apply_agent.offers.boards import Board, BoardError, BoardKind, board_from_url
 from apply_agent.offers.company import CompanyResearcher, NewsItem, company_offers, summarize
 from apply_agent.offers.company import make_client as make_company_client
+from apply_agent.offers.investigate import Investigator, run_queued
 from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
 from apply_agent.offers.search import (
@@ -61,6 +62,9 @@ from apply_agent.offers.search import (
     build_job_searcher,
 )
 from apply_agent.offers.targets import check_targets
+from apply_agent.offers.web import PageReader, SearxngSearch
+from apply_agent.offers.web import make_client as make_web_client
+from apply_agent.storage.investigations import InvestigationRepository, InvestigationStatus
 from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from apply_agent.storage.repository import ApplicationNotFoundError, Repository
 from apply_agent.storage.searches import SearchRepository
@@ -89,6 +93,16 @@ class StatusCorrection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: ApplicationStatus
+
+
+class InvestigateRequest(BaseModel):
+    """Body of ``POST /company/investigate``."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=100)
+    context: str | None = Field(default=None, max_length=100)
+    question: str | None = Field(default=None, max_length=300)
 
 
 class ImportRequest(BaseModel):
@@ -162,6 +176,7 @@ def create_app(
     searcher: JobSearcher | None = None,
     researcher: CompanyResearcher | None = None,
     summarizer: Callable[[str, Sequence[NewsItem]], str] | None = None,
+    investigator: Investigator | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> FastAPI:
     """Build the app. Its collaborators and ``clock`` can be injected for tests."""
@@ -207,6 +222,29 @@ def create_app(
     target_store = TargetRepository(repo.session_factory)
     # Looking for job boards takes seconds per company: a job of its own (D66).
     target_service = SyncService(lambda: asdict(check_targets(target_store, job_searcher, clock)))
+    investigation_store = InvestigationRepository(repo.session_factory)
+
+    @cache
+    def web_investigator() -> Investigator | None:
+        """Built on first use, and only with a SearXNG to search (D67)."""
+        if investigator is not None:
+            return investigator
+        if settings.searxng_url is None:
+            return None
+        return Investigator(
+            SearxngSearch(make_web_client(), settings.searxng_url),
+            PageReader(make_web_client()),
+            text_model,
+        )
+
+    def run_investigations() -> dict[str, int]:
+        found = web_investigator()
+        if found is None:
+            raise RuntimeError("web research is off: set APPLY_AGENT_SEARXNG_URL")
+        return run_queued(investigation_store, found, profile, clock)
+
+    # Investigations take minutes with a local model: a queue run one at a time.
+    investigation_service = SyncService(run_investigations)
     applications = ApplicationsCollector(repo.count_by_status)
 
     @asynccontextmanager
@@ -219,6 +257,7 @@ def create_app(
             REGISTRY.unregister(applications)
             sync_service.shutdown()
             target_service.shutdown()
+            investigation_service.shutdown()
 
     app = FastAPI(title="apply-agent", version="0.1.0", lifespan=lifespan)
     protected = [Depends(TokenAuth(_api_token(settings)))]
@@ -535,8 +574,42 @@ def create_app(
                 research,
                 [v for v in views if v.stored.id in ids],
                 can_summarize=can_summarize(),
+                investigations=investigation_store.for_company(name),
+                can_investigate=web_investigator() is not None and can_summarize(),
             )
         )
+
+    def run_queue() -> None:
+        # Already running: that job takes the new one before it stops.
+        with suppress(SyncAlreadyRunningError):
+            investigation_service.start()
+
+    @app.post("/company/investigate", dependencies=protected, status_code=status.HTTP_202_ACCEPTED)
+    def investigate_company(request: InvestigateRequest) -> dict[str, Any]:
+        """Queue a web investigation of the company (D67)."""
+        if web_investigator() is None or not can_summarize():
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "web research needs SearXNG (APPLY_AGENT_SEARXNG_URL) and a model "
+                "(APPLY_AGENT_LLM)",
+            )
+        investigation_id = investigation_store.queue(
+            request.name, request.context, request.question
+        )
+        run_queue()
+        return {"id": investigation_id, "status": "queued"}
+
+    @app.get("/company/investigations/{investigation_id}", dependencies=protected)
+    def investigation_status(investigation_id: int) -> dict[str, Any]:
+        found = investigation_store.get(investigation_id)
+        if found is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown investigation")
+        latest = investigation_service.latest()
+        idle = latest is None or latest.status is not JobStatus.RUNNING
+        if found.status is InvestigationStatus.QUEUED and idle:
+            # Queued just as the last run was ending: start another.
+            run_queue()
+        return {"id": found.id, "status": found.status.value, "error": found.error}
 
     @app.post("/company/summary", dependencies=protected)
     def company_summary(request: SummaryRequest) -> dict[str, str]:

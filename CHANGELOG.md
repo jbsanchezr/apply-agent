@@ -17,6 +17,10 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* **Web research** on each company page: an "Investigate" button (with an
+  optional question) searches the web through a private SearXNG, reads the
+  best pages and has your local model write a report citing them. SearXNG runs
+  in Docker; `start.ps1` starts it. See D67.
 * A **Companies page** (`/companies`): paste a list of companies (one group per
   line) and the app looks for each one's job board in the background, then
   shows per company its board, open offers, good fits and best match, with

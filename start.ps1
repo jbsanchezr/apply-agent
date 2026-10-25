@@ -55,6 +55,33 @@ if ($env:APPLY_AGENT_EMAIL_PROVIDER -eq 'gmail' -and
     exit 1
 }
 
+# Web research (D67) needs a private SearXNG. With Docker, start it here.
+if (-not $env:APPLY_AGENT_SEARXNG_URL) {
+    if (Get-Command docker -ErrorAction SilentlyContinue) {
+        $secretPath = Join-Path $configDir 'searxng_secret.txt'
+        if (-not (Test-Path $secretPath)) {
+            $bytes = New-Object byte[] 32
+            [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+            [IO.File]::WriteAllText($secretPath, [BitConverter]::ToString($bytes).Replace('-', ''))
+        }
+        $env:SEARXNG_SECRET = (Get-Content $secretPath -Raw).Trim()
+        $compose = Join-Path $PSScriptRoot 'deploy\searxng\docker-compose.yml'
+        # Docker reports progress on stderr. Under 'Stop', Windows PowerShell
+        # takes that for an error and ends the script, so not for this call.
+        $ErrorActionPreference = 'Continue'
+        docker compose -f $compose up -d --quiet-pull *> $null
+        $started = $LASTEXITCODE -eq 0
+        $ErrorActionPreference = 'Stop'
+        if ($started) {
+            $env:APPLY_AGENT_SEARXNG_URL = 'http://localhost:8888'
+        } else {
+            Write-Host 'SearXNG did not start (is Docker Desktop running?). Web research is off.' -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host 'Docker is not installed: web research is off. See README, "Researching online".' -ForegroundColor Yellow
+    }
+}
+
 if ($env:APPLY_AGENT_LLM -eq 'ollama') {
     try {
         Invoke-WebRequest 'http://localhost:11434/api/version' -UseBasicParsing -TimeoutSec 3 | Out-Null

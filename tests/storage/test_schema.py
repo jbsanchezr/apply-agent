@@ -42,6 +42,7 @@ def test_expected_tables_exist(engine: Engine) -> None:
         "application_threads",
         "events",
         "follow_up_drafts",
+        "investigations",
         "job_offers",
         "offer_closures",
         "saved_searches",

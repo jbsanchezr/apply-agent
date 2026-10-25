@@ -1,0 +1,21 @@
+# SearXNG settings for apply-agent (D67). Everything not set here keeps
+# SearXNG's defaults.
+use_default_settings: true
+
+server:
+  # Read from SEARXNG_SECRET; this placeholder is never used.
+  secret_key: "set-by-SEARXNG_SECRET"
+  # One user on one machine: the bot limiter (made for public instances,
+  # and needing a Valkey server) has nothing to protect.
+  limiter: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  # The agent reads JSON; the HTML page stays for trying queries by hand.
+  formats:
+    - html
+    - json
+
+ui:
+  query_in_title: false

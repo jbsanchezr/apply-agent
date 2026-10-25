@@ -137,6 +137,8 @@ API (the token also works as `Authorization: Bearer <token>`):
 | `POST /companies/{id}/confirm` | A possible board is the company's; `/reject` says it is not |
 | `GET /company?name=...&context=...` | A company's news, hiring and whom to contact |
 | `POST /company/summary` | Summarize its news with the configured model: `{"name": "Mollie", "context": "payments"}` |
+| `POST /company/investigate` | Queue a web investigation: `{"name": "Mollie", "question": "..."}` |
+| `GET /company/investigations/{id}` | Its status: queued, running, done or failed |
 | `GET /metrics` | Prometheus metrics (no personal data, no auth) |
 | `GET /healthz` | Liveness |
 
@@ -320,6 +322,23 @@ summary of it by your model on request, how it is hiring, the contacts it
 publishes, and LinkedIn searches for the people worth writing to (a technical
 recruiter, the manager of the team), which you open with your own account.
 The app never reads people from LinkedIn and guesses no one's email (D64).
+
+## Researching online
+
+Each company page has an **Investigate** button: the agent searches the web,
+reads the best pages and has your model write a short report (hiring for your
+roles, tech and teams, hiring process, working there, signals), every point
+citing its sources. Ask a question to focus it ("Do they hire junior ML
+engineers in Eindhoven?"). Reports are kept on the page. It takes a few
+minutes with a local model.
+
+The search runs on a private [SearXNG](https://docs.searxng.org) on your machine
+(D67), so it needs Docker Desktop. With Docker installed and running,
+`start.ps1` starts it on its own; elsewhere run
+`docker compose -f deploy/searxng/docker-compose.yml up -d` with `SEARXNG_SECRET`
+set, and set `APPLY_AGENT_SEARXNG_URL=http://localhost:8888`. SearXNG asks the big
+search engines on your behalf, which their terms do not allow; the agent keeps
+it to a few searches per investigation.
 
 ## Limitations and next steps
 

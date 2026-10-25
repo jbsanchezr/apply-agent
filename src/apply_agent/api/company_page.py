@@ -13,8 +13,32 @@ from typing import Final
 from apply_agent.api.offers_page import OfferView, fit_badge, match_cell, offer_link, rank
 from apply_agent.api.page import STYLE, nav
 from apply_agent.offers.company import CompanyResearch
+from apply_agent.storage.investigations import Investigation, InvestigationStatus
 
 _SCRIPT: Final = """
+async function investigate(form) {
+  const button = form.querySelector("button");
+  button.disabled = true; button.textContent = "Queued...";
+  const body = JSON.stringify({
+    name: form.dataset.name, context: form.dataset.context || null,
+    question: form.question.value.trim() || null,
+  });
+  const response = await fetch("company/investigate", {
+    method: "POST", headers: {"Content-Type": "application/json"}, body,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    button.disabled = false; button.textContent = "Investigate";
+    alert(typeof data.detail === "string" ? data.detail : "Could not investigate.");
+    return;
+  }
+  button.textContent = "Searching and reading (a few minutes)...";
+  while (true) {
+    await new Promise(r => setTimeout(r, 3000));
+    const state = await (await fetch("company/investigations/" + data.id)).json();
+    if (state.status === "done" || state.status === "failed") { location.reload(); return; }
+  }
+}
 async function summarize(button) {
   button.disabled = true; button.textContent = "Reading the news...";
   const out = document.getElementById("summary");
@@ -129,8 +153,56 @@ LinkedIn or keep anyone's details: choose whom to write to yourself.</p>
 <ul>{people}</ul>"""
 
 
+def _investigation(item: Investigation) -> str:
+    when = f"{item.created_at:%Y-%m-%d %H:%M}"
+    asked = f": {escape(item.question)}" if item.question else ""
+    heading = f"<h3>{when}{asked}</h3>"
+    match item.status:
+        case InvestigationStatus.DONE:
+            sources = "".join(
+                f"<li>[{s.number}] {_link(s.url, s.title)}</li>" for s in item.sources
+            )
+            return (
+                f'{heading}<pre class="summary">{escape(item.report or "")}</pre>'
+                f'<details class="emails"><summary>{len(item.sources)} sources</summary>'
+                f"<ol>{sources}</ol></details>"
+            )
+        case InvestigationStatus.FAILED:
+            return f'{heading}<p class="quiet">Failed: {escape(item.error or "")}</p>'
+        case _:
+            return f'{heading}<p class="muted">Searching and reading...</p>'
+
+
+def _investigate(
+    research: CompanyResearch, items: Sequence[Investigation], *, can_investigate: bool
+) -> str:
+    if can_investigate:
+        form = (
+            f'<form class="search-form" data-name="{escape(research.name, quote=True)}" '
+            f'data-context="{escape(research.context or "", quote=True)}" '
+            'onsubmit="investigate(this); return false">'
+            '<label>Question (optional)<br><input name="question" maxlength="300" '
+            'placeholder="Do they hire junior ML engineers in Eindhoven?"></label>'
+            '<button type="submit">Investigate</button></form>'
+            '<p class="muted">Searches the web through your SearXNG, reads the best pages and '
+            "has your model write a report citing them. Takes a few minutes.</p>"
+        )
+    else:
+        form = (
+            '<p class="muted">Needs SearXNG (start.ps1 runs it with Docker Desktop) and a model '
+            "(APPLY_AGENT_LLM). See README, Researching online.</p>"
+        )
+    history = "".join(_investigation(item) for item in items)
+    return form + history
+
+
 def render_company(
-    research: CompanyResearch, views: Sequence[OfferView], *, can_summarize: bool
+    research: CompanyResearch,
+    views: Sequence[OfferView],
+    *,
+    can_summarize: bool,
+    investigations: Sequence[Investigation] = (),
+    can_investigate: bool = False,
 ) -> str:
     links = " &middot; ".join(_link(url, label) for label, url in research.links.items())
     body = escape(json.dumps({"name": research.name, "context": research.context}), quote=True)
@@ -170,6 +242,8 @@ h3 {{ font-size: 1rem; margin: 1.2rem 0 .3rem; }}
 {_form(research.name, research.context)}
 <section id="hiring"><h2>Hiring</h2>{_hiring(research, views)}</section>
 <section id="news"><h2>News</h2>{summary}{_news(research)}</section>
+<section id="investigate"><h2>Investigate online</h2>
+{_investigate(research, investigations, can_investigate=can_investigate)}</section>
 <section id="contact"><h2>Whom to contact</h2>{_contacts(research)}</section>
 <script>{_SCRIPT}</script>
 </body>

@@ -273,3 +273,25 @@ class TargetCompanyRow(Base):
     note: Mapped[str | None] = mapped_column(String(300))
     checked_at: Mapped[datetime | None]
     added_at: Mapped[datetime] = mapped_column(default=_utcnow)
+
+
+class InvestigationRow(Base):
+    """A web investigation of a company and the report it produced (D67).
+
+    Queued when asked for, run one at a time in the background. ``sources``
+    is JSON: the numbered pages the report cites.
+    """
+
+    __tablename__ = "investigations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company: Mapped[str] = mapped_column(String(100))
+    company_key: Mapped[str] = mapped_column(String(100), index=True)
+    context: Mapped[str | None] = mapped_column(String(100))
+    question: Mapped[str | None] = mapped_column(String(300))
+    status: Mapped[str] = mapped_column(String(20), default="queued")
+    report: Mapped[str | None] = mapped_column(Text)
+    sources: Mapped[str | None] = mapped_column(Text)
+    error: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow)
+    finished_at: Mapped[datetime | None]

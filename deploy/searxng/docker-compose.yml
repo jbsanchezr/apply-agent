@@ -1,0 +1,22 @@
+# A private SearXNG for the agent's web research (D67), on this machine only.
+#
+#   docker compose -f deploy/searxng/docker-compose.yml up -d
+#
+# start.ps1 runs this when Docker is available and sets
+# APPLY_AGENT_SEARXNG_URL. The port is bound to 127.0.0.1: nothing on the
+# network can use it. SEARXNG_SECRET comes from the environment; start.ps1
+# generates one and keeps it in ~/.config/apply_agent/searxng_secret.txt.
+
+name: apply-agent-searxng
+
+services:
+  searxng:
+    image: searxng/searxng:2026.10.19-81371861f
+    ports:
+      - "127.0.0.1:8888:8080"
+    environment:
+      SEARXNG_BASE_URL: http://localhost:8888/
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET, start.ps1 does}
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
