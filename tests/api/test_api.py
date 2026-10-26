@@ -873,6 +873,10 @@ def test_a_search_shows_ranked_results_that_join_the_offers(
         assert "1 found on InfoJobs, 1 new to your offers." in page
         assert "Desarrollador/a Backend Python" in page
         assert "Offers from InfoJobs" in page
+        # The results can be reordered by fit or date, and poor fits hidden.
+        assert '<option value="posted">Newest</option>' in page
+        assert "Hide poor fits" in page
+        assert 'data-posted="' in page
         [offer] = client.get("/offers?format=json", headers=AUTH).json()
         assert offer["source"] == "infojobs"
         assert offer["fit_reasons"][0].startswith("The description asks for 2+ years")

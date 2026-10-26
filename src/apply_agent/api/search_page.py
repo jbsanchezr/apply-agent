@@ -25,6 +25,21 @@ async function send(url, method, body, button) {
   const detail = (await response.json().catch(() => ({}))).detail;
   alert(typeof detail === "string" ? detail : "That did not work.");
 }
+// Results: order by fit or by posting date, ties broken by the other.
+function sortResults(by) {
+  const body = document.querySelector("#result-table tbody");
+  const other = by === "fit" ? "posted" : "fit";
+  const value = (row, key) => key === "fit" ? Number(row.dataset.score) : row.dataset.posted;
+  const compare = (a, b, key) => value(a, key) < value(b, key) ? 1
+    : value(a, key) > value(b, key) ? -1 : 0;
+  [...body.rows].sort((a, b) => compare(a, b, by) || compare(a, b, other))
+    .forEach(row => body.appendChild(row));
+}
+function hidePoor(hide) {
+  for (const row of document.querySelectorAll("#result-table tbody tr")) {
+    row.hidden = hide && row.dataset.level === "unlikely";
+  }
+}
 function saveSearch(button) {
   send("search/saved", "POST", JSON.parse(button.dataset.search), button);
 }
@@ -143,7 +158,8 @@ def _result_row(view: OfferView) -> str:
     posted = offer.posted_on.isoformat() if offer.posted_on else "-"
     search = escape(f"{offer.company} {offer.title} {offer.location or ''}", quote=True)
     return (
-        f'<tr data-search="{search}">'
+        f'<tr data-search="{search}" data-score="{view.fit.score}" data-posted="{posted}"'
+        f' data-level="{view.fit.level.value}">'
         f"<td>{fit_badge(view.fit)}</td>"
         f'<td><a href="{link}" target="_blank" rel="noopener noreferrer">'
         f"{escape(offer.title)}</a></td>"
@@ -172,7 +188,14 @@ def _results(
     if views:
         rows = "\n".join(_result_row(v) for v in sorted(views, key=rank))
         table = (
-            '<div class="wrap"><table><thead><tr><th>Fit</th><th>Role</th><th>Company</th>'
+            '<div class="actions sort-controls"><label>Order by '
+            '<select onchange="sortResults(this.value)">'
+            '<option value="fit">Best fit</option><option value="posted">Newest</option>'
+            "</select></label> "
+            '<label><input type="checkbox" onchange="hidePoor(this.checked)"> '
+            "Hide poor fits</label></div>"
+            '<div class="wrap"><table id="result-table"><thead><tr><th>Fit</th><th>Role</th>'
+            "<th>Company</th>"
             "<th>Location</th><th>Posted</th><th>Your applications</th></tr></thead>"
             f"<tbody>\n{rows}\n</tbody></table></div>"
         )
