@@ -81,6 +81,7 @@ SOURCE_LABELS: Final = {
     OfferSource.RECRUITEE: "Recruitee",
     OfferSource.PERSONIO: "Personio",
     OfferSource.SMARTRECRUITERS: "SmartRecruiters",
+    OfferSource.WORKDAY: "Workday",
     OfferSource.INFOJOBS: "InfoJobs",
 }
 _ACTIONS: Final = {

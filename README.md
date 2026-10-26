@@ -310,8 +310,10 @@ The **Search** page (`/search`) finds offers beyond your alerts (D62, D63):
   sync.
 * **Companies you watch**, by name or careers page URL, read from their own
   job boards on every sync: Greenhouse, Lever, Ashby, Recruitee (common among
-  Dutch startups), Personio (common in Spain and Germany) and SmartRecruiters
-  (large employers). No key needed. Their postings carry the full
+  Dutch startups), Personio (common in Spain and Germany), SmartRecruiters
+  and Workday (large employers). No key needed. Workday is found only by its
+  link (an address with `myworkdayjobs.com`): on the **Companies** page, a
+  company not found by name has a box to paste it. Their postings carry the full
   description, so the years of experience asked are read from it rather than
   guessed, and a posting that disappears is marked as no longer available.
 
@@ -378,9 +380,10 @@ it to a few searches per investigation.
   checks, so you mark closed offers yourself; the app only learns how old
   they get. Companies watched on their own job boards are detected.
 * **Company boards cover some companies only**: those on Greenhouse, Lever,
-  Ashby, Recruitee, Personio or SmartRecruiters. Others (Workday, own sites)
-  are not read yet. A SmartRecruiters company with more than 1,000 postings
-  is read in part, so its closures are not detected.
+  Ashby, Recruitee, Personio, SmartRecruiters or Workday. Companies with
+  their own careers site are not read. A SmartRecruiters company with more
+  than 1,000 postings, or a Workday one with more than 200, is read in part
+  (the newest postings), so its closures are not detected.
 * **InfoJobs was built from its documentation** and not yet run against the
   live API, which needs your credentials.
 * **Searching by title covers Spain only.** No free API searches other

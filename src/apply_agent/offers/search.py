@@ -140,7 +140,12 @@ class JobSearcher:
         # Details cost a request each on some boards: only for postings not seen before.
         known = self._offers.known_keys([o.key for o in kept])
         fresh = self._boards.describe(board, [o for o in kept if o.key not in known])
-        new = self._offers.save([*fresh, *(o for o in kept if o.key in known)])
+        seen = [o for o in kept if o.key in known]
+        if not board.lists_details:
+            # Keep what the posting's own page said; the listing's lines are coarser.
+            gone = {"location": None, "url": None, "posted_on": None}
+            seen = [o.model_copy(update=gone) for o in seen]
+        new = self._offers.save([*fresh, *seen])
         closed = 0
         if listing.complete:
             closed = self._offers.close_missing(board.id_prefix, listing.open_ids, self._clock())

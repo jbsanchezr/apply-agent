@@ -105,6 +105,14 @@ class LanguageRequest(BaseModel):
     language: str = Field(min_length=2, max_length=40)
 
 
+class CareersLinkRequest(BaseModel):
+    """Body of ``POST /companies/{id}/board``: the address of the company's careers page."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    url: str = Field(min_length=8, max_length=500)
+
+
 class InvestigateRequest(BaseModel):
     """Body of ``POST /company/investigate``."""
 
@@ -571,6 +579,34 @@ def create_app(
         )
         return {"id": target_id, "offers": kept, "new": new}
 
+    @app.post("/companies/{target_id}/board", dependencies=protected)
+    def link_company_board(target_id: int, request: CareersLinkRequest) -> dict[str, Any]:
+        """The user pasted the company's careers link: watch that board (D71)."""
+        target = target_or_404(target_id)
+        board = board_from_url(request.url)
+        if board is None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "That link is not on a job board this app reads. It reads Greenhouse, "
+                "Lever, Ashby, Recruitee, Personio, SmartRecruiters and Workday "
+                "(an address with myworkdayjobs.com).",
+            )
+        try:
+            match = job_searcher.find_company(request.url)
+        except (httpx.HTTPError, BoardError) as err:
+            raise HTTPException(
+                status.HTTP_502_BAD_GATEWAY, f"could not read that job board: {err}"
+            ) from err
+        if match is None:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, f"No postings at {board.careers_url}. Is the link right?"
+            )
+        _, kept, new = job_searcher.watch_board(target.name, board)
+        target_store.record(
+            target_id, BoardStatus.FOUND, clock(), board=board.kind.value, slug=board.slug
+        )
+        return {"id": target_id, "board": board.kind.value, "offers": kept, "new": new}
+
     @app.post("/companies/{target_id}/reject", dependencies=protected)
     def reject_company_board(target_id: int) -> dict[str, Any]:
         """The possible board belongs to someone else."""
@@ -751,7 +787,7 @@ def create_app(
                 f"Found {board.kind.value}/{board.slug} with {match.postings} posting(s), "
                 f"such as: {'; '.join(match.examples)}. Is this {request.name}?",
             )
-        name = request.name if board_from_url(request.name) is None else board.slug
+        name = request.name if board_from_url(request.name) is None else board.company_name
         company_id, kept, new = job_searcher.watch_board(
             name, board, request.keyword_list, request.place_list
         )

@@ -1054,3 +1054,29 @@ A senior title whose description asks for fewer years ("Senior Backend, 3+
 years") is now judged by the title, the higher of the two, so it shows as
 possible rather than good. Good fits went from 349 to 89, all engineering
 roles with the years stated or a junior or mid-level title.
+
+## D71 - Workday, found by a pasted link
+On the user's list of 223 companies, about half had no board the app reads,
+most of them large employers (NVIDIA, Philips, ING, Siemens, Salesforce).
+The user asked whether the app could query LinkedIn instead. It cannot: its
+public search answered the first real request with a 429 (D57), and getting
+past that would mean posing as a browser to beat a bot check. Many large
+employers publish on Workday, whose careers sites are served by a public
+JSON API (`/wday/cxs/{tenant}/{site}/jobs`) that the sites themselves use;
+on 2026-10-26 it answered for NVIDIA, Salesforce, Philips, NXP and ING.
+
+A Workday board is named by a tenant, a server (`wd1`...`wd12`) and a site,
+and the site's name ("NVIDIAExternalCareerSite", "ICSGBLCOR") cannot be
+guessed, so a Workday board is never guessed: the user pastes the careers
+link, on the Companies page next to a company not found by name, or as the
+company on the Search page. That box takes any board's link, which also
+covers boards whose slug differs from the name (Bosch is "BoschGroup").
+
+Workday serves 20 postings a page, newest first, without descriptions. Big
+employers list thousands (NVIDIA: over 2,000; reading 400 took 40 seconds),
+so the newest 200 are read on each sync, and as with SmartRecruiters (D63)
+a partial listing closes nothing. The postings kept by the profile's words
+are then read one by one, once, for their description, places and date;
+"Posted 30+ Days Ago" is not taken as a date. Read again later from the
+listing, a posting keeps what its own page said, since the listing's place
+("2 Locations") and date are coarser.

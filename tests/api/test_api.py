@@ -26,6 +26,7 @@ from apply_agent.config import Settings
 from apply_agent.domain import MessageAssessment
 from apply_agent.domain.offers import JobOffer, OfferSource
 from apply_agent.domain.profile import CandidateProfile
+from apply_agent.domain.search import BoardStatus
 from apply_agent.offers.boards import CompanyBoards
 from apply_agent.offers.company import CompanyResearcher, NewsItem
 from apply_agent.offers.infojobs import InfoJobsSearch
@@ -1065,7 +1066,7 @@ def test_a_list_of_companies_is_imported_checked_and_broken_down(
         page = client.get("/companies", headers=AUTH).text
         assert "<h2>Netherlands" in page
         assert "Maybe Greenhouse (arcwell)" in page  # two postings: the user decides
-        assert "Not on a board this app reads" in page  # Nowhere
+        assert "Not found by its name. Paste the link" in page  # Nowhere
         assert "1 to confirm" in page
 
         arcwell = next(
@@ -1082,6 +1083,28 @@ def test_a_list_of_companies_is_imported_checked_and_broken_down(
         assert client.delete(f"/companies/{arcwell.id}", headers=AUTH).status_code == 200
         assert client.delete(f"/companies/{arcwell.id}", headers=AUTH).status_code == 404
         assert client.post("/companies/999/reject", headers=AUTH).status_code == 404
+
+        # Not found by name: the user pastes its careers link (D71).
+        nowhere = next(
+            t for t in TargetRepository(repository.session_factory).list() if t.name == "Nowhere"
+        )
+        link = f"/companies/{nowhere.id}/board"
+        refused = client.post(link, headers=AUTH, json={"url": "https://nowhere.example/jobs"})
+        assert refused.status_code == 422
+        assert "myworkdayjobs.com" in refused.json()["detail"]
+        empty = client.post(
+            link, headers=AUTH, json={"url": "https://job-boards.greenhouse.io/nobody"}
+        )
+        assert empty.status_code == 404
+        linked = client.post(
+            link, headers=AUTH, json={"url": "https://job-boards.greenhouse.io/arcwell"}
+        )
+        assert linked.json() == {"id": nowhere.id, "board": "greenhouse", "offers": 1, "new": 0}
+        [found] = [
+            t for t in TargetRepository(repository.session_factory).list() if t.name == "Nowhere"
+        ]
+        assert found.status is BoardStatus.FOUND
+        assert client.delete(f"/companies/{nowhere.id}", headers=AUTH).status_code == 200
 
 
 def test_without_searxng_the_company_page_says_how_to_research_online(

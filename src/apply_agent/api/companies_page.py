@@ -31,6 +31,7 @@ _BOARD_NAMES: Final = {
     "personio": "Personio",
     "personio_com": "Personio",
     "smartrecruiters": "SmartRecruiters",
+    "workday": "Workday",
 }
 
 _SCRIPT: Final = """
@@ -63,6 +64,13 @@ async function importList(form) {
 async function checkAgain(button) {
   const result = await post("companies/check", "POST", null, button);
   if (result) waitFor(result.id);
+}
+async function linkBoard(form, id) {
+  const button = form.querySelector("button");
+  button.textContent = "Reading its board...";
+  const result = await post("companies/" + id + "/board", "POST", {url: form.url.value}, button);
+  if (result) location.reload(); else button.textContent = "Follow";
+  return false;
 }
 async function act(url, method, button) {
   if (await post(url, method, null, button)) location.reload();
@@ -104,9 +112,14 @@ def _board(row: CompanyRow) -> str:
         case BoardStatus.ERROR:
             return f'<span class="quiet">Failed: {escape(target.note or "")}</span>'
         case _:
+            # Workday, and boards under another name, are found only by their link (D71).
             return (
-                '<span class="muted">Not on a board this app reads. Follow it with a '
-                "LinkedIn job alert for the company:</span> "
+                '<span class="muted">Not found by its name. Paste the link of its careers '
+                "page (Workday: the address with myworkdayjobs.com):</span>"
+                f'<form class="link-form" onsubmit="return linkBoard(this, {target.id})">'
+                '<input name="url" type="url" required placeholder="https://...">'
+                '<button type="submit">Follow</button></form>'
+                '<span class="muted">Or follow it with a LinkedIn job alert:</span> '
                 f'<a href="{escape(linkedin, quote=True)}" target="_blank" '
                 'rel="noopener noreferrer">its jobs on LinkedIn</a>'
             )
@@ -230,6 +243,8 @@ def render_companies(rows: Sequence[CompanyRow], job: SyncJob | None) -> str:
 <title>Companies</title>
 <style>{STYLE}
 textarea {{ font: inherit; width: 100%; max-width: 46rem; min-height: 6rem; padding: .5rem; }}
+.link-form {{ display: flex; gap: .3rem; margin: .3rem 0; }}
+.link-form input {{ font: inherit; padding: .2rem .4rem; min-width: 0; flex: 1; }}
 </style>
 </head>
 <body>

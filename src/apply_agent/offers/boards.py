@@ -1,14 +1,16 @@
 """Companies' own job boards, read through their public APIs (D62, D63).
 
-Greenhouse, Lever, Ashby, Recruitee, Personio and SmartRecruiters host the
-careers pages of many companies and publish every open posting, without a
-key, so that sites can list them. That is what this reads: one request per
+Greenhouse, Lever, Ashby, Recruitee, Personio, SmartRecruiters and Workday
+host the careers pages of many companies and publish every open posting,
+without a key, so that sites can list them. That is what this reads: one request per
 company (a few for SmartRecruiters, which pages), each posting with its
 description. And because the listing is complete, a posting that stops
 appearing has closed, which LinkedIn alerts can never tell (D61).
 
 A company is found by its careers URL ("https://jobs.lever.co/acme") or by
-trying slugs made from its name on each board in turn.
+trying slugs made from its name on each board in turn. Workday only by its
+URL ("https://acme.wd3.myworkdayjobs.com/External"): the address carries a
+server and a site name that cannot be guessed (D71).
 """
 
 import html
@@ -41,6 +43,8 @@ class BoardKind(StrEnum):
     PERSONIO = "personio"
     PERSONIO_COM = "personio_com"
     SMARTRECRUITERS = "smartrecruiters"
+    # Slug "tenant.wdN.site", from https://tenant.wdN.myworkdayjobs.com/site (D71).
+    WORKDAY = "workday"
 
 
 _SOURCES: Final = {
@@ -52,6 +56,7 @@ _SOURCES: Final = {
     BoardKind.PERSONIO: OfferSource.PERSONIO,
     BoardKind.PERSONIO_COM: OfferSource.PERSONIO,
     BoardKind.SMARTRECRUITERS: OfferSource.SMARTRECRUITERS,
+    BoardKind.WORKDAY: OfferSource.WORKDAY,
 }
 _URLS: Final = {
     BoardKind.GREENHOUSE: "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true",
@@ -62,6 +67,7 @@ _URLS: Final = {
     BoardKind.PERSONIO: "https://{slug}.jobs.personio.de/xml",
     BoardKind.PERSONIO_COM: "https://{slug}.jobs.personio.com/xml",
     BoardKind.SMARTRECRUITERS: "https://api.smartrecruiters.com/v1/companies/{slug}/postings",
+    BoardKind.WORKDAY: "https://{tenant}.{server}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs",
 }
 _PERSONIO_HOSTS: Final = {
     BoardKind.PERSONIO: "jobs.personio.de",
@@ -77,12 +83,23 @@ _CAREERS_URL: Final = (
     (BoardKind.PERSONIO, re.compile(r"([\w-]+)\.jobs\.personio\.de")),
     (BoardKind.PERSONIO_COM, re.compile(r"([\w-]+)\.jobs\.personio\.com")),
     (BoardKind.SMARTRECRUITERS, re.compile(r"(?:jobs|careers)\.smartrecruiters\.com/([\w.-]+)")),
+    # Tenant, server and site; an optional locale ("en-US/") comes before the site.
+    (
+        BoardKind.WORKDAY,
+        re.compile(r"([\w-]+)\.(wd\d{1,3})\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Za-z]{2}/)?([\w-]+)"),
+    ),
 )
 _SLUG: Final = re.compile(r"^[\w.-]{1,100}$")
+_WORKDAY_SLUG: Final = re.compile(r"^[\w-]+\.wd\d{1,3}\.[\w-]+$")
 # SmartRecruiters pages its listings. Big employers list thousands; past this
 # many the listing is read in part, and closures are not inferred from it.
 SMARTRECRUITERS_PAGE: Final = 100
 SMARTRECRUITERS_MAX: Final = 1_000
+# Workday serves 20 postings a page, newest first, and big employers list
+# thousands: the newest this many are read, and closures are not inferred
+# from a partial listing (D71).
+WORKDAY_PAGE: Final = 20
+WORKDAY_MAX: Final = 200
 # Personio's yearsOfExperience codes, as the years a posting asks for.
 _PERSONIO_YEARS: Final = {"1-2": "1-2", "2-5": "2-5", "5-7": "5-7", "7-10": "7-10", "10+": "10+"}
 
@@ -99,6 +116,8 @@ class Board:
     def __post_init__(self) -> None:
         if not _SLUG.match(self.slug):
             raise ValueError(f"not a board slug: {self.slug!r}")
+        if self.kind is BoardKind.WORKDAY and not _WORKDAY_SLUG.match(self.slug):
+            raise ValueError(f"not a Workday board: {self.slug!r}")
 
     @property
     def source(self) -> OfferSource:
@@ -112,7 +131,27 @@ class Board:
     @property
     def careers_url(self) -> str:
         """The public page where people browse this company's postings."""
+        if self.kind is BoardKind.WORKDAY:
+            tenant, server, site = self.slug.split(".")
+            return f"https://{tenant}.{server}.myworkdayjobs.com/{site}"
         return _CAREERS_PAGES[self.kind].format(slug=self.slug)
+
+    @property
+    def lists_details(self) -> bool:
+        """False when a posting's place, link and date are best read from its own page."""
+        return self.kind not in (BoardKind.SMARTRECRUITERS, BoardKind.WORKDAY)
+
+    @property
+    def api_url(self) -> str:
+        if self.kind is BoardKind.WORKDAY:
+            tenant, server, site = self.slug.split(".")
+            return _URLS[self.kind].format(tenant=tenant, server=server, site=site)
+        return _URLS[self.kind].format(slug=self.slug)
+
+    @property
+    def company_name(self) -> str:
+        """A name for a company known only by its URL: the slug, or Workday's tenant."""
+        return self.slug.split(".")[0] if self.kind is BoardKind.WORKDAY else self.slug
 
 
 _CAREERS_PAGES: Final = {
@@ -183,7 +222,7 @@ def board_from_url(text: str) -> Board | None:
     """The board a careers URL points at, if it is one this module reads."""
     for kind, pattern in _CAREERS_URL:
         if match := pattern.search(text):
-            return Board(kind, match.group(1))
+            return Board(kind, ".".join(match.groups()))
     return None
 
 
@@ -327,6 +366,38 @@ def _smartrecruiters(content: Any, board: Board) -> Iterator[dict[str, Any]]:
         }
 
 
+_POSTED: Final = re.compile(r"posted (today|yesterday|(\d{1,3})\+? days? ago)", re.IGNORECASE)
+_SEVERAL_PLACES: Final = re.compile(r"^\d+ locations?$", re.IGNORECASE)
+
+
+def _posted_ago(text: Any, today: date) -> date | None:
+    """Workday's "Posted 3 Days Ago" as a date; "30+ Days Ago" is no date."""
+    match = _POSTED.search(text) if isinstance(text, str) else None
+    if match is None or "+" in match.group(0):
+        return None
+    word = match.group(1).casefold()
+    days = 0 if word == "today" else 1 if word == "yesterday" else int(match.group(2))
+    return date.fromordinal(today.toordinal() - days)
+
+
+def _workday(postings: Iterable[Any], board: Board, today: date) -> Iterator[dict[str, Any]]:
+    for job in postings:
+        path = job.get("externalPath")
+        if not isinstance(path, str) or not path.startswith("/job/"):
+            continue
+        bullets = job.get("bulletFields") or []
+        location = job.get("locationsText")
+        yield {
+            "id": (bullets[0] if bullets else None) or path,
+            "title": job.get("title"),
+            # "2 Locations": the details say which; describe() fills them in.
+            "location": None if _SEVERAL_PLACES.match(location or "") else location,
+            "url": board.careers_url + path,
+            "posted_on": _posted_ago(job.get("postedOn"), today),
+            "description": None,
+        }
+
+
 _READERS: Final[dict[BoardKind, Callable[[Any, Board], Iterator[dict[str, Any]]]]] = {
     BoardKind.GREENHOUSE: _greenhouse,
     BoardKind.LEVER: _lever,
@@ -373,7 +444,9 @@ class CompanyBoards:
         self, board: Board, *, probe: bool = False
     ) -> tuple[list[dict[str, Any]], bool] | None:
         """Raw postings and whether that is all of them, or None if the company is not there."""
-        url = _URLS[board.kind].format(slug=board.slug)
+        url = board.api_url
+        if board.kind is BoardKind.WORKDAY:
+            return self._workday(board, url, probe=probe)
         reader = _READERS[board.kind]
         if board.kind in (BoardKind.PERSONIO, BoardKind.PERSONIO_COM):
             response = self._get(url)
@@ -413,6 +486,33 @@ class CompanyBoards:
             return None
         return list(_smartrecruiters(content, board)), len(content) >= total
 
+    def _workday(
+        self, board: Board, url: str, *, probe: bool
+    ) -> tuple[list[dict[str, Any]], bool] | None:
+        """Pages of the newest postings; only the first page says how many there are."""
+        postings: list[Any] = []
+        total = 0
+        while len(postings) < WORKDAY_MAX:
+            body = {"limit": WORKDAY_PAGE, "offset": len(postings), "searchText": ""}
+            response = self._client.post(url, json={**body, "appliedFacets": {}})
+            # A wrong site answers 404 or 422; an unknown tenant, 404 or a 5xx.
+            if response.status_code in (404, 422) or (response.status_code >= 500 and not postings):
+                return None
+            response.raise_for_status()
+            try:
+                page = response.json()
+            except ValueError as err:
+                raise BoardError("workday answered with something other than JSON") from err
+            if not postings:
+                total = int(page.get("total") or 0)
+            rows = page.get("jobPostings") or []
+            postings.extend(rows)
+            if probe or not rows or len(postings) >= total:
+                break
+        if total == 0:
+            return None
+        return list(_workday(postings, board, self._clock().date())), len(postings) >= total
+
     def find(self, company: str) -> BoardMatch | None:
         """Where a company publishes its postings: a careers URL, or slugs tried in turn.
 
@@ -429,6 +529,8 @@ class CompanyBoards:
         possible: BoardMatch | None = None
         for slug in slug_candidates(company):
             for kind in BoardKind:
+                if kind is BoardKind.WORKDAY:
+                    continue  # found only by its URL
                 board = Board(kind, slug)
                 try:
                     fetched = self._fetch(board, probe=True)
@@ -488,9 +590,11 @@ class CompanyBoards:
         Other boards list their descriptions, so their offers come back as they
         are. A posting whose details fail keeps no description, not the sync.
         """
+        if board.kind is BoardKind.WORKDAY:
+            return [self._workday_details(board, offer) for offer in offers]
         if board.kind is not BoardKind.SMARTRECRUITERS:
             return list(offers)
-        base = _URLS[board.kind].format(slug=board.slug)
+        base = board.api_url
         described = []
         for offer in offers:
             posting_id = (offer.external_id or "").removeprefix(board.id_prefix)
@@ -510,6 +614,33 @@ class CompanyBoards:
             url = _https(data.get("postingUrl")) or offer.url
             described.append(offer.model_copy(update={"description": text, "url": url}))
         return described
+
+    def _workday_details(self, board: Board, offer: JobOffer) -> JobOffer:
+        """A Workday posting's description, places and exact date, from its own page."""
+        path = (offer.url or "").removeprefix(board.careers_url)
+        if not path.startswith("/job/"):
+            return offer
+        try:
+            data = self._json(board, board.api_url.removesuffix("/jobs") + path)
+        except (httpx.HTTPError, BoardError):
+            logger.info("skipped a posting's details", extra={"board": board.kind.value})
+            return offer
+        info = (data or {}).get("jobPostingInfo") or {}
+        if not info:
+            return offer
+        country = (info.get("country") or {}).get("descriptor")
+        places = [info.get("location"), *(info.get("additionalLocations") or [])]
+        location = "; ".join(str(p) for p in places if p) or offer.location
+        if location and country and country not in location:
+            location = f"{location}, {country}"
+        return offer.model_copy(
+            update={
+                "description": _text(info.get("jobDescription")),
+                "location": location and location[:200],
+                "posted_on": _date(info.get("startDate")) or offer.posted_on,
+                "url": _https(info.get("externalUrl")) or offer.url,
+            }
+        )
 
 
 def make_client() -> httpx.Client:

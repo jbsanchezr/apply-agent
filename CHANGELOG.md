@@ -17,6 +17,10 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* Workday job boards (NVIDIA, Philips, NXP, ING, Salesforce...) are read.
+  Workday cannot be found by name, so the Companies page lets you paste a
+  company's careers link; that works for every board the app reads. The
+  newest 200 postings of a big employer are read on each sync. See D71.
 * A good fit now needs evidence of the years asked: an alert with no
   description and no seniority word is at best possible until you open it.
   Descriptions are read better ("6+ years in engineering", "5+ years as an

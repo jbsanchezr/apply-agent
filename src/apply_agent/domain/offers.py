@@ -32,6 +32,7 @@ class OfferSource(StrEnum):
     RECRUITEE = "recruitee"
     PERSONIO = "personio"
     SMARTRECRUITERS = "smartrecruiters"
+    WORKDAY = "workday"
     # InfoJobs' offer search API, Spain only (D63).
     INFOJOBS = "infojobs"
 
@@ -46,6 +47,7 @@ COMPANY_BOARDS: Final = frozenset(
         OfferSource.RECRUITEE,
         OfferSource.PERSONIO,
         OfferSource.SMARTRECRUITERS,
+        OfferSource.WORKDAY,
     }
 )
 MAX_DESCRIPTION: Final = 20_000

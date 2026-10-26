@@ -77,6 +77,7 @@ _BOARDS: Final = {
     "personio": "Personio",
     "personio_com": "Personio",
     "smartrecruiters": "SmartRecruiters",
+    "workday": "Workday",
 }
 
 
