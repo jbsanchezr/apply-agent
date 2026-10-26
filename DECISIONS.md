@@ -972,3 +972,27 @@ under 300 characters of text are now not read. And `start.ps1` would have
 stopped every time: Docker reports progress on stderr, which Windows
 PowerShell under `$ErrorActionPreference = 'Stop'` takes for an error, so the
 compose call now runs with errors allowed and its exit code checked.
+
+## D68 - Where offers are, and under which company name
+On the Companies page the user saw a Siemens job, "Software engineer (Java)
+Rail Signalling", under the group "Alemania", and it was in Spain. Nothing
+was wrong, but the page hid two things. The group is only the label of the
+pasted list, while a company's breakdown counts all its offers wherever they
+are, here from LinkedIn alerts in several countries; and LinkedIn wrote the
+place as "Tres Cantos", which says nothing to someone not from Madrid.
+Also, two of the four "Siemens" offers were Siemens Energy's: matching
+company names tolerates a longer name (D4), right for "Adyen N.V." and
+wrong for a spun-off company.
+
+So the breakdown now says where the offers are ("2 in Spain · 1 in
+Switzerland · 1 in Sweden"), in bold for the country the group names
+("Alemania" is Germany), and lists any other name its offers carry
+("Includes Siemens Energy (2)"). The company page adds the country to a
+place that does not say it, and the other name under the title. Offers are
+not filtered by market: the user chose to see them all, labelled.
+
+`domain.places` finds a country by its name in the languages lists are
+written in, or by a city: the cities of the user's markets that their
+offers name. On their 1,257 places it found 1,250; the other seven were
+salaries ("€65K-€90K / year") that LinkedIn writes where the place goes,
+which the alert reader now treats as hints, not places.

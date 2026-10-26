@@ -52,14 +52,24 @@ _HINT: Final = re.compile(
     re.IGNORECASE,
 )
 
+# An amount of money per period, the way LinkedIn writes a salary.
+_SALARY: Final = re.compile(
+    r"[€$£]\s?\d[\d.,]*\s?[kK]?.{0,20}/\s*(?:year|month|hour|yr|mo|hr)\b",
+    re.IGNORECASE,
+)
+
 
 def is_linkedin_alert(message: Message) -> bool:
     return ALERT_SENDER in message.sender.casefold()
 
 
 def is_hint(line: str) -> bool:
-    """'This company is actively hiring', '143 company alumni', 'Easy Apply'..."""
-    return bool(_HINT.search(line))
+    """'This company is actively hiring', '143 company alumni', 'Easy Apply'...
+
+    A salary ("€65K-€90K / year") sits where the place would be, so it is a
+    hint too, not a place (D68).
+    """
+    return bool(_HINT.search(line) or _SALARY.search(line))
 
 
 def posting_url(linkedin_id: str) -> str:

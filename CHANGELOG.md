@@ -17,6 +17,10 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* The Companies page says where each company's offers are ("2 in Spain · 1 in
+  Switzerland"), with the group's market in bold, and which other company
+  names they carry ("Includes Siemens Energy"). Salaries in LinkedIn alerts are
+  no longer taken for places. See D68.
 * **Web research** on each company page: an "Investigate" button (with an
   optional question) searches the web through a private SearXNG, reads the
   best pages and has your local model write a report citing them. SearXNG runs

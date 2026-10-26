@@ -6,6 +6,7 @@ about it: its board, its open offers and how well they fit, and links to
 its company page (news, contacts) and to LinkedIn. Every value is escaped.
 """
 
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape
@@ -16,6 +17,8 @@ from apply_agent.api.jobs import JobStatus, SyncJob
 from apply_agent.api.offers_page import OfferView, fit_badge, offer_link, rank
 from apply_agent.api.page import STYLE, company_link, company_url, nav
 from apply_agent.domain.fit import FitLevel
+from apply_agent.domain.keys import company_key
+from apply_agent.domain.places import country_of, places_of
 from apply_agent.domain.search import BoardStatus, TargetCompany
 from apply_agent.offers.boards import Board, BoardKind
 
@@ -109,20 +112,62 @@ def _board(row: CompanyRow) -> str:
             )
 
 
+MAX_PLACES: Final = 3
+
+
+def _where(views: Sequence[OfferView], market: str | None) -> str:
+    """'2 in Spain · 1 in Switzerland', the group's own market in bold (D68).
+
+    An offer in several countries counts in each; a place with no known
+    country is shown as written.
+    """
+    counts: Counter[str] = Counter()
+    for view in views:
+        places = places_of(view.stored.offer.location)
+        counts.update({country or place for place, country in places} or {"place not given"})
+    shown = []
+    for place, count in counts.most_common(MAX_PLACES):
+        text = f"{count} in {escape(place)}"
+        shown.append(f"<strong>{text}</strong>" if place == market else text)
+    more = len(counts) - MAX_PLACES
+    return " &middot; ".join(shown) + (f" &middot; {more} more" if more > 0 else "")
+
+
+def _other_names(target: TargetCompany, views: Sequence[OfferView]) -> str:
+    """Names the offers give that are not the company's own, such as 'Siemens Energy'."""
+    key = company_key(target.name)
+    names = Counter(
+        v.stored.offer.company for v in views if company_key(v.stored.offer.company) != key
+    )
+    if not names:
+        return ""
+    listed = ", ".join(f"{escape(name)} ({count})" for name, count in names.most_common())
+    return f'<br><span class="quiet">Includes {listed}</span>'
+
+
 def _breakdown(row: CompanyRow) -> str:
     open_views = [v for v in row.views if v.stored.closed_at is None]
     if not open_views:
         return '<td class="muted">-</td><td class="muted">-</td><td class="muted">-</td>'
     good = sum(1 for v in open_views if v.fit.level is FitLevel.GOOD)
     best = sorted(open_views, key=rank)[0]
-    title = escape(best.stored.offer.title)
+    offer = best.stored.offer
     link = escape(offer_link(best), quote=True)
+    other = (
+        f" at {escape(offer.company)}"
+        if company_key(offer.company) != company_key(row.target.name)
+        else ""
+    )
+    place = f'<br><span class="muted">{escape(offer.location)}</span>' if offer.location else ""
+    market = country_of(row.target.group)
     return (
         f"<td><strong>{len(open_views)}</strong> open<br>"
-        f'<span class="muted">{row.new_this_week} new this week</span></td>'
+        f'<span class="muted">{row.new_this_week} new this week</span><br>'
+        f'<span class="muted">{_where(open_views, market)}</span>'
+        f"{_other_names(row.target, open_views)}</td>"
         f"<td>{good}</td>"
         f'<td>{fit_badge(best.fit)} <a href="{link}" target="_blank" '
-        f'rel="noopener noreferrer">{title}</a></td>'
+        f'rel="noopener noreferrer">{escape(offer.title)}</a>{other}{place}</td>'
     )
 
 

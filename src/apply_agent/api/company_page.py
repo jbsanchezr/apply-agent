@@ -12,6 +12,8 @@ from typing import Final
 
 from apply_agent.api.offers_page import OfferView, fit_badge, match_cell, offer_link, rank
 from apply_agent.api.page import STYLE, nav
+from apply_agent.domain.keys import company_key
+from apply_agent.domain.places import places_of
 from apply_agent.offers.company import CompanyResearch
 from apply_agent.storage.investigations import Investigation, InvestigationStatus
 
@@ -81,10 +83,26 @@ def _hiring(research: CompanyResearch, views: Sequence[OfferView]) -> str:
             '<a href="search#companies">Search page</a> to read its job board.</p>'
         )
     places = ", ".join(f"{escape(place)} ({count})" for place, count in trend.places) or "-"
+    key = company_key(research.name)
+
+    def where(view: OfferView) -> str:
+        """The place as written, with its country when the place does not say it (D68)."""
+        location = view.stored.offer.location
+        countries = sorted({c for _, c in places_of(location) if c})
+        shown = escape(location or "-")
+        missing = [c for c in countries if c.casefold() not in (location or "").casefold()]
+        return shown + (
+            f' <span class="muted">({escape(", ".join(missing))})</span>' if missing else ""
+        )
+
+    def company(view: OfferView) -> str:
+        name = view.stored.offer.company
+        return "" if company_key(name) == key else f'<br><span class="quiet">{escape(name)}</span>'
+
     rows = "".join(
         f"<tr><td>{fit_badge(v.fit)}</td><td>"
-        f"{_link(offer_link(v), v.stored.offer.title)}</td>"
-        f"<td>{escape(v.stored.offer.location or '-')}</td><td>{match_cell(v.match)}</td></tr>"
+        f"{_link(offer_link(v), v.stored.offer.title)}{company(v)}</td>"
+        f"<td>{where(v)}</td><td>{match_cell(v.match)}</td></tr>"
         for v in sorted(views, key=rank)[:8]
         if v.stored.closed_at is None
     )

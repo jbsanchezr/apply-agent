@@ -1120,3 +1120,39 @@ def test_an_investigation_is_queued_run_and_shown_with_its_sources(
         assert "- They hire junior ML engineers [1]" in page
         assert "https://arcwell.example/careers" in page
         assert client.get("/company/investigations/999", headers=AUTH).status_code == 404
+
+
+def test_a_companys_breakdown_says_where_and_under_which_names(
+    tmp_path: Path, repository: Repository
+) -> None:
+    offers = OfferRepository(repository.session_factory)
+
+    def alert(linkedin_id: str, title: str, company: str, location: str) -> JobOffer:
+        return JobOffer(
+            source=OfferSource.LINKEDIN_ALERT,
+            linkedin_id=linkedin_id,
+            title=title,
+            company=company,
+            location=location,
+            seen_at=ALERT_DAY,
+        )
+
+    offers.save(
+        [
+            alert("4100000101", "Java Engineer Rail Signalling", "Arcwell", "Tres Cantos"),
+            alert("4100000102", "AI Platform Engineer", "Arcwell", "Zug"),
+            alert("4100000103", "AI Engineer", "Arcwell Energy", "Madrid"),
+            alert("4100000104", "Data Engineer", "Arcwell", "Berlin, Germany"),
+        ]
+    )
+    TargetRepository(repository.session_factory).add([("Alemania", "Arcwell")])
+    with _company_app(tmp_path, repository) as client:
+        page = client.get("/companies", headers=AUTH).text
+        company = client.get("/company?name=Arcwell", headers=AUTH).text
+
+    assert "2 in Spain" in page
+    assert "<strong>1 in Germany</strong>" in page  # the group's own market
+    assert "1 in Switzerland" in page
+    assert "Includes Arcwell Energy (1)" in page
+    assert 'Tres Cantos <span class="muted">(Spain)</span>' in company
+    assert '<span class="quiet">Arcwell Energy</span>' in company
