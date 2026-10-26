@@ -112,7 +112,11 @@ def _experience(offer: JobOffer, profile: CandidateProfile) -> tuple[int, str]:
     # What the description says beats what the title suggests (D62).
     written = years_required(offer.description)
     stated = written is not None or level is not Seniority.UNSTATED
-    if written is not None:
+    if written is not None and int(level) > written:
+        # "Senior" with "3+ years": the title still says what the team expects (D70).
+        asked = int(level)
+        label = f"{_LABELS[level].capitalize()}, though the description asks for {written}+"
+    elif written is not None:
         asked, label = written, f"The description asks for {written}+ years"
     elif stated:
         asked, label = int(level), _LABELS[level].capitalize()
@@ -131,6 +135,12 @@ def _experience(offer: JobOffer, profile: CandidateProfile) -> tuple[int, str]:
 
 LANGUAGE_CAP: Final = 15
 ASKED_BEFORE_CAP: Final = 35
+# An alert with no description and no seniority word: the years asked are
+# unknown, so it is at best possible until the posting is read (D70).
+UNKNOWN_YEARS_CAP: Final = 60
+# A title naming none of the candidate's roles: "Customer Service Agent" is
+# not an engineering job however many wanted words it has (D70).
+OTHER_ROLE_CAP: Final = 30
 
 
 def _spoken(profile: CandidateProfile) -> str:
@@ -196,6 +206,13 @@ def assess_fit(
     if avoid := found_words(profile.avoid, offer.title):
         score = min(score, 15)
         reasons.append("Avoided: " + ", ".join(avoid))
+    if profile.roles and not found_words(profile.roles, offer.title):
+        score = min(score, OTHER_ROLE_CAP)
+        named = ", ".join(profile.roles[:3]) + (", ..." if len(profile.roles) > 3 else "")
+        reasons.append(f"The title names none of your roles ({named})")
+    if not offer.description and seniority(offer.title) is Seniority.UNSTATED:
+        score = min(score, UNKNOWN_YEARS_CAP)
+        reasons.append("Years asked unknown: the alert has no description, open it")
     cap, language_reasons = _languages(offer, profile, asked_before)
     if cap is not None:
         score = min(score, cap)

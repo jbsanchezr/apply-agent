@@ -1026,3 +1026,31 @@ note matches the exact company key, so Siemens' note does not touch Siemens
 Energy. Looking each alert offer up on the web with SearXNG was tried: of
 ten, three or four pages were the same posting and the rest only similar,
 which would give wrong verdicts, so it was not built.
+
+## D70 - A good fit needs evidence of the years asked
+The user kept seeing good fits for jobs that, once opened, asked for eight
+or more years. Three causes, measured on their offers:
+
+- 926 of 1,257 offers are LinkedIn alerts with no description. A title with
+  no seniority word ("AI Engineer") was assumed to ask two years (D60) and,
+  with a wanted word, reached good. Most good fits (283 of 349) were these.
+  Such an offer is now at best possible, with "Years asked unknown", until
+  the user opens it. A seniority word ("Junior", "Medior", "II") still
+  counts as evidence.
+- The description reader (D62) needed the word "experience" after the
+  years, so "6+ years in engineering", "10+ years in ML/AI" or "5+ years as
+  an ML engineer" were missed; 105 descriptions asked for more than was
+  read. A plus sign or a range is now enough, and a bare number counts when
+  followed by "as a", "in backend", "building" and the like. German ("4 Jahre
+  Berufserfahrung") is read too. "Kept for up to 2 years" or "in less than 5
+  years" are not requirements. 26 mentions are still left out, all of them
+  correctly (onboarding periods, company history, a range's upper end).
+- A wanted word in a title that is not the candidate's kind of job made it
+  good: "Junior Customer Service Agent" (wanted: agent), "Growth & Sales
+  Intern (Stealth AI venture)". The profile can list its roles ("engineer",
+  "developer"); a title naming none ranks low.
+
+A senior title whose description asks for fewer years ("Senior Backend, 3+
+years") is now judged by the title, the higher of the two, so it shows as
+possible rather than good. Good fits went from 349 to 89, all engineering
+roles with the years stated or a junior or mid-level title.

@@ -42,6 +42,9 @@ class CandidateProfile(DomainModel):
     target: Words = ()
     # Words that make a title a poor fit whatever else it says (DevOps, PhD...).
     avoid: Words = ()
+    # The kinds of job the candidate does ("engineer", "developer"). A title
+    # naming none ranks low (D70). Empty: any title is judged.
+    roles: Words = ()
     # Places that make an offer better. Anywhere else is neutral.
     preferred_places: Words = ()
     # Words in a title or company name worth a little extra (an industry...).

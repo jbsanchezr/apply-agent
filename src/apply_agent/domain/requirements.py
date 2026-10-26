@@ -18,6 +18,7 @@ _WORDS: Final = {
     "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
     "uno": 1, "un": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6,
     "een": 1, "twee": 2, "drie": 3, "vier": 4, "vijf": 5, "zes": 6,
+    "zwei": 2, "drei": 3, "funf": 5, "fünf": 5, "sechs": 6,
 }  # fmt: skip
 _NUMBER: Final = r"(\d{1,2}|" + "|".join(_WORDS) + r")"
 # A number, an optional plus sign or upper end of a range (hyphen, en dash,
@@ -40,9 +41,32 @@ _PATTERNS: Final = (
         r"\bexperiencia[^.;\n]{0,40}?\b(?:de|al menos|m[ií]nim[oa] de)\s+" + _YEARS + r"años?",
         re.IGNORECASE,
     ),
+    # English, without "experience": "5+ years in backend", "3-5 years as an
+    # ML engineer", "4+ years building production software". A plus sign or a
+    # range is enough; a bare number needs a word that makes it a career.
+    re.compile(
+        _NUMBER + r"\s*(?:\+|(?:[" + _DASHES + r"]|to)\s*\d{1,2}\s*\+?)\s*(?:years?|yrs?)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        _YEARS + r"(?:years?|yrs?)\s+(?:as an?|in (?:software|backend|ml|ai|data|engineering"
+        r"|machine learning|product)|(?:of )?(?:professional|industry|hands-on|commercial)"
+        r"|building|developing|working|shipping|leading|designing|writing)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\btypically\s+" + _YEARS + r"(?:years?|yrs?)\b", re.IGNORECASE),
     # Dutch: N jaar (relevante) werkervaring; minimaal N jaar.
     re.compile(_YEARS + r"jaar\b(?=[^.;\n]{0,40}?ervaring)", re.IGNORECASE),
     re.compile(r"\bminimaal\s+" + _YEARS + r"jaar\b", re.IGNORECASE),
+    # German: N Jahre (Berufs)erfahrung; mindestens N Jahre.
+    re.compile(_YEARS + r"jahren?\b(?=[^.;\n]{0,40}?erfahrung)", re.IGNORECASE),
+    re.compile(r"\bmindestens\s+" + _YEARS + r"jahren?\b", re.IGNORECASE),
+)
+# Numbers of years that are not asked of the candidate: "kept for up to 2
+# years", "in less than 5 years", "over the past 10 years".
+_NOT_ASKED: Final = re.compile(
+    r"(?:up to|less than|within|the (?:last|past|next)|after|since|for over)\s*$",
+    re.IGNORECASE,
 )
 _MAX_YEARS: Final = 15
 
@@ -60,5 +84,6 @@ def years_required(description: str | None) -> int | None:
         for pattern in _PATTERNS
         for match in pattern.finditer(description)
         if 0 < (years := _value(match.group(1))) <= _MAX_YEARS
+        and not _NOT_ASKED.search(description[max(0, match.start(1) - 20) : match.start(1)])
     ]
     return max(found, default=None)

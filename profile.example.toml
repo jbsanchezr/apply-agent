@@ -20,6 +20,10 @@ target = ["data engineer", "backend", "python", "analytics engineer"]
 # Words that make a title a poor fit, whatever else it says.
 avoid = ["devops", "sre", "frontend", "front end", "phd", "freelance"]
 
+# The kinds of job you do (D70). A title naming none ranks low; leave it out
+# to judge every title.
+roles = ["engineer", "developer", "software", "machine learning", "ml"]
+
 # Places that make an offer better. Anywhere else is neutral.
 preferred_places = ["lisbon", "porto", "portugal"]
 

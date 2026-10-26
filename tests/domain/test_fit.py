@@ -16,14 +16,28 @@ PROFILE = CandidateProfile(
 )
 
 
-def offer(title: str, company: str = "Arcwell", location: str | None = None) -> JobOffer:
+def offer(
+    title: str,
+    company: str = "Arcwell",
+    location: str | None = None,
+    description: str | None = None,
+) -> JobOffer:
     return JobOffer(
         source=OfferSource.LINKEDIN_ALERT,
         title=title,
         company=company,
         location=location,
+        description=description,
         seen_at=T0,
     )
+
+
+# A posting whose description names no years: the title's guess stands.
+SILENT = "You will build payment tools with a small team."
+
+
+def described(title: str, **kwargs: str) -> JobOffer:
+    return offer(title, description=SILENT, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -68,8 +82,8 @@ def test_years_asked_are_compared_with_the_ceiling() -> None:
 
 
 def test_without_a_seniority_word_wanted_words_decide() -> None:
-    plain = assess_fit(offer("Data Analyst"), PROFILE)
-    wanted = assess_fit(offer("AI Engineer (LLM)"), PROFILE)
+    plain = assess_fit(described("Data Analyst"), PROFILE)
+    wanted = assess_fit(described("AI Engineer (LLM)"), PROFILE)
 
     assert plain.level is FitLevel.POSSIBLE
     assert wanted.level is FitLevel.GOOD
@@ -85,9 +99,9 @@ def test_words_match_whole_words_only() -> None:
 
 
 def test_preferred_place_and_bonus_add_points() -> None:
-    base = assess_fit(offer("Data Analyst"), PROFILE).score
-    placed = assess_fit(offer("Data Analyst", location="Amsterdam, North Holland"), PROFILE)
-    bonus = assess_fit(offer("Data Analyst", company="Second-Hand Fashion Co"), PROFILE)
+    base = assess_fit(described("Data Analyst"), PROFILE).score
+    placed = assess_fit(described("Data Analyst", location="Amsterdam, North Holland"), PROFILE)
+    bonus = assess_fit(described("Data Analyst", company="Second-Hand Fashion Co"), PROFILE)
 
     assert placed.score == base + 10
     assert "Preferred place: amsterdam" in placed.reasons
@@ -157,8 +171,8 @@ def test_experience_is_counted_in_the_titles_area(title: str, level: FitLevel, r
 
 
 def test_ai_titles_without_seniority_rank_below_backend_ones() -> None:
-    backend = assess_fit(offer("Backend Engineer"), AREAS)
-    ai = assess_fit(offer("AI Engineer"), AREAS)
+    backend = assess_fit(described("Backend Engineer"), AREAS)
+    ai = assess_fit(described("AI Engineer"), AREAS)
     assert backend.score == 65
     assert ai.score == 40
 
@@ -175,6 +189,18 @@ def test_ai_titles_without_seniority_rank_below_backend_ones() -> None:
         ("Experiencia mínima de 3 años en desarrollo backend.", 3),
         ("Al menos 2 años de experiencia con Java.", 2),
         ("Minimaal 3 jaar werkervaring als developer.", 3),
+        ("Mindestens 4 Jahre Berufserfahrung in Python.", 4),
+        # Without the word "experience", as many postings write it.
+        ("6+ years in engineering across a wide range of products", 6),
+        ("You have 10+ years in ML/AI with 3+ years at Staff+ level", 10),
+        ("5+ years as an ML engineer, with production models shipped", 5),
+        ("4+ years building and running production software;", 4),
+        ("Significant experience (typically 8+ years, or equivalent)", 8),
+        ("Over 5 years of experience with distributed systems.", 5),
+        # Years that are not asked of the candidate.
+        ("Your data is kept for up to 2 years in our candidate pool.", None),
+        ("In less than 5 years, we have grown to 480 people.", None),
+        ("An onboarding period of 2 years in Madrid.", None),
         ("In your first year, you will own a service.", None),
         ("Founded 25 years ago, we have experience in retail.", None),
         ("Several years of experience in sales.", None),
@@ -196,3 +222,30 @@ def test_the_description_beats_the_title() -> None:
     assert asked.reasons[0] == "The description asks for 4+ years; you have only 0 in ai"
     assert asked.level is FitLevel.UNLIKELY
     assert assess_fit(junior, AREAS).reasons[0].startswith("The description asks for 1+ years")
+
+
+def test_a_senior_title_is_not_lowered_by_a_short_description() -> None:
+    fit = assess_fit(offer("Senior Backend Engineer", description="3+ years of experience."), AREAS)
+    assert fit.reasons[0] == (
+        "A senior title, usually 5+ years, though the description asks for 3+;"
+        " you have 3 in backend"
+    )
+    assert fit.level is FitLevel.POSSIBLE
+
+
+def test_an_alert_without_years_is_at_best_possible() -> None:
+    fit = assess_fit(offer("AI Engineer (LLM)", location="Amsterdam"), PROFILE)
+    assert fit.level is FitLevel.POSSIBLE
+    assert fit.score == 60
+    assert "Years asked unknown: the alert has no description, open it" in fit.reasons
+    # A seniority word or a description is evidence enough.
+    assert assess_fit(offer("Junior AI Engineer (LLM)"), PROFILE).level is FitLevel.GOOD
+    assert assess_fit(described("AI Engineer (LLM)"), PROFILE).level is FitLevel.GOOD
+
+
+def test_a_title_naming_none_of_the_roles_ranks_low() -> None:
+    engineers = PROFILE.model_copy(update={"roles": ("engineer", "developer")})
+    agent = assess_fit(described("Junior Customer Service Agent"), engineers)
+    assert agent.level is FitLevel.UNLIKELY
+    assert "The title names none of your roles (engineer, developer)" in agent.reasons
+    assert assess_fit(described("Junior Backend Developer"), engineers).level is FitLevel.GOOD

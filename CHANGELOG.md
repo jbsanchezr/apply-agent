@@ -17,6 +17,12 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* A good fit now needs evidence of the years asked: an alert with no
+  description and no seniority word is at best possible until you open it.
+  Descriptions are read better ("6+ years in engineering", "5+ years as an
+  ML engineer", German), a senior title is not lowered by a short
+  description, and `roles = ["engineer", "developer"]` in the profile ranks
+  other jobs low. See D70.
 * Languages: list yours in the profile (`languages = ["spanish", "english"]`). An
   offer that asks for another language, or is written in one, drops to poor
   fit with the reason; a language that is only a plus is noted. For alert
