@@ -264,8 +264,17 @@ title), roles you want, roles you never want (an avoided word sinks any
 offer), places you prefer and bonus words. Offers that fit poorly fold into
 *Poor fit*; hover a fit badge to see why it scored as it did. When an offer
 turns out to be closed, mark it *No longer available*: after five, offers
-fold into *Older offers* at the age yours were found closed (D61). Write your
-profile from the example, outside the repository, since it is personal:
+fold into *Older offers* at the age yours were found closed (D61).
+
+List the languages you can work in (`languages = ["spanish", "english"]`). An
+offer that asks for another ("fluent German", "vloeiend Nederlands", "Dutch
+only") or is written in one sinks to *Poor fit* with the reason; one that is
+only "a plus" is noted (D69). Alert offers carry no text to read, so when you
+open one and it asks for a language you lack, choose *Needs a language I
+don't speak*: it is dismissed, and that company's other offers are flagged.
+
+Write your profile from the example, outside the repository, since it is
+personal:
 
 ```bash
 cp profile.example.toml ~/.config/apply_agent/profile.toml

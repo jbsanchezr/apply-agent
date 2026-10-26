@@ -25,6 +25,7 @@ from apply_agent.api.page import (
     nav,
 )
 from apply_agent.domain.fit import FitLevel, OfferFit
+from apply_agent.domain.languages import COUNTRY_LANGUAGE
 from apply_agent.domain.offers import (
     MIN_CLOSURES_TO_LEARN,
     OfferApplicationMatch,
@@ -33,13 +34,26 @@ from apply_agent.domain.offers import (
     OfferState,
     StoredOffer,
 )
+from apply_agent.domain.places import places_of
 
 _SCRIPT: Final = """
 async function decide(id, select) {
   if (!select.value) return;
   select.disabled = true;
   let request;
-  if (select.value === "closed") {
+  if (select.value === "language") {
+    // Remembered for the company: its other offers are flagged too (D69).
+    const language = prompt(
+      "Which language does it ask for? The company's other offers will be flagged.",
+      select.dataset.language || "",
+    );
+    if (!language) { select.disabled = false; select.value = ""; return; }
+    request = ["offers/" + id + "/language", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({language}),
+    }];
+  } else if (select.value === "closed") {
     request = ["offers/" + id + "/closed", {method: "PUT"}];
   } else if (select.value === "reopen") {
     request = ["offers/" + id + "/closed", {method: "DELETE"}];
@@ -172,9 +186,13 @@ def _actions(view: OfferView) -> str:
         options += '<option value="closed">No longer available</option>'
     else:
         options += '<option value="reopen">Still open (undo)</option>'
+    options += '<option value="language">Needs a language I don\'t speak</option>'
     company = escape(stored.offer.company, quote=True)
+    countries = [c for _, c in places_of(stored.offer.location) if c]
+    guess = next((COUNTRY_LANGUAGE[c] for c in countries if c in COUNTRY_LANGUAGE), "")
     return (
-        f'<select aria-label="Decide about {company}" onchange="decide({stored.id}, this)">'
+        f'<select aria-label="Decide about {company}" data-language="{guess.capitalize()}" '
+        f'onchange="decide({stored.id}, this)">'
         f'<option value="">Change&hellip;</option>{options}</select>'
     )
 

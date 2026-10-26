@@ -17,6 +17,11 @@
 * Experience is counted per area (`[areas.ai] years = 0`): three years of
   backend no longer make an "AI Engineer" title a good fit, and a title with
   no seniority word is assumed to ask two years in its area. See D60.
+* Languages: list yours in the profile (`languages = ["spanish", "english"]`). An
+  offer that asks for another language, or is written in one, drops to poor
+  fit with the reason; a language that is only a plus is noted. For alert
+  offers, whose text the app never sees, "Needs a language I don't speak"
+  dismisses the offer and flags the company's other offers. See D69.
 * The Companies page says where each company's offers are ("2 in Spain · 1 in
   Switzerland"), with the group's market in bold, and which other company
   names they carry ("Includes Siemens Energy"). Salaries in LinkedIn alerts are

@@ -295,3 +295,22 @@ class InvestigationRow(Base):
     error: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
     finished_at: Mapped[datetime | None]
+
+
+class CompanyLanguageRow(Base):
+    """A language a company asked for that the user does not speak (D69).
+
+    The user notes it from an offer, having read the posting on LinkedIn;
+    the company's other offers are then flagged. One row per company and
+    language, matched on the exact company key so "Siemens Energy" does
+    not carry Siemens' notes.
+    """
+
+    __tablename__ = "company_languages"
+    __table_args__ = (UniqueConstraint("company_key", "language", name="uq_company_language"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company: Mapped[str] = mapped_column(String(200))
+    company_key: Mapped[str] = mapped_column(String(200), index=True)
+    language: Mapped[str] = mapped_column(String(40))
+    noted_at: Mapped[datetime] = mapped_column(default=_utcnow)

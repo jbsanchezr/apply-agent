@@ -46,6 +46,7 @@ from apply_agent.config import LlmKind, ProviderKind, Settings
 from apply_agent.domain import Application, ApplicationStatus, stage_of
 from apply_agent.domain.fit import assess_fit
 from apply_agent.domain.keys import company_key, similar_company
+from apply_agent.domain.languages import language_named
 from apply_agent.domain.offers import JobOffer, OfferState, match_offer, typical_closing_age
 from apply_agent.domain.search import BoardStatus, JobSearch, TargetCompany
 from apply_agent.logs import configure_logging
@@ -65,6 +66,7 @@ from apply_agent.offers.targets import check_targets
 from apply_agent.offers.web import PageReader, SearxngSearch
 from apply_agent.offers.web import make_client as make_web_client
 from apply_agent.storage.investigations import InvestigationRepository, InvestigationStatus
+from apply_agent.storage.languages import CompanyLanguages
 from apply_agent.storage.offers import OfferNotFoundError, OfferRepository
 from apply_agent.storage.repository import ApplicationNotFoundError, Repository
 from apply_agent.storage.searches import SearchRepository
@@ -93,6 +95,14 @@ class StatusCorrection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: ApplicationStatus
+
+
+class LanguageRequest(BaseModel):
+    """Body of ``POST /offers/{id}/language``: the language the posting asks for."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    language: str = Field(min_length=2, max_length=40)
 
 
 class InvestigateRequest(BaseModel):
@@ -223,6 +233,7 @@ def create_app(
     # Looking for job boards takes seconds per company: a job of its own (D66).
     target_service = SyncService(lambda: asdict(check_targets(target_store, job_searcher, clock)))
     investigation_store = InvestigationRepository(repo.session_factory)
+    company_languages = CompanyLanguages(repo.session_factory)
 
     @cache
     def web_investigator() -> Investigator | None:
@@ -377,15 +388,38 @@ def create_app(
     def offer_views(now: datetime, fold: OldAfter) -> list[OfferView]:
         applications = repo.list_applications()
         old_before = now - timedelta(days=fold.days)
+        asked = company_languages.by_company()
         return [
             OfferView(
                 stored,
                 match_offer(stored.offer, applications),
-                assess_fit(stored.offer, profile),
+                assess_fit(
+                    stored.offer,
+                    profile,
+                    asked_before=asked.get(company_key(stored.offer.company), ()),
+                ),
                 old=stored.last_seen_at < old_before,
             )
             for stored in offer_store.list_offers()
         ]
+
+    @app.post("/offers/{offer_id}/language", dependencies=protected)
+    def offer_needs_language(offer_id: int, request: LanguageRequest) -> dict[str, Any]:
+        """The posting asks for a language the user lacks: note it and dismiss the offer.
+
+        The company's other offers are flagged from now on (D69).
+        """
+        language = language_named(request.language)
+        if language is None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, f"not a language: {request.language}"
+            )
+        try:
+            stored = offer_store.set_state(offer_id, OfferState.DISMISSED)
+        except OfferNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown offer") from err
+        company_languages.note(stored.offer.company, language, clock())
+        return {"id": offer_id, "company": stored.offer.company, "language": language}
 
     @app.get("/offers", dependencies=protected, response_model=None)
     def offers_view(request: Request, format: str | None = None) -> Response:

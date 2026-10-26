@@ -1156,3 +1156,47 @@ def test_a_companys_breakdown_says_where_and_under_which_names(
     assert "Includes Arcwell Energy (1)" in page
     assert 'Tres Cantos <span class="muted">(Spain)</span>' in company
     assert '<span class="quiet">Arcwell Energy</span>' in company
+
+
+def test_noting_a_language_dismisses_the_offer_and_flags_the_company(
+    tmp_path: Path, repository: Repository
+) -> None:
+    offers = OfferRepository(repository.session_factory)
+    offers.save(
+        [
+            JobOffer(
+                source=OfferSource.LINKEDIN_ALERT,
+                linkedin_id=f"41000002{n:02d}",
+                title=title,
+                company="Arcwell",
+                location="Utrecht",
+                seen_at=ALERT_DAY,
+            )
+            for n, title in enumerate(["Junior Backend Engineer", "Junior Java Engineer"])
+        ]
+    )
+    (tmp_path / "profile.toml").write_text(
+        'target = ["backend"]\nlanguages = ["spanish", "english"]\n', encoding="utf-8"
+    )
+    with _company_app(tmp_path, repository) as client:
+        page = client.get("/offers", headers=AUTH).text
+        assert 'data-language="Dutch"' in page  # suggested from Utrecht
+        first, second = sorted(
+            client.get("/offers?format=json", headers=AUTH).json(), key=lambda o: o["title"]
+        )
+        assert second["fit"] == "good"
+
+        noted = client.post(
+            f"/offers/{second['id']}/language", headers=AUTH, json={"language": "Nederlands"}
+        )
+        assert noted.json() == {"id": second["id"], "company": "Arcwell", "language": "dutch"}
+
+        rows = {o["id"]: o for o in client.get("/offers?format=json", headers=AUTH).json()}
+        assert rows[second["id"]]["section"] == "dismissed"
+        assert "This company asked for Dutch before" in rows[first["id"]]["fit_reasons"]
+        assert rows[first["id"]]["fit"] == "unlikely"
+
+        bad = client.post(f"/offers/{first['id']}/language", headers=AUTH, json={"language": "x?"})
+        assert bad.status_code == 422
+        gone = client.post("/offers/999/language", headers=AUTH, json={"language": "dutch"})
+        assert gone.status_code == 404

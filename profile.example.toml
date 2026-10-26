@@ -26,6 +26,10 @@ preferred_places = ["lisbon", "porto", "portugal"]
 # Words in a title or company name worth a little extra.
 bonus = ["climate", "energy"]
 
+# Languages you can work in (D69). A job asking for another, or written in one,
+# drops to poor fit. Empty: languages are not judged.
+languages = ["english", "portuguese"]
+
 # Experience per area (D60): a title is judged against the years in its area,
 # not the total, and a title naming several areas uses the lowest. Keep these
 # tables at the end: in TOML, every key after a [table] header belongs to it.

@@ -996,3 +996,33 @@ written in, or by a city: the cities of the user's markets that their
 offers name. On their 1,257 places it found 1,250; the other seven were
 salaries ("€65K-€90K / year") that LinkedIn writes where the place goes,
 which the alert reader now treats as hints, not places.
+
+## D69 - Languages a job asks for
+The user kept seeing good fits for jobs that, once opened, asked for fluent
+Dutch or German, which they do not speak. The profile had no languages and
+the score never looked for them. On their 1,197 offers, 926 (77%) came from
+LinkedIn alerts and had no description at all, so the requirement could not
+be read; of the 271 with one, those naming a language as required showed as
+good fits ("Fluent in English and German", an intern role in Munich).
+
+The profile now lists the languages the candidate can work in. A posting
+asks for a language when a sentence names it with a requirement ("fluent",
+"vloeiend", "verhandlungssicher", "(Dutch only)", "German speaking"), or
+when it is written in it: its description, by the share of common words of
+each language, or its title, by a word for the job ("ontwikkelaar",
+"utvecklare"; not "(m/w/d)", which jobs in Madrid carry too). A sentence
+that offers a choice ("French and/or Spanish", "at least one Nordic language
+(...)") is met by any of them. One that calls it a plus is only noted. A
+language the candidate lacks caps the score as an avoided word does. On the
+user's offers, 21 changed: German, Dutch, French, Nordic and Japanese
+requirements, and postings written in Dutch or Swedish, all now poor fits.
+
+For the alert offers, whose text the app never sees, the user notes it:
+"Needs a language I don't speak" on an offer dismisses it and remembers the
+company and language, suggested from the place (Utrecht: Dutch). The
+company's other offers are then capped, less hard, with "This company asked
+for Dutch before", since another of its postings may be in English. The
+note matches the exact company key, so Siemens' note does not touch Siemens
+Energy. Looking each alert offer up on the web with SearXNG was tried: of
+ten, three or four pages were the same posting and the rest only similar,
+which would give wrong verdicts, so it was not built.

@@ -40,6 +40,7 @@ def test_expected_tables_exist(engine: Engine) -> None:
         "applications",
         "application_aliases",
         "application_threads",
+        "company_languages",
         "events",
         "follow_up_drafts",
         "investigations",

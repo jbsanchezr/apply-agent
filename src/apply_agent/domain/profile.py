@@ -46,6 +46,9 @@ class CandidateProfile(DomainModel):
     preferred_places: Words = ()
     # Words in a title or company name worth a little extra (an industry...).
     bonus: Words = ()
+    # Languages the candidate can work in, such as ("spanish", "english"). A job
+    # asking for another sinks (D69). Empty: languages are not judged.
+    languages: Words = ()
 
     @model_validator(mode="after")
     def _ceiling_not_below_experience(self) -> Self:
