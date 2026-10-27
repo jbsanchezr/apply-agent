@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from html import escape
 from typing import Final
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
 
 from apply_agent.api.jobs import SyncJob
 from apply_agent.domain import (
@@ -400,6 +400,12 @@ def company_url(name: str, context: str | None = None) -> str:
     """Where the company page for ``name`` lives, relative to the app (D64)."""
     url = f"company?name={quote(name, safe='')}"
     return f"{url}&context={quote(context, safe='')}" if context else url
+
+
+def linkedin_jobs_url(keywords: str, location: str | None = None) -> str:
+    """A LinkedIn job search; with ``location``, only in that place or country."""
+    url = f"https://www.linkedin.com/jobs/search/?keywords={quote_plus(keywords)}"
+    return f"{url}&location={quote_plus(location)}" if location else url
 
 
 def company_link(name: str) -> str:

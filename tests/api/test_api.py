@@ -647,7 +647,7 @@ def test_offers_from_alerts_are_checked_against_applications(
         assert "You applied here for Data Analyst" in page
         assert "LinkedIn search is off" in page
         # The alert gave no link, so the page searches LinkedIn for the posting.
-        assert "jobs/search/?keywords=AI+Engineer+Pendulum+Health" in page
+        assert "jobs/search/?keywords=AI+Engineer+Pendulum+Health&amp;location=" in page
 
 
 def test_an_offer_can_be_marked_and_dismissed(tmp_path: Path, repository: Repository) -> None:
@@ -878,6 +878,10 @@ def test_a_search_shows_ranked_results_that_join_the_offers(
         assert '<option value="posted">Newest</option>' in page
         assert "Hide poor fits" in page
         assert 'data-posted="' in page
+        # The same search on LinkedIn, in the place and country chosen.
+        assert "jobs/search/?keywords=python&amp;location=Madrid%2C+Spain" in page
+        other = client.get("/search?what=python&country=nl", headers=AUTH).text
+        assert "jobs/search/?keywords=python&amp;location=Netherlands" in other
         [offer] = client.get("/offers?format=json", headers=AUTH).json()
         assert offer["source"] == "infojobs"
         assert offer["fit_reasons"][0].startswith("The description asks for 2+ years")

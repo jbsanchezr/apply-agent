@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from html import escape
 from typing import Final
-from urllib.parse import quote_plus
 
 from apply_agent.api.jobs import SyncJob
 from apply_agent.api.page import (
@@ -22,6 +21,7 @@ from apply_agent.api.page import (
     SYNC_SCRIPT,
     company_link,
     days_since,
+    linkedin_jobs_url,
     nav,
 )
 from apply_agent.domain.fit import FitLevel, OfferFit
@@ -151,12 +151,14 @@ def rank(view: OfferView) -> tuple[int, float]:
 
 
 def offer_link(view: OfferView) -> str:
-    """The posting itself, or a LinkedIn search for it when the alert gave no link."""
+    """The posting itself, or a LinkedIn search for it when the alert gave no link.
+
+    The search is in the offer's place, as LinkedIn searches by place.
+    """
     offer = view.stored.offer
     if offer.url is not None:
         return offer.url
-    terms = quote_plus(f"{offer.title} {offer.company}")
-    return f"https://www.linkedin.com/jobs/search/?keywords={terms}"
+    return linkedin_jobs_url(f"{offer.title} {offer.company}", offer.location)
 
 
 def _status(match: OfferApplicationMatch) -> str:

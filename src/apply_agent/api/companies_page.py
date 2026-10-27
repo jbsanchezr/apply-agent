@@ -11,11 +11,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape
 from typing import Final
-from urllib.parse import quote_plus
 
 from apply_agent.api.jobs import JobStatus, SyncJob
 from apply_agent.api.offers_page import OfferView, fit_badge, offer_link, rank
-from apply_agent.api.page import STYLE, company_link, company_url, nav
+from apply_agent.api.page import STYLE, company_link, company_url, linkedin_jobs_url, nav
 from apply_agent.domain.fit import FitLevel
 from apply_agent.domain.keys import company_key
 from apply_agent.domain.places import country_of, places_of
@@ -90,7 +89,8 @@ class CompanyRow:
 def _board(row: CompanyRow) -> str:
     target = row.target
     name = _BOARD_NAMES.get(target.board or "", escape(target.board or ""))
-    linkedin = "https://www.linkedin.com/jobs/search/?keywords=" + quote_plus(target.name)
+    # In the group's country ("Netherlands: ASML, ..."), as LinkedIn searches by place.
+    linkedin = linkedin_jobs_url(target.name, country_of(target.group))
     match target.status:
         case BoardStatus.FOUND if target.board and target.slug:
             url = Board(BoardKind(target.board), target.slug).careers_url

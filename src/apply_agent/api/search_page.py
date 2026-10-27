@@ -11,7 +11,7 @@ from html import escape
 from typing import Final
 
 from apply_agent.api.offers_page import OfferView, fit_badge, match_cell, offer_link, rank
-from apply_agent.api.page import STYLE, company_link, nav
+from apply_agent.api.page import STYLE, company_link, linkedin_jobs_url, nav
 from apply_agent.domain.search import COUNTRY_NAMES, JobSearch, SavedSearch, WatchedCompany
 from apply_agent.offers.search import TitleSource
 
@@ -39,6 +39,15 @@ function hidePoor(hide) {
   for (const row of document.querySelectorAll("#result-table tbody tr")) {
     row.hidden = hide && row.dataset.level === "unlikely";
   }
+}
+// The same search on LinkedIn, in the place and country chosen right now.
+function linkedInLink(form) {
+  const url = new URL("https://www.linkedin.com/jobs/search/");
+  url.searchParams.set("keywords", form.what.value.trim());
+  const country = form.country.selectedOptions[0].textContent;
+  const where = form.where.value.trim();
+  url.searchParams.set("location", where ? where + ", " + country : country);
+  document.getElementById("linkedin").href = url;
 }
 function saveSearch(button) {
   send("search/saved", "POST", JSON.parse(button.dataset.search), button);
@@ -118,9 +127,16 @@ def _sources_note(sources: Sequence[TitleSource]) -> str:
     return "".join(parts)
 
 
+def linkedin_location(where: str | None, country: str) -> str:
+    """Where LinkedIn should search: 'Madrid, Spain', or just the country."""
+    return f"{where}, {COUNTRY_NAMES[country]}" if where else COUNTRY_NAMES[country]
+
+
 def _form(search: JobSearch | None, sources: Sequence[TitleSource]) -> str:
     what = search.what if search else None
     country = search.country if search else "es"
+    where = search.where if search else None
+    linkedin = escape(linkedin_jobs_url(what or "", linkedin_location(where, country)), quote=True)
     options = "".join(
         f'<option value="{code}"{" selected" if code == country else ""}>{name}</option>'
         for code, name in sorted(COUNTRY_NAMES.items(), key=lambda item: item[1])
@@ -131,7 +147,7 @@ def _form(search: JobSearch | None, sources: Sequence[TitleSource]) -> str:
 <section id="find">
 <h2>Search by title</h2>
 {note}
-<form method="get" action="search" class="search-form">
+<form method="get" action="search" class="search-form" oninput="linkedInLink(this)">
   <fieldset{disabled}>
   {_input("what", "Title or keywords", what, required="required", placeholder="AI engineer")}
   {_input("where", "Place", search.where if search else None, placeholder="Madrid")}
@@ -149,6 +165,8 @@ def _form(search: JobSearch | None, sources: Sequence[TitleSource]) -> str:
     }
   <button type="submit">Search</button>
   </fieldset>
+  <a id="linkedin" href="{linkedin}" target="_blank"
+     rel="noopener noreferrer">Search on LinkedIn</a>
 </form>
 </section>"""
 
