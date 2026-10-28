@@ -336,7 +336,7 @@ class CompanyResearcher:
         links = {
             "LinkedIn company": "https://www.linkedin.com/search/results/companies/?keywords="
             + quote_plus(name),
-            "Jobs on LinkedIn": "https://www.linkedin.com/jobs/search/?keywords="
+            "Jobs on LinkedIn": "https://www.linkedin.com/jobs/search-results/?keywords="
             + quote_plus(name),
             "More news": "https://news.google.com/search?q="
             + quote_plus(news_query(name, context)),

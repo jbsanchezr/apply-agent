@@ -11,7 +11,7 @@ from html import escape
 from typing import Final
 
 from apply_agent.api.offers_page import OfferView, fit_badge, match_cell, offer_link, rank
-from apply_agent.api.page import STYLE, company_link, linkedin_jobs_url, nav
+from apply_agent.api.page import LINKEDIN_GEO_IDS, STYLE, company_link, linkedin_jobs_url, nav
 from apply_agent.domain.search import COUNTRY_NAMES, JobSearch, SavedSearch, WatchedCompany
 from apply_agent.offers.search import TitleSource
 
@@ -42,11 +42,14 @@ function hidePoor(hide) {
 }
 // The same search on LinkedIn, in the place and country chosen right now.
 function linkedInLink(form) {
-  const url = new URL("https://www.linkedin.com/jobs/search/");
+  const url = new URL("https://www.linkedin.com/jobs/search-results/");
   url.searchParams.set("keywords", form.what.value.trim());
-  const country = form.country.selectedOptions[0].textContent;
+  const option = form.country.selectedOptions[0];
   const where = form.where.value.trim();
-  url.searchParams.set("location", where ? where + ", " + country : country);
+  // LinkedIn follows the country's id and ignores a written place (D72).
+  const country = option.textContent;
+  if (option.dataset.geo) url.searchParams.set("geoId", option.dataset.geo);
+  else url.searchParams.set("location", where ? `${where}, ${country}` : country);
   document.getElementById("linkedin").href = url;
 }
 function saveSearch(button) {
@@ -138,7 +141,8 @@ def _form(search: JobSearch | None, sources: Sequence[TitleSource]) -> str:
     where = search.where if search else None
     linkedin = escape(linkedin_jobs_url(what or "", linkedin_location(where, country)), quote=True)
     options = "".join(
-        f'<option value="{code}"{" selected" if code == country else ""}>{name}</option>'
+        f'<option value="{code}"{" selected" if code == country else ""}'
+        f' data-geo="{LINKEDIN_GEO_IDS.get(name, "")}">{name}</option>'
         for code, name in sorted(COUNTRY_NAMES.items(), key=lambda item: item[1])
     )
     disabled = "" if sources else " disabled"

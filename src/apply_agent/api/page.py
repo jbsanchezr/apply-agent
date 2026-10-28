@@ -25,6 +25,7 @@ from apply_agent.domain import (
     similar_company,
     stage_of,
 )
+from apply_agent.domain.places import country_of
 from apply_agent.storage.repository import ApplicationView
 
 QUIET_COLOUR: Final = "#b45309"
@@ -402,10 +403,40 @@ def company_url(name: str, context: str | None = None) -> str:
     return f"{url}&context={quote(context, safe='')}" if context else url
 
 
+# LinkedIn's ids for countries. Its job search page for signed-in users
+# ignores ``location`` and searches where the profile says; ``geoId`` it
+# follows, so the country goes as its id (D72).
+LINKEDIN_GEO_IDS: Final = {
+    "Austria": "103883259",
+    "Belgium": "100565514",
+    "Canada": "101174742",
+    "Denmark": "104514075",
+    "France": "105015875",
+    "Germany": "101282230",
+    "India": "102713980",
+    "Ireland": "104738515",
+    "Italy": "103350119",
+    "Netherlands": "102890719",
+    "Poland": "105072130",
+    "Portugal": "100364837",
+    "Spain": "105646813",
+    "Sweden": "105117694",
+    "Switzerland": "106693272",
+    "United Kingdom": "101165590",
+    "United States": "103644278",
+}
+
+
 def linkedin_jobs_url(keywords: str, location: str | None = None) -> str:
-    """A LinkedIn job search; with ``location``, only in that place or country."""
-    url = f"https://www.linkedin.com/jobs/search/?keywords={quote_plus(keywords)}"
-    return f"{url}&location={quote_plus(location)}" if location else url
+    """A LinkedIn job search; with ``location``, only in that place's country.
+
+    A country LinkedIn has no id for here goes as text, which LinkedIn may ignore.
+    """
+    url = f"https://www.linkedin.com/jobs/search-results/?keywords={quote_plus(keywords)}"
+    if not location:
+        return url
+    geo_id = LINKEDIN_GEO_IDS.get(country_of(location) or "")
+    return f"{url}&geoId={geo_id}" if geo_id else f"{url}&location={quote_plus(location)}"
 
 
 def company_link(name: str) -> str:

@@ -1080,3 +1080,17 @@ are then read one by one, once, for their description, places and date;
 "Posted 30+ Days Ago" is not taken as a date. Read again later from the
 listing, a posting keeps what its own page said, since the listing's place
 ("2 Locations") and date are coarser.
+
+## D72 - LinkedIn links name the country by its id
+The links to LinkedIn's job search carried the place as `location` (a search
+for a company in the user's London group: "location=United Kingdom"), and
+LinkedIn showed jobs in Utrecht. Signed in, LinkedIn sends `/jobs/search/`
+on to its newer `/jobs/search-results/` page, which ignores `location` and
+searches where the user's profile says they are. It follows `geoId`: on
+2026-10-28 the user opened `/jobs/search-results/?keywords=ASML&geoId=
+101165590` signed in and got jobs in the United Kingdom. So links go to that
+page with the country's `geoId`, for the countries the app's places name;
+the ids are LinkedIn's own, written into the app (`LINKEDIN_GEO_IDS`). Only
+the United Kingdom's was tried. A city is not narrowed further: LinkedIn's
+ids for cities are not published, and the country is what went wrong. A
+country without an id still goes as `location`, which LinkedIn may ignore.
