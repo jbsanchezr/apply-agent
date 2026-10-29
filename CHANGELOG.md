@@ -21,6 +21,11 @@
   Workday cannot be found by name, so the Companies page lets you paste a
   company's careers link; that works for every board the app reads. The
   newest 200 postings of a big employer are read on each sync. See D71.
+* Paste a LinkedIn search: select all on LinkedIn's results page, copy, and
+  paste into the box on the Search page. The postings are shown with their
+  fit and added to Job offers when you say so; the app never contacts
+  LinkedIn. Every company on the Companies page now links to its jobs on
+  LinkedIn, even when its board is read. See D73.
 * A good fit now needs evidence of the years asked: an alert with no
   description and no seniority word is at best possible until you open it.
   Descriptions are read better ("6+ years in engineering", "5+ years as an

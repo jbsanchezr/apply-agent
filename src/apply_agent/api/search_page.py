@@ -52,6 +52,66 @@ function linkedInLink(form) {
   else url.searchParams.set("location", where ? `${where}, ${country}` : country);
   document.getElementById("linkedin").href = url;
 }
+// A LinkedIn results page pasted by the user (D73). Its HTML is sent to the
+// app and never put into this page: what comes back is shown as text.
+let pastedHtml = "";
+async function readPaste(save) {
+  const response = await fetch("offers/paste", {
+    method: "POST", headers: json, body: JSON.stringify({html: pastedHtml, save}),
+  });
+  if (response.ok) return response.json();
+  const detail = (await response.json().catch(() => ({}))).detail;
+  alert(typeof detail === "string" ? detail : "That did not work.");
+  return null;
+}
+function cell(row, text, href) {
+  const td = row.insertCell();
+  if (href) {
+    const a = Object.assign(document.createElement("a"), {href, textContent: text});
+    a.target = "_blank"; a.rel = "noopener noreferrer"; td.append(a);
+  } else td.textContent = text;
+}
+async function pasted(event) {
+  event.preventDefault();
+  const box = event.target, out = document.getElementById("paste-result");
+  out.replaceChildren();
+  pastedHtml = event.clipboardData.getData("text/html");
+  if (!pastedHtml) {
+    box.value = "That paste had no links. Copy the LinkedIn page itself (Ctrl+A, Ctrl+C).";
+    return;
+  }
+  box.value = "Reading the page...";
+  const result = await readPaste(false);
+  if (!result) { box.value = ""; return; }
+  const fresh = result.offers.filter(o => !o.known).length;
+  box.value = `${result.offers.length} offers on the page, ${fresh} new to you` +
+    (result.unreadable ? `; ${result.unreadable} could not be read.` : ".");
+  if (!result.offers.length) return;
+  const table = document.createElement("table");
+  table.createTHead().insertRow().append(...["Fit", "Role", "Company", "Location", ""].map(
+    name => Object.assign(document.createElement("th"), {textContent: name})));
+  const body = table.createTBody();
+  for (const offer of result.offers) {
+    const row = body.insertRow();
+    cell(row, `${offer.fit} ${offer.fit_score}`);
+    cell(row, offer.title, offer.url);
+    cell(row, offer.company);
+    cell(row, offer.location || "-");
+    cell(row, offer.known ? "already in your offers" : "");
+  }
+  const add = Object.assign(document.createElement("button"), {
+    type: "button", textContent: `Add them to Job offers (${fresh} new)`,
+  });
+  add.onclick = async () => {
+    add.disabled = true;
+    const saved = await readPaste(true);
+    add.textContent = saved ? `Added: ${saved.new} new` : "Add them to Job offers";
+    add.disabled = Boolean(saved);
+  };
+  const wrap = Object.assign(document.createElement("div"), {className: "wrap"});
+  wrap.append(table);
+  out.append(add, wrap);
+}
 function saveSearch(button) {
   send("search/saved", "POST", JSON.parse(button.dataset.search), button);
 }
@@ -332,6 +392,8 @@ def render_search(
 .search-form fieldset {{ border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap;
   gap: .6rem; align-items: end; }}
 .search-form {{ display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; margin-top: .6rem; }}
+#paste-box {{ font: inherit; width: 100%; max-width: 46rem; padding: .5rem; }}
+#paste-result button {{ margin-top: .6rem; }}
 .search-form input, .search-form select {{ font: inherit; padding: .35rem .5rem; width: 13rem;
   max-width: 100%; }}
 </style>
@@ -347,6 +409,14 @@ def render_search(
 </header>
 {_form(search, sources)}
 {results_html}
+<section id="paste"><h2>Paste a LinkedIn search</h2>
+<p class="muted">Run the search on LinkedIn (the link above opens it), scroll so the list
+loads, then press Ctrl+A and Ctrl+C on that page and Ctrl+V here. The app reads what you
+copied and never contacts LinkedIn. You see what it read before anything is added.</p>
+<textarea id="paste-box" rows="2" placeholder="Click here and press Ctrl+V"
+  onpaste="pasted(event)" aria-label="Paste a LinkedIn search page"></textarea>
+<div id="paste-result"></div>
+</section>
 <section id="research"><h2>Research a company</h2>
 <p class="muted">Its recent news, how it is hiring, and whom to contact.</p>
 <form method="get" action="company" class="search-form">

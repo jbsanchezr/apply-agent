@@ -866,6 +866,39 @@ def test_without_infojobs_the_page_says_how_to_turn_it_on(
         assert "No title search is set up for Spain" in searched
 
 
+def test_a_pasted_linkedin_search_is_shown_then_added(
+    tmp_path: Path, repository: Repository
+) -> None:
+    html = (
+        '<ul><li><a href="/jobs/view/4481089788/?trackingId=x"><span>AI Engineer</span></a>'
+        "<div>Brisa Systems</div><div>London, England, United Kingdom</div>"
+        "<div>Promoted</div></li></ul>"
+    )
+    with _search_app(tmp_path, repository, infojobs=False) as client:
+        assert "Paste a LinkedIn search" in client.get("/search", headers=AUTH).text
+        preview = client.post("/offers/paste", headers=AUTH, json={"html": html}).json()
+        assert preview["offers"] == [
+            {
+                "title": "AI Engineer",
+                "company": "Brisa Systems",
+                "location": "London, England, United Kingdom",
+                "url": "https://www.linkedin.com/jobs/view/4481089788/",
+                "fit": "possible",
+                "fit_score": 40,
+                "known": False,
+            }
+        ]
+        assert preview["new"] == 0
+        assert client.get("/offers?format=json", headers=AUTH).json() == []
+
+        saved = client.post("/offers/paste", headers=AUTH, json={"html": html, "save": True})
+        assert saved.json()["new"] == 1
+        [offer] = client.get("/offers?format=json", headers=AUTH).json()
+        assert offer["source"] == "linkedin_search"
+        again = client.post("/offers/paste", headers=AUTH, json={"html": html}).json()
+        assert again["offers"][0]["known"] is True
+
+
 def test_a_search_shows_ranked_results_that_join_the_offers(
     tmp_path: Path, repository: Repository
 ) -> None:
@@ -1086,6 +1119,8 @@ def test_a_list_of_companies_is_imported_checked_and_broken_down(
         assert "<strong>1</strong> open" in page
         assert "AI Engineer" in page
         assert "job-boards.greenhouse.io/arcwell" in page
+        # Its jobs on LinkedIn stay a click away though its board is read (D73).
+        assert "search-results/?keywords=Arcwell&amp;geoId=102890719" in page
         assert client.post(f"/companies/{arcwell.id}/confirm", headers=AUTH).status_code == 409
 
         assert client.delete(f"/companies/{arcwell.id}", headers=AUTH).status_code == 200

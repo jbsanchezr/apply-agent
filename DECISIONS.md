@@ -1094,3 +1094,22 @@ the ids are LinkedIn's own, written into the app (`LINKEDIN_GEO_IDS`). Only
 the United Kingdom's was tried. A city is not narrowed further: LinkedIn's
 ids for cities are not published, and the country is what went wrong. A
 country without an id still goes as `location`, which LinkedIn may ignore.
+
+## D73 - A LinkedIn search page the user pastes is read
+The user searches LinkedIn signed in, in their own browser, and wants the
+results ranked like the rest. LinkedIn may not be fetched or scraped by the
+app (D57), so the user copies the page instead: Ctrl+A and Ctrl+C on the
+results, Ctrl+V into a box on the Search page. The browser hands over the
+page's HTML; it is sent to the app (`POST /offers/paste`) and never put into
+the page, and the answer is written as text. Postings are found by their
+`/jobs/view/<id>` links and read from the list item around them: the title,
+the company and the place, the date from `<time>`. The app shows them with
+their fit first and saves them only when asked, as `linkedin_search` offers
+known by their LinkedIn id, so a later alert or paste joins them. The app
+never contacts LinkedIn: what it reads is what the user copied. A copied
+list has no descriptions, so the years asked are unknown and an offer is at
+best a possible fit (D70) until it is opened.
+
+Every company on the Companies page also links to its jobs on LinkedIn,
+whether or not its board is read: a board may not list every opening, and
+the user asked to always have the search a click away.

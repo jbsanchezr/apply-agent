@@ -87,10 +87,18 @@ class CompanyRow:
 
 
 def _board(row: CompanyRow) -> str:
+    """Where its postings are read, and always its jobs on LinkedIn too (D73)."""
     target = row.target
-    name = _BOARD_NAMES.get(target.board or "", escape(target.board or ""))
     # In the group's country ("Netherlands: ASML, ..."), as LinkedIn searches by place.
     linkedin = linkedin_jobs_url(target.name, country_of(target.group))
+    return (
+        f'{_board_status(target)}<div class="linkedin"><a href="{escape(linkedin, quote=True)}"'
+        ' target="_blank" rel="noopener noreferrer">Its jobs on LinkedIn</a></div>'
+    )
+
+
+def _board_status(target: TargetCompany) -> str:
+    name = _BOARD_NAMES.get(target.board or "", escape(target.board or ""))
     match target.status:
         case BoardStatus.FOUND if target.board and target.slug:
             url = Board(BoardKind(target.board), target.slug).careers_url
@@ -119,9 +127,7 @@ def _board(row: CompanyRow) -> str:
                 f'<form class="link-form" onsubmit="return linkBoard(this, {target.id})">'
                 '<input name="url" type="url" required placeholder="https://...">'
                 '<button type="submit">Follow</button></form>'
-                '<span class="muted">Or follow it with a LinkedIn job alert:</span> '
-                f'<a href="{escape(linkedin, quote=True)}" target="_blank" '
-                'rel="noopener noreferrer">its jobs on LinkedIn</a>'
+                '<span class="muted">Or follow it with a LinkedIn job alert:</span>'
             )
 
 
@@ -243,6 +249,7 @@ def render_companies(rows: Sequence[CompanyRow], job: SyncJob | None) -> str:
 <title>Companies</title>
 <style>{STYLE}
 textarea {{ font: inherit; width: 100%; max-width: 46rem; min-height: 6rem; padding: .5rem; }}
+.linkedin {{ margin-top: .3rem; }}
 .link-form {{ display: flex; gap: .3rem; margin: .3rem 0; }}
 .link-form input {{ font: inherit; padding: .2rem .4rem; min-width: 0; flex: 1; }}
 </style>
