@@ -296,13 +296,6 @@ APPLY_AGENT_LINKEDIN_SEARCH_ENABLED=true
 APPLY_AGENT_LINKEDIN_SEARCHES="data engineer @ Madrid; machine learning engineer @ Spain"
 ```
 
-To rank a LinkedIn search you ran yourself, open its results on LinkedIn,
-press Ctrl+A and Ctrl+C, and paste into **Paste a LinkedIn search** on the
-Search page. The app reads the copied page only (it never contacts LinkedIn),
-shows the postings with their fit and adds them to Job offers when you ask.
-The copied list has no descriptions, so they are at best possible fits until
-opened (D73).
-
 ## Searching for jobs
 
 The **Search** page (`/search`) finds offers beyond your alerts (D62, D63):

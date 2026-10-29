@@ -55,7 +55,6 @@ from apply_agent.offers.boards import Board, BoardError, BoardKind, board_from_u
 from apply_agent.offers.company import CompanyResearcher, NewsItem, company_offers, summarize
 from apply_agent.offers.company import make_client as make_company_client
 from apply_agent.offers.investigate import Investigator, run_queued
-from apply_agent.offers.pasted import parse_pasted_search
 from apply_agent.offers.profile import load_profile
 from apply_agent.offers.scanner import OfferScanReport, build_offer_scanner
 from apply_agent.offers.search import (
@@ -104,16 +103,6 @@ class LanguageRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     language: str = Field(min_length=2, max_length=40)
-
-
-class PasteRequest(BaseModel):
-    """Body of ``POST /offers/paste``: a LinkedIn search page as copied from the browser."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    # A whole results page, as HTML, is a few megabytes at most.
-    html: str = Field(min_length=1, max_length=10_000_000)
-    save: bool = False
 
 
 class CareersLinkRequest(BaseModel):
@@ -439,33 +428,6 @@ def create_app(
             raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown offer") from err
         company_languages.note(stored.offer.company, language, clock())
         return {"id": offer_id, "company": stored.offer.company, "language": language}
-
-    @app.post("/offers/paste", dependencies=protected)
-    def paste_search(request: PasteRequest) -> dict[str, Any]:
-        """Offers on a LinkedIn search page the user pasted (D73).
-
-        Without ``save`` it only says what it read, for the user to check; with
-        it, the offers join the others.
-        """
-        page = parse_pasted_search(request.html, clock())
-        known = offer_store.known_keys([o.key for o in page.offers])
-        asked = company_languages.by_company()
-        found = []
-        for offer in page.offers:
-            fit = assess_fit(offer, profile, asked_before=asked.get(company_key(offer.company), ()))
-            found.append(
-                {
-                    "title": offer.title,
-                    "company": offer.company,
-                    "location": offer.location,
-                    "url": offer.url,
-                    "fit": fit.level.value,
-                    "fit_score": fit.score,
-                    "known": offer.key in known,
-                }
-            )
-        new = offer_store.save(page.offers) if request.save else 0
-        return {"offers": found, "unreadable": page.unreadable, "new": new}
 
     @app.get("/offers", dependencies=protected, response_model=None)
     def offers_view(request: Request, format: str | None = None) -> Response:
